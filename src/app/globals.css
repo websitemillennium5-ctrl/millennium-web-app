@@ -1,26 +1,142 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-jakarta);
+  --font-serif: var(--font-instrument);
+  --font-hand: var(--font-caveat);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@theme {
+  --color-ink: #0b1220;
+  --color-ink-soft: #1c2536;
+  --color-muted: #5b6475;
+  --color-line: #e6e8ee;
+  --color-mist: #f5f6f9;
+  --color-sky: #eef3fb;
+  --color-brand: #e3182d;
+  --color-brand-dark: #b80f21;
+  --color-brand-soft: #fdecee;
+  --color-gold: #c9a227;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #ffffff;
+  color: var(--color-ink);
+}
+
+::selection {
+  background: var(--color-brand);
+  color: white;
+}
+
+@utility container-x {
+  width: 100%;
+  max-width: 80rem;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+  @media (width >= 64rem) {
+    padding-inline: 2rem;
+  }
+}
+
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@utility animate-marquee {
+  animation: marquee 45s linear infinite;
+}
+
+@utility animate-marquee-reverse {
+  animation: marquee 35s linear infinite reverse;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@utility animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee,
+  .animate-marquee-reverse,
+  .animate-float {
+    animation: none;
+  }
+}
+
+@keyframes slide-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Student ID badge settling on its lanyard after the card flips */
+@keyframes badge-swing {
+  0% {
+    transform: rotate(7deg);
+  }
+  30% {
+    transform: rotate(-4.5deg);
+  }
+  55% {
+    transform: rotate(2.5deg);
+  }
+  78% {
+    transform: rotate(-1deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+/* Footer night sky */
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes cloud-drift {
+  from {
+    transform: translateX(-4%);
+  }
+  to {
+    transform: translateX(6%);
+  }
+}
+
+@keyframes shooting-star {
+  0% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+  1% {
+    opacity: 1;
+  }
+  7% {
+    opacity: 0;
+    transform: translateX(320px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(320px);
+  }
 }
