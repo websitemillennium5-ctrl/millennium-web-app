@@ -1,7 +1,7 @@
 "use client";
 
 import { useFrame } from "@react-three/fiber";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { Airliner } from "./airliner";
 import { bloomTexture, LightSpillContext } from "./nav-lights";
@@ -510,6 +510,105 @@ function GlassBuilding({
   );
 }
 
+/** Lightbox face for the rooftop billboard, set in the site's own fonts */
+function billboardTexture() {
+  const W = 2048;
+  const H = 400;
+  const c = document.createElement("canvas");
+  c.width = W;
+  c.height = H;
+  const ctx = c.getContext("2d")!;
+  const root = getComputedStyle(document.documentElement);
+  const sans = root.getPropertyValue("--font-jakarta").trim() || "sans-serif";
+  const serif = root.getPropertyValue("--font-instrument").trim() || "serif";
+
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#1a2233");
+  bg.addColorStop(1, "#0d121c");
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // neon red frame
+  ctx.strokeStyle = "#ff4a4a";
+  ctx.lineWidth = 10;
+  ctx.shadowColor = "#ff2a2a";
+  ctx.shadowBlur = 30;
+  ctx.strokeRect(22, 22, W - 44, H - 44);
+
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.shadowColor = "rgba(255,255,255,0.7)";
+  ctx.shadowBlur = 24;
+  ctx.fillStyle = "#ffffff";
+  ctx.font = `600 104px ${sans}`;
+  ctx.fillText("Build your career in aviation", W / 2, 140);
+
+  ctx.shadowColor = "#ff3b3b";
+  ctx.shadowBlur = 36;
+  ctx.fillStyle = "#ff5a5a";
+  ctx.font = `italic 400 112px ${serif}`;
+  ctx.fillText("with Millennium Aviation Academy", W / 2, 278);
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.anisotropy = 16;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+/** Glowing advertising billboard on trusses above the main terminal roof */
+function Billboard({ position }: { position: [number, number, number] }) {
+  const [face, setFace] = useState<THREE.CanvasTexture | null>(null);
+  const halo = useMemo(() => bloomTexture("#ff6a5a"), []);
+  const panel = useRef<THREE.MeshBasicMaterial>(null);
+  useEffect(() => {
+    let tex: THREE.CanvasTexture | null = null;
+    let cancelled = false;
+    // draw once the web fonts are ready so the canvas doesn't bake in a fallback face
+    document.fonts.ready.then(() => {
+      if (cancelled) return;
+      tex = billboardTexture();
+      setFace(tex);
+    });
+    return () => {
+      cancelled = true;
+      tex?.dispose();
+    };
+  }, []);
+  // a slow breathing glow, like a neon sign
+  useFrame(({ clock }) => {
+    if (panel.current) panel.current.color.setScalar(1.05 + Math.sin(clock.elapsedTime * 1.6) * 0.07);
+  });
+
+  const w = 5.2;
+  const h = w * (400 / 2048);
+  const lift = 0.32;
+  return (
+    <group position={position}>
+      {[-w * 0.36, w * 0.36].map((x) => (
+        <mesh key={x} position={[x, lift / 2, -0.04]}>
+          <boxGeometry args={[0.05, lift, 0.05]} />
+          <meshStandardMaterial color="#3b4252" roughness={0.6} metalness={0.5} />
+        </mesh>
+      ))}
+      <mesh position={[0, lift + h / 2, -0.06]}>
+        <boxGeometry args={[w + 0.08, h + 0.08, 0.08]} />
+        <meshStandardMaterial color="#232936" roughness={0.5} metalness={0.6} />
+      </mesh>
+      {face && (
+        <mesh position={[0, lift + h / 2, -0.015]}>
+          <planeGeometry args={[w, h]} />
+          <meshBasicMaterial ref={panel} map={face} toneMapped={false} />
+        </mesh>
+      )}
+      {/* light spilling off the sign into the night air */}
+      <sprite position={[0, lift + h / 2, -0.1]} scale={[w * 1.5, h * 3.2, 1]} renderOrder={2}>
+        <spriteMaterial map={halo} transparent opacity={0.35} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+      </sprite>
+      <pointLight position={[0, lift + h / 2, 0.6]} intensity={1.6} distance={4} decay={1.6} color="#ff8a7a" />
+    </group>
+  );
+}
+
 /** Telescopic jet bridge from the terminal to an aircraft's front door */
 function JetBridge({ from, to }: { from: [number, number]; to: [number, number] }) {
   const dx = to[0] - from[0];
@@ -635,6 +734,7 @@ function Terminal() {
       {/* main terminal and a lower concourse wing */}
       <GlassBuilding position={[-3, 0, -11.1]} size={[13, 0.95, 2.4]} floors={2} seed={5} />
       <GlassBuilding position={[7.2, 0, -12.2]} size={[6, 0.5, 2]} floors={1} seed={9} />
+      <Billboard position={[-1.5, 1.02, -10.6]} />
 
       {STANDS.slice(0, 2).map((x) => (
         <ParkedAirliner key={x} x={x} />

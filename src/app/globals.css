@@ -140,3 +140,120 @@ body {
     transform: translateX(320px);
   }
 }
+
+/* ---------- First-load preloader ---------- */
+html:has(#preloader) {
+  overflow: hidden;
+}
+
+.preloader {
+  transition: clip-path 0.9s cubic-bezier(0.77, 0, 0.18, 1);
+  clip-path: inset(0 0 0 0);
+}
+
+.preloader-leave {
+  clip-path: inset(0 0 100% 0);
+  pointer-events: none;
+}
+
+.preloader-leave .preloader-stage {
+  transform: translateY(-40px) scale(0.92);
+  opacity: 0;
+  transition:
+    transform 0.7s ease,
+    opacity 0.5s ease;
+}
+
+/* the same dawn sky as the hero: pale blue above, warm peach toward the horizon */
+.preloader-sky {
+  background:
+    radial-gradient(ellipse 55% 45% at 50% 42%, rgba(255, 255, 255, 0.9), transparent 70%),
+    radial-gradient(ellipse 80% 50% at 50% 110%, rgba(255, 214, 196, 0.75), transparent 70%),
+    linear-gradient(180deg, #e3ecf9 0%, #eef3fb 45%, #fbeee8 100%);
+}
+
+.preloader-stage {
+  --d: 15rem;
+  width: var(--d);
+  height: var(--d);
+  perspective: 1000px;
+  transform-style: preserve-3d;
+  @media (width >= 40rem) {
+    --d: 18rem;
+  }
+}
+
+/* the planet: atmosphere halo and a soft shadow cast on the sky behind it */
+.preloader-earth {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.6),
+    0 0 28px 6px rgba(120, 180, 255, 0.55),
+    0 0 90px 20px rgba(150, 200, 255, 0.35),
+    0 40px 60px -20px rgba(11, 18, 32, 0.35);
+}
+
+/* equirectangular map (twice as wide as tall) sliding past = the globe turning */
+.preloader-earth-map {
+  background: url("/images/earth.jpg") repeat-x 0 0 / auto 100%;
+  animation: preloader-earth-turn 22s linear infinite;
+}
+
+/* sunlight from the upper left: highlight, day-to-dusk falloff, limb darkening, blue rim */
+.preloader-earth-shade {
+  background:
+    radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.08) 22%, transparent 40%),
+    radial-gradient(circle at 36% 34%, transparent 42%, rgba(4, 10, 30, 0.35) 68%, rgba(2, 6, 20, 0.82) 100%),
+    radial-gradient(circle at 50% 50%, transparent 62%, rgba(110, 170, 255, 0.35) 92%, rgba(170, 210, 255, 0.7) 100%);
+  box-shadow:
+    inset 10px 8px 24px rgba(255, 255, 255, 0.25),
+    inset -24px -20px 46px rgba(0, 4, 18, 0.55);
+}
+
+.preloader-orbit {
+  transform-style: preserve-3d;
+  transform: rotateX(70deg) rotateY(-14deg);
+}
+
+.preloader-orbit-spin {
+  transform-style: preserve-3d;
+  border-radius: 9999px;
+  border: 1.5px dashed rgba(11, 18, 32, 0.18);
+  animation: preloader-spin-z 5s linear infinite;
+}
+
+.preloader-plane {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 6px 8px rgba(11, 18, 32, 0.35));
+}
+
+/* fading red contrail behind the plane, drawn along the orbit */
+.preloader-trail {
+  position: absolute;
+  inset: -1px;
+  border-radius: 9999px;
+  background: conic-gradient(from 270deg, transparent 0deg, rgba(227, 24, 45, 0.9) 90deg, transparent 90.5deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+}
+
+@keyframes preloader-earth-turn {
+  to {
+    background-position: calc(var(--d) * -2) 0;
+  }
+}
+
+@keyframes preloader-spin-z {
+  to {
+    transform: rotateZ(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preloader-earth-map,
+  .preloader-orbit-spin {
+    animation-duration: 60s;
+  }
+}

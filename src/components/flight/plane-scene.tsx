@@ -7,6 +7,7 @@ import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment
 import { Airliner } from "./airliner";
 import { TowBanner } from "./tow-banner";
 import { planeShadowTexture, Runway, SHADOW_SIZE } from "./runway";
+import { SceneWarmup } from "./scene-warmup";
 
 export type Progress = { current: number };
 
@@ -336,6 +337,7 @@ export default function PlaneScene({ progress, active }: { progress: Progress; a
         <Runway progress={progress} groundRef={ground} />
         <FlyingPlane progress={progress} ground={ground} />
       </ResponsiveRig>
+      <SceneWarmup id="hero" />
     </Canvas>
   );
 }

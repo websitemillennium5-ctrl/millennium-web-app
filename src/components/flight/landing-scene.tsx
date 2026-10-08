@@ -9,6 +9,7 @@ import { AircraftLight } from "./nav-lights";
 import { Runway } from "./runway";
 import { Airport } from "./airport";
 import type { Progress } from "./plane-scene";
+import { SceneWarmup } from "./scene-warmup";
 
 /*
  * Night landing that closes the story the hero's take-off starts. Same airliner, same runway:
@@ -298,6 +299,7 @@ export default function LandingScene({
         <LandingPlane progress={progress} ground={ground} />
         <TouchdownSmoke progress={progress} />
       </Rig>
+      <SceneWarmup id="landing" />
     </Canvas>
   );
 }
