@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { bloomTexture } from "./nav-lights";
 import type { Progress } from "./plane-scene";
+import { memo } from "./texture-cache";
 
 /*
  * Runway in its own local space: it runs along +X from X0 to X1, centred on z = 0.
@@ -28,7 +29,7 @@ function rand32(seed: number) {
 }
 
 /** Asphalt, paint and rubber, painted to ICAO-style markings */
-function runwayTexture() {
+function drawRunwayTexture() {
   const PPU = 140; // pixels per world unit
   const W = Math.min(4096, Math.round(LEN * PPU));
   const H = Math.round(WIDTH * PPU);
@@ -164,6 +165,10 @@ function runwayTexture() {
   return tex;
 }
 
+function runwayTexture() {
+  return memo("runwayTexture", () => drawRunwayTexture());
+}
+
 /** Flush-mounted runway light: metal housing, lens and a small bloom */
 function RunwayLight({
   x,
@@ -257,7 +262,7 @@ export function Runway({ progress, groundRef }: { progress: Progress; groundRef?
 export const SHADOW_SIZE = 5; // world units covered by the shadow texture (before plane scale)
 
 /** Top-down silhouette of the airliner, blurred — x along the fuselage, y across the span */
-export function planeShadowTexture() {
+function drawPlaneShadowTexture() {
   const S = 512;
   const k = S / SHADOW_SIZE;
   const canvas = document.createElement("canvas");
@@ -316,4 +321,8 @@ export function planeShadowTexture() {
 
   const tex = new THREE.CanvasTexture(canvas);
   return tex;
+}
+
+export function planeShadowTexture() {
+  return memo("planeShadowTexture", () => drawPlaneShadowTexture());
 }

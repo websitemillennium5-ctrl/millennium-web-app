@@ -6,6 +6,7 @@ import * as THREE from "three";
 import { Airliner } from "./airliner";
 import { bloomTexture, LightSpillContext } from "./nav-lights";
 import type { Progress } from "./plane-scene";
+import { memo } from "./texture-cache";
 
 /*
  * The airfield around the runway at night: turf to the horizon, approach lights with a
@@ -27,7 +28,7 @@ function prng(seed: number) {
   };
 }
 
-function grassTexture() {
+function drawGrassTexture() {
   const S = 512;
   const c = document.createElement("canvas");
   c.width = c.height = S;
@@ -61,12 +62,16 @@ function grassTexture() {
   return tex;
 }
 
+function grassTexture() {
+  return memo("grassTexture", () => drawGrassTexture());
+}
+
 /* Apron in front of the terminal: x from APRON.x0, z from the terminal face toward the taxiway */
 const APRON = { x0: -12, x1: 7, z0: -9.9, z1: -3.0 };
 const STANDS = [-7.5, -3.5, 0.5];
 const PPU = 64;
 
-function apronTexture() {
+function drawApronTexture() {
   const W = Math.round((APRON.x1 - APRON.x0) * PPU);
   const H = Math.round((APRON.z1 - APRON.z0) * PPU);
   const c = document.createElement("canvas");
@@ -155,12 +160,16 @@ function apronTexture() {
   return tex;
 }
 
+function apronTexture() {
+  return memo("apronTexture", () => drawApronTexture());
+}
+
 /**
  * Night view into a glazed terminal: one continuous interior behind the glass (ceiling downlights,
  * shopfronts, gate signs, seating, people), then the glass itself (tint, sky reflection, streaks)
  * and the curtain-wall frame (slim mullions, transoms, structural columns, floor slabs) on top.
  */
-function facadeTexture(width: number, floors: number, seed: number) {
+function drawFacadeTexture(width: number, floors: number, seed: number) {
   const W = 2048;
   const FH = 160;
   const H = FH * floors;
@@ -304,7 +313,11 @@ function facadeTexture(width: number, floors: number, seed: number) {
   return tex;
 }
 
-function signTexture(text: string, fg: string, bg: string) {
+function facadeTexture(width: number, floors: number, seed: number) {
+  return memo(`facadeTexture:${JSON.stringify(width)}:${JSON.stringify(floors)}:${JSON.stringify(seed)}`, () => drawFacadeTexture(width, floors, seed));
+}
+
+function drawSignTexture(text: string, fg: string, bg: string) {
   const c = document.createElement("canvas");
   c.width = 256;
   c.height = 96;
@@ -321,7 +334,11 @@ function signTexture(text: string, fg: string, bg: string) {
   return tex;
 }
 
-function glowTexture() {
+function signTexture(text: string, fg: string, bg: string) {
+  return memo(`signTexture:${JSON.stringify(text)}:${JSON.stringify(fg)}:${JSON.stringify(bg)}`, () => drawSignTexture(text, fg, bg));
+}
+
+function drawGlowTexture() {
   const c = document.createElement("canvas");
   c.width = c.height = 128;
   const ctx = c.getContext("2d")!;
@@ -334,6 +351,10 @@ function glowTexture() {
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
+}
+
+function glowTexture() {
+  return memo("glowTexture", () => drawGlowTexture());
 }
 
 /** A light point seen from a distance: just a bloom sprite */
@@ -866,7 +887,7 @@ function Papi() {
   );
 }
 
-function windsockTexture() {
+function drawWindsockTexture() {
   const c = document.createElement("canvas");
   c.width = 8;
   c.height = 100;
@@ -878,6 +899,10 @@ function windsockTexture() {
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
+}
+
+function windsockTexture() {
+  return memo("windsockTexture", () => drawWindsockTexture());
 }
 
 /** Windsock beside the threshold: striped sleeve on a hinged frame, gently swinging in the breeze */

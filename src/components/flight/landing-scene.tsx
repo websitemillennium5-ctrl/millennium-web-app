@@ -10,6 +10,8 @@ import { Runway } from "./runway";
 import { Airport } from "./airport";
 import type { Progress } from "./plane-scene";
 import { SceneWarmup } from "./scene-warmup";
+import { memo } from "./texture-cache";
+import { AdaptiveResolution, SCENE_DPR, watchContextLoss } from "./scene-gl";
 
 /*
  * Night landing that closes the story the hero's take-off starts. Same airliner, same runway:
@@ -53,7 +55,7 @@ function sample(p: number) {
   return { s: f("s"), y: p >= TOUCHDOWN ? -1.45 : Math.max(-1.45, f("y")), pitch: f("pitch"), roll: f("roll") };
 }
 
-function smokeTexture() {
+function drawSmokeTexture() {
   const c = document.createElement("canvas");
   c.width = c.height = 64;
   const ctx = c.getContext("2d")!;
@@ -66,6 +68,10 @@ function smokeTexture() {
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
+}
+
+function smokeTexture() {
+  return memo("smokeTexture", () => drawSmokeTexture());
 }
 
 /*
@@ -243,14 +249,16 @@ function ProgressSmoother({
   targetRef,
   progressRef,
   landedRef,
+  catchUpRef,
 }: {
   targetRef: Progress;
   progressRef: Progress;
   landedRef: { current: (() => void) | null };
+  catchUpRef?: Progress;
 }) {
   const fired = useRef(false);
   useFrame((_, delta) => {
-    progressRef.current += (targetRef.current - progressRef.current) * (1 - Math.exp(-delta * 3));
+    progressRef.current += (targetRef.current - progressRef.current) * (1 - Math.exp(-delta * (catchUpRef?.current ?? 3)));
     if (targetRef.current < 0.5) fired.current = false;
     if (!fired.current && targetRef.current >= 1 && progressRef.current > 0.997) {
       fired.current = true;
@@ -263,22 +271,28 @@ function ProgressSmoother({
 export default function LandingScene({
   targetRef,
   landedRef,
+  catchUpRef,
   active,
+  onContextLost,
 }: {
   targetRef: Progress;
   /** called once the plane has stopped on the runway */
   landedRef: { current: (() => void) | null };
+  /** how quickly the plane's motion follows the landing clock */
+  catchUpRef?: Progress;
   active: boolean;
+  onContextLost?: () => void;
 }) {
   const ground = useRef(Number.NaN);
   const progress = useRef(0);
   return (
     <Canvas
       frameloop={active ? "always" : "never"}
-      dpr={[1, 2]}
+      dpr={SCENE_DPR}
       camera={{ position: [0, 0.4, 9], fov: 35 }}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       onCreated={({ gl, scene, camera }) => {
+        watchContextLoss(gl, onContextLost);
         camera.lookAt(0, 0, 0);
         const pmrem = new THREE.PMREMGenerator(gl);
         scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
@@ -290,7 +304,7 @@ export default function LandingScene({
       <hemisphereLight args={["#8ea6ff", "#0b1220", 0.45]} />
       <directionalLight position={[-4, 6, 3]} intensity={0.7} color="#c3d0ff" />
       <directionalLight position={[6, 1, -4]} intensity={0.35} color="#ff9e7a" />
-      <ProgressSmoother targetRef={targetRef} progressRef={progress} landedRef={landedRef} />
+      <ProgressSmoother targetRef={targetRef} progressRef={progress} landedRef={landedRef} catchUpRef={catchUpRef} />
       {/* night haze: the airfield fades into the horizon glow */}
       <fog attach="fog" args={["#141b2d", 14, 70]} />
       <Rig>
@@ -299,6 +313,7 @@ export default function LandingScene({
         <LandingPlane progress={progress} ground={ground} />
         <TouchdownSmoke progress={progress} />
       </Rig>
+      <AdaptiveResolution />
       <SceneWarmup id="landing" />
     </Canvas>
   );

@@ -12,6 +12,17 @@ import { NightSky } from "./night-sky";
 const LANDING_MS = 6000;
 // hold on the stopped plane before scrolling on to the footer
 const SETTLE_MS = 1200;
+// glide down to the footer links, seconds
+const GLIDE_S = 2.2;
+// how quickly the plane's motion catches up with the landing clock (higher = snappier)
+const CATCH_UP = 3;
+
+// phones and tablets get a quicker, punchier landing so readers aren't held on the scene
+const MOBILE_QUERY = "(max-width: 1023px)";
+const MOBILE = { landingMs: 1500, settleMs: 100, glideS: 0.9, catchUp: 12 };
+// on mobile the landing starts as soon as the scene begins to come on screen
+const MOBILE_TRIGGER = 0.95;
+const DESKTOP_TRIGGER = 0.6;
 
 const LandingScene = dynamic(() => import("./landing-scene"), { ssr: false });
 
@@ -23,7 +34,11 @@ export function FooterLanding() {
   const band = useRef<HTMLDivElement>(null);
   const target = useRef(0);
   const landed = useRef<(() => void) | null>(null);
+  const catchUp = useRef(CATCH_UP);
   const [inView, setInView] = useState(false);
+  // WebGL context dropped by the browser while off screen: rebuild the canvas when it's next in view
+  const [gl, setGl] = useState({ key: 0, lost: false });
+  if (gl.lost && inView) setGl({ key: gl.key + 1, lost: false });
   const lenis = useLenis();
 
   useEffect(() => {
@@ -32,9 +47,11 @@ export function FooterLanding() {
     // the landing runs on the clock, not the scroll wheel, so it always plays at a natural pace
     let started: number | null = null;
     let raf = 0;
+    // pace for the current landing, picked when it starts
+    let pace = { landingMs: LANDING_MS, settleMs: SETTLE_MS, glideS: GLIDE_S, catchUp: CATCH_UP };
     const tick = (now: number) => {
       if (started === null || started < 0) started = now;
-      target.current = Math.min(1, (now - started) / LANDING_MS);
+      target.current = Math.min(1, (now - started) / pace.landingMs);
       if (target.current < 1) raf = requestAnimationFrame(tick);
     };
     // after touchdown and rollout, glide the page on down to the footer links
@@ -42,17 +59,18 @@ export function FooterLanding() {
     // the scene calls this once the plane has actually rolled to a stop on screen
     landed.current = () => {
       window.clearTimeout(settle);
-      settle = window.setTimeout(scrollToFooter, SETTLE_MS);
+      settle = window.setTimeout(scrollToFooter, pace.settleMs);
     };
     const scrollToFooter = () => {
       const rect = el.getBoundingClientRect();
       // skip if the reader has already left the scene (scrolled back up, or on down to the footer)
-      if (rect.top > window.innerHeight * 0.6 || rect.bottom <= 0) return;
+      const trigger = window.matchMedia(MOBILE_QUERY).matches ? MOBILE_TRIGGER : DESKTOP_TRIGGER;
+      if (rect.top > window.innerHeight * trigger || rect.bottom <= 0) return;
       const bottom = document.documentElement.scrollHeight - window.innerHeight;
       if (window.scrollY >= bottom - 4) return;
       if (lenis) {
         // lock: trackpad momentum still arriving after the reader's last swipe must not cancel the glide
-        lenis.scrollTo(bottom, { duration: 2.2, lock: true, force: true });
+        lenis.scrollTo(bottom, { duration: pace.glideS, lock: true, force: true });
       } else {
         window.scrollTo({ top: bottom, behavior: "smooth" });
       }
@@ -61,7 +79,13 @@ export function FooterLanding() {
       // the scene stays pinned to the viewport for the length of this track
       const rect = el.getBoundingClientRect();
       // auto-trigger the landing as soon as the scene is mostly on screen
-      if (started === null && rect.top <= window.innerHeight * 0.6 && rect.bottom > 0) {
+      const mobile = window.matchMedia(MOBILE_QUERY).matches;
+      const trigger = mobile ? MOBILE_TRIGGER : DESKTOP_TRIGGER;
+      if (started === null && rect.top <= window.innerHeight * trigger && rect.bottom > 0) {
+        pace = mobile
+          ? MOBILE
+          : { landingMs: LANDING_MS, settleMs: SETTLE_MS, glideS: GLIDE_S, catchUp: CATCH_UP };
+        catchUp.current = pace.catchUp;
         raf = requestAnimationFrame(tick);
         started = -1; // claimed; the first tick sets the real start time
       }
@@ -97,7 +121,7 @@ export function FooterLanding() {
         <NightSky />
 
         <div aria-hidden className="absolute inset-0">
-          <LandingScene targetRef={target} landedRef={landed} active={inView} />
+          <LandingScene targetRef={target} landedRef={landed} catchUpRef={catchUp} active={inView} key={gl.key} onContextLost={() => setGl((g) => ({ ...g, lost: true }))} />
         </div>
         {/* runway fades into the footer below */}
         <div

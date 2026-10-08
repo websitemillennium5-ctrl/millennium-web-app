@@ -192,10 +192,14 @@ html:has(#preloader) {
     0 40px 60px -20px rgba(11, 18, 32, 0.35);
 }
 
-/* equirectangular map (twice as wide as tall) sliding past = the globe turning */
+/* equirectangular map (twice as wide as tall), two copies side by side sliding past = the globe
+   turning. Animated with transform so it runs on the compositor and keeps turning even while the
+   main thread is busy building the 3D scenes. */
 .preloader-earth-map {
+  width: calc(var(--d) * 4);
   background: url("/images/earth.jpg") repeat-x 0 0 / auto 100%;
   animation: preloader-earth-turn 22s linear infinite;
+  will-change: transform;
 }
 
 /* sunlight from the upper left: highlight, day-to-dusk falloff, limb darkening, blue rim */
@@ -241,7 +245,7 @@ html:has(#preloader) {
 
 @keyframes preloader-earth-turn {
   to {
-    background-position: calc(var(--d) * -2) 0;
+    transform: translateX(calc(var(--d) * -2));
   }
 }
 

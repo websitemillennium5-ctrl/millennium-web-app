@@ -8,6 +8,8 @@ import { Airliner } from "./airliner";
 import { TowBanner } from "./tow-banner";
 import { planeShadowTexture, Runway, SHADOW_SIZE } from "./runway";
 import { SceneWarmup } from "./scene-warmup";
+import { memo } from "./texture-cache";
+import { AdaptiveResolution, SCENE_DPR, watchContextLoss } from "./scene-gl";
 
 export type Progress = { current: number };
 
@@ -64,7 +66,7 @@ const CLOUD_SHADES = [
 ];
 
 /** A lumpy, soft-edged puff built from overlapping blobs, lit from above */
-function puffTexture(seed: number, shade: { top: string; base: string }) {
+function drawPuffTexture(seed: number, shade: { top: string; base: string }) {
   const S = 256;
   const canvas = document.createElement("canvas");
   canvas.width = S;
@@ -106,6 +108,10 @@ function puffTexture(seed: number, shade: { top: string; base: string }) {
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
+}
+
+function puffTexture(seed: number, shade: { top: string; base: string }) {
+  return memo(`puffTexture:${JSON.stringify(seed)}:${JSON.stringify(shade)}`, () => drawPuffTexture(seed, shade));
 }
 
 function Clouds({ progress }: { progress: Progress }) {
@@ -311,16 +317,25 @@ function CameraRig({ progress }: { progress: Progress }) {
   return null;
 }
 
-export default function PlaneScene({ progress, active }: { progress: Progress; active: boolean }) {
+export default function PlaneScene({
+  progress,
+  active,
+  onContextLost,
+}: {
+  progress: Progress;
+  active: boolean;
+  onContextLost?: () => void;
+}) {
   // world-space height of the runway surface, written by <Runway>, read by the landing gear
   const ground = useRef(Number.NaN);
   return (
     <Canvas
       frameloop={active ? "always" : "never"}
-      dpr={[1, 2]}
+      dpr={SCENE_DPR}
       camera={{ position: [0, 0.4, 9], fov: 35 }}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       onCreated={({ gl, scene }) => {
+        watchContextLoss(gl, onContextLost);
         // studio-style reflections so the paint and metal read as real materials
         const pmrem = new THREE.PMREMGenerator(gl);
         scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
@@ -337,6 +352,7 @@ export default function PlaneScene({ progress, active }: { progress: Progress; a
         <Runway progress={progress} groundRef={ground} />
         <FlyingPlane progress={progress} ground={ground} />
       </ResponsiveRig>
+      <AdaptiveResolution />
       <SceneWarmup id="hero" />
     </Canvas>
   );

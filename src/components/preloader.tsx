@@ -9,7 +9,9 @@ import { PRELOAD_DONE, whenReady } from "@/lib/preload";
 
 // keep the intro on screen long enough to read as deliberate, never long enough to trap anyone
 const MIN_MS = 1400;
+const MIN_MS_RETURNING = 500;
 const MAX_MS = 12000;
+const SEEN_KEY = "millennium:visited";
 const EXIT_MS = 900;
 
 const ROUTES = ["/about", "/courses", "/placements", "/admissions", "/contact"];
@@ -20,6 +22,31 @@ const ROUTES = ["/about", "/courses", "/placements", "/admissions", "/contact"];
  * ready — so the site is smooth from the first scroll. Mounted in the root layout, it runs once per
  * visit; client-side navigation never shows it again.
  */
+/**
+ * Next.js images are lazy by default, so sections further down stay blank until scrolled to (slow on
+ * mobile data). Switch every image on the page to eager and wait until each is downloaded and
+ * decoded, so it paints instantly when it comes into view.
+ */
+function loadAllImages(onProgress: (fraction: number) => void) {
+  const imgs = Array.from(document.images);
+  if (!imgs.length) return Promise.resolve();
+  let count = 0;
+  return Promise.all(
+    imgs.map((img) => {
+      if (img.loading === "lazy") img.loading = "eager";
+      const loaded = img.complete
+        ? Promise.resolve()
+        : new Promise<void>((r) => {
+            img.addEventListener("load", () => r(), { once: true });
+            img.addEventListener("error", () => r(), { once: true });
+          });
+      return loaded
+        .then(() => img.decode().catch(() => {}))
+        .then(() => onProgress(++count / imgs.length));
+    }),
+  );
+}
+
 export function Preloader() {
   const [phase, setPhase] = useState<"loading" | "leaving" | "done">("loading");
   const [shown, setShown] = useState(0);
@@ -40,30 +67,46 @@ export function Preloader() {
   }, [phase, lenis]);
 
   useEffect(() => {
-    const tasks: Promise<unknown>[] = [
-      document.fonts.ready,
-      document.readyState === "complete"
-        ? Promise.resolve()
-        : new Promise((r) => window.addEventListener("load", r, { once: true })),
-      // the footer's night landing is on every page; the hero flight only on the home page
-      whenReady("landing"),
-    ];
-    if (window.location.pathname === "/") tasks.push(whenReady("hero"));
+    // each task carries a weight; images report fractional progress as they arrive
+    const done = new Map<string, number>();
+    const weights: Record<string, number> = { fonts: 1, page: 1, images: 4, landing: 2 };
+    const onHome = window.location.pathname === "/";
+    if (onHome) weights.hero = 2;
+    const total = Object.values(weights).reduce((a, w) => a + w, 0);
+    const report = (key: string, fraction = 1) => {
+      done.set(key, Math.max(done.get(key) ?? 0, fraction));
+      let sum = 0;
+      for (const [k, f] of done) sum += f * weights[k];
+      target.current = Math.max(target.current, sum / total);
+    };
+    const track = (key: string, p: Promise<unknown>) => p.then(() => report(key));
 
-    let settled = 0;
-    tasks.forEach((t) =>
-      t.then(() => {
-        settled += 1;
-        target.current = Math.max(target.current, settled / tasks.length);
-      }),
-    );
+    const tasks = [
+      track("fonts", document.fonts.ready),
+      track(
+        "page",
+        document.readyState === "complete"
+          ? Promise.resolve()
+          : new Promise((r) => window.addEventListener("load", r, { once: true })),
+      ),
+      track("images", loadAllImages((f) => report("images", f))),
+      // the footer's night landing is on every page; the hero flight only on the home page
+      track("landing", whenReady("landing")),
+      ...(onHome ? [track("hero", whenReady("hero"))] : []),
+    ];
+
+    // returning visitors have everything cached, so don't hold them on the intro
+    let returning = false;
+    try {
+      returning = localStorage.getItem(SEEN_KEY) === "1";
+      localStorage.setItem(SEEN_KEY, "1");
+    } catch {}
 
     const started = performance.now();
     let cancelled = false;
-    const all = Promise.all(tasks);
     const timeout = new Promise((r) => window.setTimeout(r, MAX_MS));
-    Promise.race([all, timeout]).then(() => {
-      const wait = Math.max(0, MIN_MS - (performance.now() - started));
+    Promise.race([Promise.all(tasks), timeout]).then(() => {
+      const wait = Math.max(0, (returning ? MIN_MS_RETURNING : MIN_MS) - (performance.now() - started));
       window.setTimeout(() => {
         if (cancelled) return;
         target.current = 1;
@@ -97,6 +140,10 @@ export function Preloader() {
       // with the page settled, quietly fetch the other pages so they open instantly
       const idle = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 300));
       idle(() => ROUTES.forEach((r) => router.prefetch(r)));
+      // cache static assets on the device so the next visit loads from local storage
+      if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/sw.js").catch(() => {});
+      }
     }, EXIT_MS);
     return () => window.clearTimeout(id);
   }, [phase, router]);
@@ -119,8 +166,8 @@ export function Preloader() {
 
       {/* a turning Earth with an airliner on orbit around it */}
       <div aria-hidden className="preloader-stage relative">
-        <div className="preloader-earth absolute inset-0 rounded-full">
-          <div className="preloader-earth-map absolute inset-0 rounded-full" />
+        <div className="preloader-earth absolute inset-0 overflow-hidden rounded-full">
+          <div className="preloader-earth-map absolute inset-y-0 left-0" />
           <div className="preloader-earth-shade absolute inset-0 rounded-full" />
         </div>
         <div className="preloader-orbit absolute -inset-[22%]">

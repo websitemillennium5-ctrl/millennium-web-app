@@ -3,6 +3,7 @@
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
+import { memo } from "./texture-cache";
 import { AircraftLight } from "./nav-lights";
 
 /*
@@ -1002,7 +1003,7 @@ export function Airliner({
   /** world-space height of the runway surface (NaN when there is no ground) */
   ground?: { current: number };
 }) {
-  const assets = useMemo(() => {
+  const assets = memo("airliner", () => {
     const finBounds = { x0: -2.08, x1: -0.5, y0: 0.1, y1: 1.18 };
     return {
       fuselage: fuselageGeometry(),
@@ -1060,7 +1061,7 @@ export function Airliner({
       tyre: tyreTextures(),
       finMap: finTexture(finBounds),
     };
-  }, []);
+  });
 
   const mats = useMemo(
     () => ({

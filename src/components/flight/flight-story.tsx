@@ -109,6 +109,9 @@ export function FlightStory() {
   const progress = useRef(0);
   const [active, setActive] = useState(0);
   const [inView, setInView] = useState(true);
+  // WebGL context dropped by the browser while off screen: rebuild the canvas when it's next in view
+  const [gl, setGl] = useState({ key: 0, lost: false });
+  if (gl.lost && inView) setGl({ key: gl.key + 1, lost: false });
 
   useEffect(() => {
     const el = section.current;
@@ -192,7 +195,7 @@ export function FlightStory() {
 
         {/* 3D scene */}
         <div className="absolute inset-0">
-          <PlaneScene progress={progress} active={inView} />
+          <PlaneScene progress={progress} active={inView} key={gl.key} onContextLost={() => setGl((g) => ({ ...g, lost: true }))} />
         </div>
 
         {/* Story chapters */}
