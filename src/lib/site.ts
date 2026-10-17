@@ -32,14 +32,15 @@ export const nav = [
   { href: "/about", label: "About" },
   { href: "/courses", label: "Courses" },
   { href: "/placements", label: "Placements" },
+  { href: "/airline-jobs", label: "Airline Jobs" },
   { href: "/admissions", label: "Admissions" },
   { href: "/contact", label: "Contact" },
 ];
 
 export const stats = [
-  { value: "200+", label: "Students placed in the last 3 years" },
+  { value: "450+", label: "Students placed in the last 3 years" },
   { value: "15+", label: "Airline & hospitality hiring partners" },
-  { value: "100%", label: "Placement assistance for every student" },
+  { value: "4", label: "Career-focused certification programs" },
   { value: "6–12", label: "Months to a career-ready certification" },
 ];
 
@@ -71,7 +72,7 @@ export const courses: Course[] = [
     duration: "6 – 12 months",
     eligibility: "12th pass, any stream · 17–27 years",
     tagline: "Poise, safety and service for the skies.",
-    highlights: ["In-flight service", "Safety drills", "Grooming", "Spoken English", "First aid", "Interview prep"],
+    highlights: ["In-flight service", "Safety drills", "Grooming", "English Communication", "First aid", "Interview prep"],
     summary:
       "Master the poise, safety know-how and service excellence top airlines look for in their cabin crew.",
     description:
@@ -81,7 +82,7 @@ export const courses: Course[] = [
       "Safety, emergency handling & mock drills",
       "Passenger service & in-flight hospitality",
       "Grooming, deportment & personality development",
-      "Spoken English & communication skills",
+      "English Communication skills",
       "First aid & medical awareness",
       "Airline interview & group discussion training",
     ],
@@ -164,7 +165,7 @@ export const courses: Course[] = [
       "Interview preparation & placement support",
     ],
     roles: ["Retail Sales Associate", "Customer Experience Executive", "Store Operations Associate", "Duty-Free Associate"],
-    recruiters: ["Airport retail", "Leading brand outlets", "Duty-free stores"],
+    recruiters: ["Swarovski", "Swiss Beauty", "Rare Planet", "Starbucks", "Rado", "Rolex", "Giorgio Armani", "Tissot"],
   },
 ];
 
@@ -173,7 +174,7 @@ export const getCourse = (slug: string) => courses.find((c) => c.slug === slug);
 export const advantages = [
   {
     title: "Proven placements",
-    text: "200+ students in just three years have started careers with IndiGo, Air India, Emirates, Qatar Airways and more.",
+    text: "450+ students in just three years have started careers with IndiGo, Air India, Emirates, Qatar Airways and more.",
   },
   {
     title: "Expert mentors",
@@ -207,7 +208,6 @@ export const partners: { name: string; logo: string; bg?: string; tint?: string;
   { name: "Qatar Airways", logo: "/images/partners/qatar-airways.png", bg: "#5c0633", brand: "#5c0633" },
   { name: "Akasa Air", logo: "/images/partners/akasa-air.png", tint: "#fff0e6", brand: "#f26522" },
   { name: "Air India Express", logo: "/images/partners/air-india-express.png", tint: "#fff1e5", brand: "#e04e2a" },
-  { name: "Vistara", logo: "/images/partners/vistara.png", tint: "#f5edf3", brand: "#5f2167" },
   { name: "Etihad Airways", logo: "/images/partners/etihad.png", tint: "#f7f1e6", brand: "#a87c2a" },
   { name: "SpiceJet", logo: "/images/partners/spicejet.png", tint: "#fff5e0", brand: "#e21d25" },
   { name: "AirAsia", logo: "/images/partners/air-asia.png", bg: "#df1d25", brand: "#df1d25" },
@@ -220,6 +220,18 @@ export const partners: { name: string; logo: string; bg?: string; tint?: string;
   { name: "ITC Hotels", logo: "/images/partners/itc-hotels.png", tint: "#f7f1e4", brand: "#8a6d3b" },
   { name: "Radisson", logo: "/images/partners/radisson.png", tint: "#eef5e6", brand: "#1a1a1a" },
   { name: "EaseMyTrip", logo: "/images/partners/easemytrip.png", tint: "#e9f2fd", brand: "#1f5fb4" },
+];
+
+/** Luxury and lifestyle retail brands, shown on the Retail course card (kept out of the airline/hotel partner wall). */
+export const retailBrands: typeof partners = [
+  { name: "Swarovski", logo: "/images/partners/swarovski.png", tint: "#f2f2f2", brand: "#111111" },
+  { name: "Swiss Beauty", logo: "/images/partners/swiss-beauty.png", tint: "#f7eef0", brand: "#111111" },
+  { name: "Rare Planet", logo: "/images/partners/rare-planet.png", tint: "#f4eefa", brand: "#5b2a86" },
+  { name: "Starbucks", logo: "/images/partners/starbucks.png", tint: "#e8f3ee", brand: "#00704a" },
+  { name: "Rado", logo: "/images/partners/rado.png", tint: "#f2f2f2", brand: "#1a1a1a" },
+  { name: "Rolex", logo: "/images/partners/rolex.png", tint: "#e9f3ec", brand: "#006039" },
+  { name: "Giorgio Armani", logo: "/images/partners/armani.png", tint: "#f3f1ec", brand: "#1a1a1a" },
+  { name: "Tissot", logo: "/images/partners/tissot.png", tint: "#fdecec", brand: "#e2001a" },
 ];
 
 /** Photos for the looping About slideshow on the home page — swap in live classroom shots here */
@@ -359,6 +371,6 @@ export const faqs = [
   },
   {
     q: "What makes Millennium different from other institutes?",
-    a: "We focus on practical training, grooming and placement support guided by real industry experts. Our personalised approach and our track record of 200+ placements set us apart.",
+    a: "We focus on practical training, grooming and placement support guided by real industry experts. Our personalised approach and our track record of 450+ placements set us apart.",
   },
 ];

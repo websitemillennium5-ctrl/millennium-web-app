@@ -568,7 +568,7 @@ function billboardTexture() {
   ctx.shadowBlur = 36;
   ctx.fillStyle = "#ff5a5a";
   ctx.font = `italic 400 112px ${serif}`;
-  ctx.fillText("with Millennium Aviation Academy", W / 2, 278);
+  ctx.fillText("with Millennium Airhostess Academy", W / 2, 278);
 
   const tex = new THREE.CanvasTexture(c);
   tex.anisotropy = 16;

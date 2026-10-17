@@ -6,7 +6,7 @@ import { useEffect, useRef } from "react";
 import { useLenis } from "lenis/react";
 import { onPageScroll } from "@/lib/page-scroll";
 import { ArrowRight, BookOpen, BriefcaseBusiness, Check, Clock, GraduationCap } from "lucide-react";
-import { courses, partners } from "@/lib/site";
+import { courses, partners, retailBrands } from "@/lib/site";
 
 // Scroll distance given to each course, in viewport heights (part hold, part transition).
 const STEP_VH = 110;
@@ -16,19 +16,24 @@ const FADE = 0.5;
 const LAST = courses.length - 1;
 
 const PLACEMENT_LOGOS = 8;
-const hotelPartners = new Set(["Taj Hotels", "Marriott", "ITC Hotels", "Radisson", "EaseMyTrip"]);
+// Hotel and VIP lounge brands: the only logos shown on hospitality courses.
+const hotelPartners = new Set(["Taj Hotels", "Marriott", "ITC Hotels", "Radisson"]);
+
+const logoPool = [...partners, ...retailBrands];
 
 // Up to 8 partner logos for a course: its own recruiters first (exact name, then a prefix match such as
-// "Taj" -> "Taj Hotels"), topped up with other partners from the same field, then the rest.
-// Courses with no recruiter logos (retail) return none and fall back to text tags.
+// "Taj" -> "Taj Hotels"), topped up with other brands from the same field only, so hospitality and retail
+// never show airlines.
+// Courses with no recruiter logos return none and fall back to text tags.
 function recruiterLogos(course: (typeof courses)[number]) {
   const own = course.recruiters
-    .map((r) => partners.find((p) => p.name === r) ?? partners.find((p) => p.name.startsWith(r)))
+    .map((r) => logoPool.find((p) => p.name === r) ?? logoPool.find((p) => p.name.startsWith(r)))
     .filter((p): p is (typeof partners)[number] => Boolean(p));
   if (own.length === 0) return [];
   const hotels = course.category === "Hospitality";
-  const sameField = partners.filter((p) => hotelPartners.has(p.name) === hotels);
-  return [...new Set([...own, ...sameField, ...partners])].slice(0, PLACEMENT_LOGOS);
+  const sameField =
+    course.category === "Retail" ? retailBrands : partners.filter((p) => hotelPartners.has(p.name) === hotels);
+  return [...new Set([...own, ...sameField])].slice(0, PLACEMENT_LOGOS);
 }
 
 // One full-screen stage pins (covering the header) while the reader scrolls through every course.

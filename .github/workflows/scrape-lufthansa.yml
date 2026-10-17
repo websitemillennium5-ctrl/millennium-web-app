@@ -1,0 +1,25 @@
+# Worker: refreshes jobs_lufthansa from Lufthansa Group's careers site once a day (staggered with the other airlines).
+name: "Jobs: Lufthansa Group"
+
+on:
+  schedule:
+    - cron: "12 0 * * *" # 00:12 UTC
+  workflow_dispatch:
+
+concurrency: scrape-lufthansa
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node scripts/scrapers/lufthansa.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}

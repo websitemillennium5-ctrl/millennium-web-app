@@ -2,7 +2,6 @@
 
 import { useThree } from "@react-three/fiber";
 import { useEffect } from "react";
-import { signalReady } from "@/lib/preload";
 
 /**
  * Place last inside a <Canvas>: once every sibling has mounted, compiles all of the scene's shaders
@@ -19,7 +18,6 @@ export function SceneWarmup({ id }: { id: string }) {
     const finish = () => {
       if (cancelled) return;
       gl.render(scene, camera);
-      signalReady(id);
     };
     gl.compileAsync(scene, camera).then(finish, finish);
     return () => {

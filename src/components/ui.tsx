@@ -205,7 +205,7 @@ export function PartnerShowcase() {
   const highlights = [
     { value: `${airlines.length}`, label: "Airlines hiring our students", icon: Plane },
     { value: `${hospitality.length}`, label: "Hotel & travel brands", icon: Building2 },
-    { value: "200+", label: "Students placed in 3 years", icon: GraduationCap },
+    { value: "450+", label: "Students placed in 3 years", icon: GraduationCap },
   ];
 
   return (

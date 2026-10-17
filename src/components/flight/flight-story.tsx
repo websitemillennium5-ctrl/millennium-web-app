@@ -24,7 +24,7 @@ const chapters: Chapter[] = [
   {
     start: 0,
     label: "Dream",
-    kicker: "Bihar's oldest aviation academy",
+    kicker: "Bihar's oldest airhostess academy",
     title: (
       <>
         Where dreams <Em>take flight.</Em>
@@ -66,7 +66,7 @@ const chapters: Chapter[] = [
       </>
     ),
     text: "Grooming, communication and personality development sessions transform how you speak, carry yourself and connect with people.",
-    points: ["Grooming & deportment", "Spoken English", "Confidence building"],
+    points: ["Grooming & deportment", "English Communication", "Confidence building"],
   },
   {
     start: 0.68,
@@ -86,7 +86,7 @@ const chapters: Chapter[] = [
     kicker: "05 · Your career",
     title: (
       <>
-        200+ students <Em>now soaring.</Em>
+        450+ students <Em>now soaring.</Em>
       </>
     ),
     text: "Our alumni fly and work with IndiGo, Air India, Emirates, Qatar Airways, Akasa Air and more. You could be next.",

@@ -1,11 +1,6 @@
 import type { Metadata } from "next";
 import { Caveat, Instrument_Serif, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
-import { Header } from "@/components/header";
-import { Footer } from "@/components/footer";
-import { FloatingActions } from "@/components/floating-actions";
-import { SmoothScroll } from "@/components/smooth-scroll";
-import { Preloader } from "@/components/preloader";
 import { site } from "@/lib/site";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -47,14 +42,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${jakarta.variable} ${instrument.variable} ${caveat.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col font-sans">
-        <Preloader />
-        <SmoothScroll />
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
-        <FloatingActions />
-      </body>
+      <body className="flex min-h-full flex-col font-sans">{children}</body>
     </html>
   );
 }

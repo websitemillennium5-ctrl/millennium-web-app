@@ -1,0 +1,25 @@
+# Worker: refreshes jobs_fly91 from Fly91's careers site once a day (staggered with the other airlines).
+name: "Jobs: Fly91"
+
+on:
+  schedule:
+    - cron: "52 0 * * *" # 00:52 UTC
+  workflow_dispatch:
+
+concurrency: scrape-fly91
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node scripts/scrapers/fly91.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}

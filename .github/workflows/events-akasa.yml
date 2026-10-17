@@ -1,0 +1,25 @@
+# Worker: refreshes events_akasa with Akasa Air hiring events once a day (staggered with the other airlines).
+name: "Events: Akasa Air"
+
+on:
+  schedule:
+    - cron: "36 1 * * *" # 01:36 UTC
+  workflow_dispatch:
+
+concurrency: events-akasa
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node scripts/scrapers/events/akasa.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}

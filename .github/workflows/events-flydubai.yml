@@ -1,0 +1,25 @@
+# Worker: refreshes events_flydubai with flydubai hiring events once a day (staggered with the other airlines).
+name: "Events: flydubai"
+
+on:
+  schedule:
+    - cron: "28 1 * * *" # 01:28 UTC
+  workflow_dispatch:
+
+concurrency: events-flydubai
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node scripts/scrapers/events/flydubai.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}

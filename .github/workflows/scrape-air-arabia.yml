@@ -1,0 +1,25 @@
+# Worker: refreshes jobs_air_arabia from Air Arabia's careers site once a day (staggered with the other airlines).
+name: "Jobs: Air Arabia"
+
+on:
+  schedule:
+    - cron: "24 0 * * *" # 00:24 UTC
+  workflow_dispatch:
+
+concurrency: scrape-air-arabia
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node scripts/scrapers/air_arabia.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
