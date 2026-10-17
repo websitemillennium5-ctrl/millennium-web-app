@@ -1,5 +1,6 @@
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { FooterGate } from "@/components/footer-gate";
 import { FloatingActions } from "@/components/floating-actions";
 import { SmoothScroll } from "@/components/smooth-scroll";
 import { SiteBoot } from "@/components/site-boot";
@@ -12,7 +13,9 @@ export default function SiteLayout({ children }: LayoutProps<"/">) {
       <SmoothScroll />
       <Header />
       <main className="flex-1">{children}</main>
-      <Footer />
+      <FooterGate>
+        <Footer />
+      </FooterGate>
       <FloatingActions />
     </>
   );
