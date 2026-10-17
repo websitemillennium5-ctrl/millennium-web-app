@@ -120,7 +120,6 @@ export function ApplyButton({ url, listing }: { url: string; listing: string }) 
           {step === "ask" && (
             <>
               <h2 className="text-xl font-semibold tracking-tight">Are you a Millennium student?</h2>
-              <p className="mt-1 text-sm text-muted">Students get straight through with their student ID.</p>
               <div className="mt-5 space-y-2.5">
                 {[
                   { next: "student" as const, icon: GraduationCap, title: "Yes, I'm a student", text: "Verify with your student ID" },
