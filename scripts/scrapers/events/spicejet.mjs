@@ -15,6 +15,28 @@ function parseDate(text) {
   return `${year.length === 2 ? `20${year}` : year}-${String(month + 1).padStart(2, "0")}-${day.padStart(2, "0")}`;
 }
 
+const CAREERS_EMAIL = "careers@spicejet.com";
+
+/** A pre-filled email draft to SpiceJet careers for one interview date. */
+function applyEmail(city, date) {
+  const day = new Date(`${date}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  const subject = `Application: Cabin Crew interview, ${city} (${day})`;
+  const body = [
+    "Dear SpiceJet Careers Team,",
+    "",
+    `I would like to apply for the Cabin Crew interview in ${city} on ${day}. My CV is attached.`,
+    "",
+    "Name:",
+    "Phone:",
+    "Age:",
+    "Height:",
+    "Qualification:",
+    "",
+    "Thank you.",
+  ].join("\n");
+  return `mailto:${CAREERS_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
 await mainEvents({
   source: "spicejet",
   table: "events_spicejet",
@@ -22,7 +44,6 @@ await mainEvents({
   async scrape() {
     const html = await fetchText(PAGE);
     const eligibility = stripHtml(html.match(/eligibility criteria is listed below:([\s\S]*?)Disclaimer/i)?.[1] ?? "");
-    const apply = stripHtml(html.match(/To register please click on the link([\s\S]*?)<\/(?:p|div)>/i)?.[1] ?? "").match(/https?:\/\/\S+/)?.[0];
     const events = [];
 
     for (const [, table] of html.matchAll(/Cabin Crew Interview [a-z]+ Calendar([\s\S]*?)<\/table>/gi)) {
@@ -43,7 +64,8 @@ await mainEvents({
           venue: parts.join(", ") || null,
           event_date: date,
           event_time: time,
-          apply_url: apply ?? null,
+          // The page's own "register" link is Spice Star Academy's admission form, so applicants email SpiceJet instead
+          apply_url: applyEmail(city, date),
           description: [eligibility && `Freshers and experienced crew. ${eligibility}`].filter(Boolean).join(" "),
         });
       }

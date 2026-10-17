@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-const ROUTES = ["/about", "/courses", "/placements", "/admissions", "/contact"];
+const ROUTES = ["/about", "/courses", "/placements", "/admissions", "/contact", "/airline-jobs"];
 
 /**
  * Once the page has settled, quietly fetch the other pages so they open instantly, and cache static

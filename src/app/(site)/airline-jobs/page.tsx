@@ -6,6 +6,7 @@ import { CtaBand } from "@/components/ui";
 import { EventList } from "@/components/portal/event-list";
 import { JobFilters, JobFiltersSheet, JobFiltersSidebar, JobResultsBar } from "@/components/portal/job-filters";
 import { JobList } from "@/components/portal/job-list";
+import { JobsBoardHeading } from "@/components/portal/jobs-skeleton";
 import { Pagination } from "@/components/portal/pagination";
 import { ScrollReset } from "@/components/portal/scroll-reset";
 
@@ -25,7 +26,7 @@ export default async function AirlineJobsPage({ searchParams }: PageProps<"/airl
   return (
     <>
       <section className="portal container-x pt-28 pb-12 lg:pt-36 lg:pb-16">
-        <h1 className="mb-8 text-center text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Find your next job, free and updated daily</h1>
+        <JobsBoardHeading />
         <ScrollReset key={query.page} />
         <JobFilters basePath="/airline-jobs" query={query} total={total} sidebar />
         <JobFiltersSheet basePath="/airline-jobs" query={query} total={total} />

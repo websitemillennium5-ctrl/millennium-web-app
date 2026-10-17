@@ -1,6 +1,7 @@
 import { ArrowUpRight, CalendarDays, CalendarPlus, Clock, MapPin, UserRound } from "lucide-react";
 import { airlineBrand } from "@/lib/airlines";
 import type { HiringEvent } from "@/lib/data";
+import { emailAddress, isEmailLink, linkProps } from "@/lib/format";
 import { BrandLogo, CardFooter, CardPanel, CardShell, CardTitle, GridCells, GridRow } from "@/components/portal/card-grid";
 import { ApplyButton } from "@/components/portal/apply-button";
 import { Badge, Empty, Meter } from "@/components/portal/ui";
@@ -28,7 +29,11 @@ export function calendarUrl(event: HiringEvent) {
     action: "TEMPLATE",
     text: `${event.brand}: ${event.title}`,
     dates: `${day}/${next}`,
-    details: [event.event_time && `Time: ${event.event_time}`, event.apply_url && `Register: ${event.apply_url}`, event.url]
+    details: [
+      event.event_time && `Time: ${event.event_time}`,
+      event.apply_url && (isEmailLink(event.apply_url) ? `Apply by email: ${emailAddress(event.apply_url)}` : `Register: ${event.apply_url}`),
+      event.url,
+    ]
       .filter(Boolean)
       .join("\n"),
     location: event.venue ?? [event.city, event.country].filter(Boolean).join(", "),
@@ -196,11 +201,11 @@ export function EventList({
                   )}
                   <a
                     href={event.apply_url ?? event.url}
-                    target="_blank"
-                    rel="noreferrer"
+                    {...linkProps(event.apply_url ?? event.url)}
                     className="inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-dark"
                   >
-                    {event.apply_url ? "Register" : "View details"} <ArrowUpRight className="size-3.5" />
+                    {event.apply_url ? (isEmailLink(event.apply_url) ? "Apply by email" : "Register") : "View details"}{" "}
+                    <ArrowUpRight className="size-3.5" />
                   </a>
                 </>
               )}

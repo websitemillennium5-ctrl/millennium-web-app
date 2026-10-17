@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowUpRight, CalendarDays, Clock, Globe, MapPin, Navigation, RefreshCw, UserRound } from "lucide-react";
 import { airlineBrand, roleCategory } from "@/lib/airlines";
 import type { HiringEvent, Job } from "@/lib/data";
-import { formatDate } from "@/lib/format";
+import { formatDate, isEmailLink, linkProps } from "@/lib/format";
 import { sourceLabel } from "@/lib/job-sources";
 import { BrandLogo, CardPanel, GridCells, GridRow } from "@/components/portal/card-grid";
 import { AddToCalendar, DateRail, dateFormat, eventDay, typeLabel } from "@/components/portal/event-list";
@@ -109,8 +109,9 @@ export function EventDetail({
               ) : (
                 <>
                   <AddToCalendar event={event} />
-                  <a href={event.apply_url ?? event.url} target="_blank" rel="noreferrer" className={primaryButton}>
-                    {event.apply_url ? "Register" : "View on airline site"} <ArrowUpRight className="size-3.5" />
+                  <a href={event.apply_url ?? event.url} {...linkProps(event.apply_url ?? event.url)} className={primaryButton}>
+                    {event.apply_url ? (isEmailLink(event.apply_url) ? "Apply by email" : "Register") : "View on airline site"}{" "}
+                    <ArrowUpRight className="size-3.5" />
                   </a>
                 </>
               )}
@@ -185,8 +186,8 @@ export function EventDetail({
             <GridRow label="Next steps">
               <div className="flex flex-wrap gap-2">
                 {event.apply_url && (
-                  <a href={event.apply_url} target="_blank" rel="noreferrer" className={secondaryButton}>
-                    Register online <ArrowUpRight className="size-3.5" />
+                  <a href={event.apply_url} {...linkProps(event.apply_url)} className={secondaryButton}>
+                    {isEmailLink(event.apply_url) ? "Apply by email" : "Register online"} <ArrowUpRight className="size-3.5" />
                   </a>
                 )}
                 <a href={event.url} target="_blank" rel="noreferrer" className={secondaryButton}>

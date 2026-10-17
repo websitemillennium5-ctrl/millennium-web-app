@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { AlertCircle, ArrowUpRight, CheckCircle2, ChevronRight, GraduationCap, Loader2, UserRound, X } from "lucide-react";
 import { createLead, verifyStudentId } from "@/app/actions/leads";
+import { emailAddress, isEmailLink, linkProps } from "@/lib/format";
 import { Field, Input, Select, Textarea } from "@/components/portal/ui";
 
 /** Set once a visitor has verified or shared their details, so later "Apply now" clicks open the link directly. */
@@ -42,7 +43,8 @@ export function ApplyButton({ url, listing }: { url: string; listing: string }) 
 
   const open = () => {
     if (isUnlocked()) {
-      window.open(url, "_blank", "noopener,noreferrer");
+      if (isEmailLink(url)) window.location.href = url;
+      else window.open(url, "_blank", "noopener,noreferrer");
       return;
     }
     setStep("ask");
@@ -230,9 +232,13 @@ export function ApplyButton({ url, listing }: { url: string; listing: string }) 
             <div className="text-center">
               <CheckCircle2 className="mx-auto size-10 text-good" />
               <h2 className="mt-3 text-lg font-semibold tracking-tight">You&apos;re all set</h2>
-              <p className="mt-1 text-sm text-muted">The application opens on the airline&apos;s website. Best of luck!</p>
-              <a href={url} target="_blank" rel="noreferrer" onClick={close} className={`${primary} mt-5 w-full`}>
-                Continue to application <ArrowUpRight className="size-3.5" />
+              <p className="mt-1 text-sm text-muted">
+                {isEmailLink(url)
+                  ? `This airline takes applications by email. A draft to ${emailAddress(url)} will open; attach your CV and send it. Best of luck!`
+                  : "The application opens on the airline's website. Best of luck!"}
+              </p>
+              <a href={url} {...linkProps(url)} onClick={close} className={`${primary} mt-5 w-full`}>
+                {isEmailLink(url) ? "Open email draft" : "Continue to application"} <ArrowUpRight className="size-3.5" />
               </a>
             </div>
           )}
