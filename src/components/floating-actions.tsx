@@ -1,16 +1,21 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight, Briefcase } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { WhatsAppIcon } from "@/components/icons";
 import { whatsappHref } from "@/lib/site";
 
 export function FloatingActions() {
+  // On phones the jobs board puts its Filters button in this corner instead
+  const jobsBoard = usePathname() === "/airline-jobs";
   return (
     <a
       href={whatsappHref()}
       target="_blank"
       rel="noreferrer"
       aria-label="Chat with us on WhatsApp"
-      className="fixed right-5 bottom-5 z-[70] flex size-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg shadow-black/20 transition hover:scale-105"
+      className={`fixed right-5 bottom-5 z-[70] ${jobsBoard ? "hidden lg:flex" : "flex"} size-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg shadow-black/20 transition hover:scale-105`}
     >
       <WhatsAppIcon className="size-7" />
     </a>

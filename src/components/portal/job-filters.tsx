@@ -3,8 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
-import { Check, ChevronDown, Loader2, Search, X } from "lucide-react";
+import { useRef, useTransition } from "react";
+import { Check, ChevronDown, Loader2, Search, SlidersHorizontal, X } from "lucide-react";
 import { airlineBrand, roles, type RoleKey } from "@/lib/airlines";
 import { jobQueryHref, type JobQuery } from "@/lib/job-query";
 import { eventOnlySources, indianSources, jobSources, sourceLabel } from "@/lib/job-sources";
@@ -80,7 +80,18 @@ function useJobNav(basePath: string, query: JobQuery) {
  * "All airlines" plus one toggle chip per airline (multi-select; selected ones get a tick).
  * `compact`: on desktop the chips become a dense checklist (small logo, name, checkbox) for the sidebar.
  */
-function AirlineChips({ query, go, compact }: { query: JobQuery; go: (changes: Partial<JobQuery>) => void; compact?: boolean }) {
+function AirlineChips({
+  query,
+  go,
+  compact,
+  fill,
+}: {
+  query: JobQuery;
+  go: (changes: Partial<JobQuery>) => void;
+  compact?: boolean;
+  fill?: boolean;
+}) {
+  const width = fill ? "w-full min-w-0" : "";
   const all = query.source.length === 0;
   return (
     <>
@@ -88,7 +99,7 @@ function AirlineChips({ query, go, compact }: { query: JobQuery; go: (changes: P
         type="button"
         onClick={() => go({ source: [] })}
         aria-pressed={all}
-        className={`inline-flex h-10 shrink-0 items-center rounded-xl border px-3.5 text-sm transition ${
+        className={`${width} inline-flex h-10 shrink-0 items-center rounded-xl border px-3.5 text-sm transition ${
           all ? "border-ink bg-ink font-medium text-white" : "border-line bg-white text-ink-soft hover:border-ink/25"
         } ${compact ? "lg:h-8 lg:w-full lg:rounded-lg lg:px-2.5 lg:text-[13px]" : ""}`}
       >
@@ -103,7 +114,7 @@ function AirlineChips({ query, go, compact }: { query: JobQuery; go: (changes: P
             type="button"
             onClick={() => go({ source: selected ? query.source.filter((s) => s !== key) : [...query.source, key] })}
             aria-pressed={selected}
-            className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border bg-white py-1 pr-3.5 pl-1.5 text-sm transition ${
+            className={`${width} inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border bg-white py-1 pr-3.5 pl-1.5 text-sm transition ${
               selected ? "border-(--brand) font-medium text-ink ring-2 ring-(--brand-soft)" : "border-line text-ink-soft hover:border-ink/25"
             } ${compact ? `lg:h-8 lg:w-full lg:gap-2.5 lg:rounded-lg lg:border-transparent lg:py-0 lg:pr-2 lg:pl-1.5 lg:text-[13px] lg:ring-0 lg:hover:bg-mist ${selected ? "lg:bg-mist" : ""}` : ""}`}
             style={{ "--brand": brand.color, "--brand-soft": `color-mix(in srgb, ${brand.color} 20%, transparent)` } as React.CSSProperties}
@@ -339,5 +350,91 @@ export function JobResultsBar({ basePath, query, total, eventCount }: { basePath
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Phones (sidebar pages): a floating "Filters" button, bottom right, that opens the sort / date / airline
+ * filters in a bottom sheet. Filters apply as they're tapped; "Show results" just closes the sheet.
+ */
+export function JobFiltersSheet({ basePath, query, total }: { basePath: string; query: JobQuery; total: number }) {
+  const [pending, go] = useJobNav(basePath, query);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const close = () => dialog.current?.close();
+  const applied = query.source.length + (query.posted ? 1 : 0) + (query.sort !== "newest" ? 1 : 0);
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => dialog.current?.showModal()}
+        className="fixed right-5 bottom-5 z-[70] flex h-12 items-center gap-2 rounded-full bg-ink pr-5 pl-4 text-sm font-medium text-white shadow-lg shadow-black/25 transition active:scale-95 lg:hidden"
+      >
+        <SlidersHorizontal className="size-4" />
+        Filters
+        {applied > 0 && (
+          <span className="flex size-5 items-center justify-center rounded-full bg-white text-[11px] font-semibold text-ink">{applied}</span>
+        )}
+      </button>
+
+      <dialog
+        ref={dialog}
+        data-lenis-prevent
+        onClick={(e) => e.target === dialog.current && close()}
+        className="portal mx-0 mt-auto mb-0 max-h-[85dvh] w-full max-w-none rounded-t-3xl bg-white p-0 text-ink shadow-2xl backdrop:bg-ink/30 lg:hidden"
+      >
+        <div className="flex max-h-[85dvh] flex-col">
+          <div className="flex items-center justify-between border-b border-line px-5 py-4">
+            <p className="text-base font-semibold">Filters</p>
+            <button
+              type="button"
+              onClick={close}
+              aria-label="Close"
+              className="rounded-full p-1.5 text-muted transition hover:bg-mist hover:text-ink"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+
+          <div className={`flex-1 overflow-y-auto overscroll-contain px-5 py-4 transition ${pending ? "opacity-70" : ""}`}>
+            <p className={sidebarHeading}>Sort &amp; date</p>
+            <div className="grid grid-cols-2 gap-2">
+              <PillSelect label="Posted" value={query.posted} options={postedLabels} onChange={(posted) => go({ posted })} className="w-full" />
+              <PillSelect
+                label="Sort"
+                value={query.sort}
+                options={{ newest: "Newest", oldest: "Oldest" }}
+                onChange={(sort) => go({ sort })}
+                className="w-full"
+              />
+            </div>
+            <p className={`${sidebarHeading} mt-5`}>Airlines</p>
+            <div className="grid grid-cols-2 gap-2">
+              <AirlineChips query={query} go={go} fill />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 border-t border-line px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            {applied > 0 && (
+              <button
+                type="button"
+                onClick={() => go({ source: [], posted: "", sort: "newest" })}
+                className="text-sm font-medium text-muted hover:text-ink"
+              >
+                Reset
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={close}
+              className="ml-auto inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-ink text-sm font-medium text-white"
+            >
+              {pending && <Loader2 className="size-4 animate-spin" />}
+              Show {total.toLocaleString("en-IN")} {total === 1 ? "job" : "jobs"}
+            </button>
+          </div>
+        </div>
+      </dialog>
+    </>
   );
 }

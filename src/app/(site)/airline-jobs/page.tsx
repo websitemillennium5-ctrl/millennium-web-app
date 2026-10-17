@@ -4,7 +4,7 @@ import { eventMatchesSources, isIndianSource } from "@/lib/job-sources";
 import { JOBS_PAGE_SIZE, jobQueryHref, parseJobQuery } from "@/lib/job-query";
 import { CtaBand } from "@/components/ui";
 import { EventList } from "@/components/portal/event-list";
-import { JobFilters, JobFiltersSidebar, JobResultsBar } from "@/components/portal/job-filters";
+import { JobFilters, JobFiltersSheet, JobFiltersSidebar, JobResultsBar } from "@/components/portal/job-filters";
 import { JobList } from "@/components/portal/job-list";
 import { Pagination } from "@/components/portal/pagination";
 import { ScrollReset } from "@/components/portal/scroll-reset";
@@ -28,9 +28,10 @@ export default async function AirlineJobsPage({ searchParams }: PageProps<"/airl
         <h1 className="mb-8 text-center text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Find your next job, free and updated daily</h1>
         <ScrollReset key={query.page} />
         <JobFilters basePath="/airline-jobs" query={query} total={total} sidebar />
+        <JobFiltersSheet basePath="/airline-jobs" query={query} total={total} />
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start">
           {/* data-lenis-prevent: let the wheel scroll this column instead of the site-wide smooth scroll */}
-          <div data-lenis-prevent className="scrollbar-none min-w-0 lg:sticky lg:top-28 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto lg:overscroll-contain">
+          <div data-lenis-prevent className="scrollbar-none hidden min-w-0 lg:sticky lg:block lg:top-28 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto lg:overscroll-contain">
             <JobFiltersSidebar basePath="/airline-jobs" query={query} />
           </div>
           <div className="min-w-0">
