@@ -20,7 +20,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts
-      - run: node scripts/scrapers/sync-all.mjs
+      # IndiGo (Akamai) and Fly91 block GitHub's US datacenter IPs, so those run elsewhere: `npm run sync:india`.
+      - run: node scripts/scrapers/sync-all.mjs --skip=fly91,events/indigo_cabin_crew,events/indigo_ground_staff
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}

@@ -4,6 +4,7 @@
 //   node --env-file=.env.local scripts/scrapers/sync-all.mjs            → scrape everything and save to Supabase
 //   node scripts/scrapers/sync-all.mjs --dry-run                         → scrape and print counts, no database
 //   node scripts/scrapers/sync-all.mjs emirates events/etihad            → only the named scrapers
+//   node scripts/scrapers/sync-all.mjs --skip=fly91,events/etihad        → everything except the named scrapers
 import { spawn } from "node:child_process";
 import { appendFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -16,10 +17,12 @@ const scripts = (dir) =>
     .filter((f) => f.endsWith(".mjs") && !SKIP.has(f.slice(0, -4)))
     .map((f) => join(dir, f.slice(0, -4)));
 
-const flags = process.argv.slice(2).filter((a) => a.startsWith("--"));
-const only = process.argv.slice(2).filter((a) => !a.startsWith("--"));
+const args = process.argv.slice(2);
+const flags = args.filter((a) => a === "--dry-run"); // passed through to each scraper
+const skip = args.find((a) => a.startsWith("--skip="))?.slice(7).split(",") ?? [];
+const only = args.filter((a) => !a.startsWith("--"));
 const all = [...scripts("."), ...scripts("events")].map((n) => n.replace(/^\.\//, ""));
-const targets = only.length ? all.filter((n) => only.includes(n)) : all;
+const targets = (only.length ? all.filter((n) => only.includes(n)) : all).filter((n) => !skip.includes(n));
 
 /** Runs one scraper, streaming its output with a prefix, and resolves with its exit code and log. */
 function run(name) {
