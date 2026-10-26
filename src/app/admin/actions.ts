@@ -8,7 +8,7 @@ import { requireStaff } from "@/lib/auth";
 import { eventTable, jobTable } from "@/lib/job-sources";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { scrapers } from "@/lib/sync";
+import { localOnlyScrapers } from "@/lib/sync";
 
 const text = (fd: FormData, key: string) => {
   const v = String(fd.get(key) ?? "").trim();
@@ -217,24 +217,18 @@ export async function deleteEvent(fd: FormData) {
 
 // ───────── Listing sync (run by the local worker) ─────────
 
-export async function requestSync(_prev: FormState, fd: FormData): Promise<FormState> {
+/** Queues a sync of the sources only the local worker can reach (the rest sync daily on GitHub). */
+export async function requestSync(): Promise<FormState> {
   const staff = await requireStaff();
-  const known = new Set(scrapers.map((s) => s.name));
-  const picked = fd.getAll("source").map(String).filter((name) => known.has(name));
-  if (picked.length === 0) return { error: "Pick at least one source." };
-
   const supabase = await createClient();
   const { count } = await supabase.from("sync_runs").select("id", { count: "exact", head: true }).in("status", ["queued", "running"]);
-  if (count) return { error: "A sync is already queued or running. Wait for it to finish or cancel it." };
+  if (count) return { error: "A sync is already queued or running." };
 
-  const { error } = await supabase.from("sync_runs").insert({
-    sources: picked.length === known.size ? null : picked,
-    requested_by: staff.id,
-  });
+  const { error } = await supabase.from("sync_runs").insert({ sources: localOnlyScrapers, requested_by: staff.id });
   if (error) return { error: error.message };
 
   revalidatePath("/admin/sync");
-  return { ok: `Sync of ${picked.length} source${picked.length === 1 ? "" : "s"} queued. The worker will start it within a few seconds.` };
+  return { ok: "Sync queued. The worker will start it within a few seconds." };
 }
 
 export async function cancelSync(fd: FormData) {

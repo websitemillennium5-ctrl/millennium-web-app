@@ -27,7 +27,14 @@ export const scraperLabel = (name: string) => {
 };
 
 /** Sites that block GitHub's datacenter IPs, so only the local worker can reach them (also its daily auto-sync). */
-export const localOnlyScrapers = ["fly91", "events/indigo_cabin_crew", "events/indigo_ground_staff"];
+export const localOnlyScrapers = ["events/indigo_cabin_crew", "events/indigo_ground_staff", "fly91"];
+
+/** Everything else is synced daily by .github/workflows/sync-listings.yml. */
+export const GITHUB_REPO = "websitemillennium5-ctrl/millennium-web-app";
+export const GITHUB_WORKFLOW = "sync-listings.yml";
+export const GITHUB_SCHEDULE = "Every day at 6:00 am IST";
+
+export type GithubRun = { status: string; conclusion: string | null; created_at: string; updated_at: string; html_url: string };
 
 export type SyncResult = { name: string; ok: boolean; found: number | null; removed: number | null; seconds: number; error: string };
 
