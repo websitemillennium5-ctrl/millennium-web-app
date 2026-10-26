@@ -9,6 +9,7 @@
     "lint": "eslint",
     "sync": "node --env-file=.env.local scripts/scrapers/sync-all.mjs",
     "sync:india": "node --env-file=.env.local scripts/scrapers/sync-all.mjs fly91 events/indigo_cabin_crew events/indigo_ground_staff",
+    "worker": "node --env-file=.env.local scripts/scrapers/worker.mjs",
     "scrape:emirates": "node --env-file=.env.local scripts/scrapers/emirates.mjs",
     "scrape:qatar-airways": "node --env-file=.env.local scripts/scrapers/qatar_airways.mjs",
     "scrape:etihad": "node --env-file=.env.local scripts/scrapers/etihad.mjs",

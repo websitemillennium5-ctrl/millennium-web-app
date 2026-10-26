@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Briefcase, ChevronRight, House, IndianRupee, LayoutDashboard, Megaphone, ShieldCheck, UserRound, Users } from "lucide-react";
+import { Briefcase, ChevronRight, House, IndianRupee, LayoutDashboard, Megaphone, RefreshCw, ShieldCheck, UserRound, Users } from "lucide-react";
 
 const links = {
   student: [
@@ -16,6 +16,7 @@ const links = {
     { href: "/admin/students", label: "Students", icon: Users },
     { href: "/admin/announcements", label: "Announcements", icon: Megaphone },
     { href: "/admin/jobs", label: "Jobs", icon: Briefcase },
+    { href: "/admin/sync", label: "Sync", icon: RefreshCw },
   ],
 };
 
