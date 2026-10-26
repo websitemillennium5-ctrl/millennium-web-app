@@ -1,0 +1,26 @@
+# Worker: refreshes every airline's jobs_* and events_* table in Supabase once a day via scripts/scrapers/sync-all.mjs.
+# Needs repo secrets NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY. Run it by hand from the Actions tab any time.
+name: "Sync job listings"
+
+on:
+  schedule:
+    - cron: "30 0 * * *" # 00:30 UTC = 06:00 IST
+  workflow_dispatch:
+
+concurrency: sync-listings
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node scripts/scrapers/sync-all.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
