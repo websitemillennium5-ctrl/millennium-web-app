@@ -7,6 +7,8 @@ import {
   ArrowDown,
   ArrowUpRight,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   CircleDashed,
   Clock,
   Cloud,
@@ -166,8 +168,8 @@ function Tile({
         <p className="text-[10.5px] font-semibold tracking-[0.12em] text-muted uppercase">{label}</p>
         <Icon className="size-4 text-muted" strokeWidth={1.75} />
       </div>
-      <p className={`mt-2 text-2xl font-semibold tracking-tight tabular-nums ${color}`}>{value}</p>
-      <p className="mt-0.5 truncate text-[12.5px] text-muted">{hint}</p>
+      <p className={`mt-1.5 text-xl font-semibold tracking-tight tabular-nums ${color}`}>{value}</p>
+      <p className="mt-0.5 truncate text-[12px] text-muted">{hint}</p>
       {meter !== undefined && (
         <div className="absolute inset-x-0 bottom-0 h-1 bg-line">
           <div className={`h-full ${tone === "warn" ? "bg-amber-500" : "bg-good"}`} style={{ width: `${meter * 100}%` }} />
@@ -198,15 +200,15 @@ function Section({
     <section className="overflow-hidden rounded-2xl border border-line bg-white">
       <header className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
         <div className="flex min-w-0 gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-ink text-white">
-            <Icon className="size-[18px]" strokeWidth={1.75} />
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-ink text-white">
+            <Icon className="size-4" strokeWidth={1.75} />
           </span>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <h2 className="font-semibold tracking-tight text-ink">{title}</h2>
+              <h2 className="text-[14px] font-semibold tracking-tight text-ink">{title}</h2>
               {status}
             </div>
-            <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-muted">{text}</p>
+            <p className="mt-0.5 max-w-2xl text-[12px] leading-relaxed text-muted">{text}</p>
           </div>
         </div>
         {action && <div className="shrink-0">{action}</div>}
@@ -289,7 +291,7 @@ function LocalWorker({
       action={
         current ? (
           <form action={cancelSync} className="flex items-center gap-3">
-            <span className="text-[13px] text-muted tabular-nums">
+            <span className="text-[12.5px] text-muted tabular-nums">
               {current.status === "queued" ? "Waiting for worker…" : `${done}/${targets.length} · ${duration(current, now)}`}
             </span>
             <input type="hidden" name="id" value={current.id} />
@@ -331,7 +333,7 @@ function RecentRuns({ runs, now }: { runs: SyncRun[]; now: number }) {
   const dot = { queued: "bg-amber-500", running: "bg-sky-500", done: "bg-good", failed: "bg-red-500", cancelled: "bg-line" };
   return (
     <details className="group border-t border-line">
-      <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-[13px] text-muted transition hover:text-ink sm:px-5">
+      <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-[12.5px] text-muted transition hover:text-ink sm:px-5">
         <span className="flex items-center gap-2">
           Recent runs
           <span className="flex gap-1">
@@ -342,7 +344,7 @@ function RecentRuns({ runs, now }: { runs: SyncRun[]; now: number }) {
         </span>
         <ArrowDown className="size-3.5 transition group-open:rotate-180" />
       </summary>
-      <ul className="divide-y divide-line border-t border-line text-[13px]">
+      <ul className="divide-y divide-line border-t border-line text-[12.5px]">
         {finished.map((run) => {
           const ok = run.results.filter((r) => r.ok).length;
           const found = run.results.reduce((n, r) => n + (r.found ?? 0), 0);
@@ -377,6 +379,12 @@ function CloudSync({ sources, run, passedAt, now }: { sources: SourceStat[]; run
   const [filter, setFilter] = useState<Filter>("all");
   const [sort, setSort] = useState<Sort>("new");
   const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+  // Any change to what's listed starts again from the first page.
+  const refine = <T,>(set: (value: T) => void) => (value: T) => {
+    set(value);
+    setPage(1);
+  };
 
   const stale = sources.filter((s) => isStale(updatedAt(s, passedAt), now));
   const filters: { key: Filter; label: string; count: number }[] = [
@@ -446,8 +454,8 @@ function CloudSync({ sources, run, passedAt, now }: { sources: SourceStat[]; run
             <button
               key={f.key}
               type="button"
-              onClick={() => setFilter(f.key)}
-              className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] transition ${
+              onClick={() => refine(setFilter)(f.key)}
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-[12.5px] transition ${
                 filter === f.key ? "border-ink bg-ink text-white" : "border-line bg-white text-ink-soft hover:border-ink/25 hover:text-ink"
               }`}
             >
@@ -460,18 +468,71 @@ function CloudSync({ sources, run, passedAt, now }: { sources: SourceStat[]; run
           <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted" />
           <input
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={(e) => refine(setQ)(e.target.value)}
             placeholder="Search airlines"
-            className="h-8 w-full rounded-full border border-line bg-white pr-3 pl-8 text-[13px] text-ink outline-none transition placeholder:text-muted/70 focus:border-ink/40 focus:ring-4 focus:ring-ink/5"
+            className="h-8 w-full rounded-full border border-line bg-white pr-3 pl-8 text-[12.5px] text-ink outline-none transition placeholder:text-muted/70 focus:border-ink/40 focus:ring-4 focus:ring-ink/5"
           />
         </label>
       </div>
       {shown.length ? (
-        <SourceTable sources={shown} now={now} fallback={passedAt} sort={sort} onSort={setSort} />
+        <>
+          <SourceTable
+            sources={shown.slice((Math.min(page, pageCount(shown.length)) - 1) * PAGE_SIZE, Math.min(page, pageCount(shown.length)) * PAGE_SIZE)}
+            now={now}
+            fallback={passedAt}
+            sort={sort}
+            onSort={refine(setSort)}
+          />
+          <Pager page={Math.min(page, pageCount(shown.length))} total={shown.length} onPage={setPage} />
+        </>
       ) : (
         <p className="px-5 py-10 text-center text-sm text-muted">No sources match.</p>
       )}
     </Section>
+  );
+}
+
+// ───────── Pagination ─────────
+
+const PAGE_SIZE = 8;
+const pageCount = (total: number) => Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+/** "Showing 1–8 of 18" with previous/next and page numbers, for a list paged in the browser. */
+function Pager({ page, total, onPage }: { page: number; total: number; onPage: (page: number) => void }) {
+  const pages = pageCount(total);
+  const first = (page - 1) * PAGE_SIZE + 1;
+  const last = Math.min(page * PAGE_SIZE, total);
+  const arrow = "flex size-8 items-center justify-center rounded-full border border-line text-ink-soft transition enabled:hover:border-ink/25 enabled:hover:bg-mist enabled:hover:text-ink disabled:opacity-40";
+  return (
+    <nav aria-label="Sources pages" className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3 sm:px-5">
+      <p className="text-[13px] text-muted">
+        Showing <span className="font-medium text-ink">{first}</span>–<span className="font-medium text-ink">{last}</span> of{" "}
+        <span className="font-medium text-ink">{total}</span>
+      </p>
+      {pages > 1 && (
+        <div className="flex items-center gap-1">
+          <button type="button" className={arrow} disabled={page === 1} onClick={() => onPage(page - 1)} aria-label="Previous page">
+            <ChevronLeft className="size-4" />
+          </button>
+          {Array.from({ length: pages }, (_, i) => i + 1).map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => onPage(p)}
+              aria-current={p === page ? "page" : undefined}
+              className={`flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-[13px] tabular-nums transition ${
+                p === page ? "bg-ink font-medium text-white" : "text-ink-soft hover:bg-mist hover:text-ink"
+              }`}
+            >
+              {p}
+            </button>
+          ))}
+          <button type="button" className={arrow} disabled={page === pages} onClick={() => onPage(page + 1)} aria-label="Next page">
+            <ChevronRight className="size-4" />
+          </button>
+        </div>
+      )}
+    </nav>
   );
 }
 
@@ -543,7 +604,7 @@ function SourceTable({
                     <Monogram label={s.label} />
                     <div className="min-w-0">
                       <p className="truncate font-medium text-ink">{s.label}</p>
-                      <p className="text-[12px] text-muted">{s.kind === "events" ? "Hiring events" : "Job openings"}</p>
+                      <p className="text-[11.5px] text-muted">{s.kind === "events" ? "Hiring events" : "Job openings"}</p>
                     </div>
                   </div>
                 </td>
@@ -557,7 +618,7 @@ function SourceTable({
                 </td>
                 <td className="px-3 py-2.5 text-right">
                   {s.added > 0 ? (
-                    <span className="inline-flex items-center rounded-full bg-good/10 px-2 py-0.5 text-[12.5px] font-medium tabular-nums text-good">+{s.added}</span>
+                    <span className="inline-flex items-center rounded-full bg-good/10 px-2 py-0.5 text-[12px] font-medium tabular-nums text-good">+{s.added}</span>
                   ) : (
                     <span className="text-muted">—</span>
                   )}
