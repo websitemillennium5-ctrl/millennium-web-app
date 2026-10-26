@@ -24,8 +24,11 @@ const unlock = () => {
 
 type Step = "ask" | "student" | "details" | "done";
 
-const primary =
-  "inline-flex items-center justify-center gap-1.5 rounded-full bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-dark disabled:opacity-60";
+const primaryBase =
+  "inline-flex items-center justify-center rounded-full bg-accent text-white transition hover:bg-accent-dark disabled:opacity-60";
+const primary = `${primaryBase} gap-1.5 px-4 py-2 text-sm font-medium`;
+// detail pages: the one main action on the page
+const primaryLarge = `${primaryBase} gap-2 px-7 py-3 text-base font-semibold shadow-lg shadow-accent/25 sm:px-8`;
 const secondary =
   "inline-flex items-center justify-center gap-1.5 rounded-full border border-line bg-white px-4 py-2 text-sm font-medium text-ink transition hover:border-ink/25";
 
@@ -33,7 +36,7 @@ const secondary =
  * Public "Apply now": before handing over the airline's link, asks whether the visitor is a Millennium student.
  * Students confirm with their student ID; everyone else (or an unknown ID) shares their details, saved as a lead.
  */
-export function ApplyButton({ url, listing }: { url: string; listing: string }) {
+export function ApplyButton({ url, listing, size = "sm" }: { url: string; listing: string; size?: "sm" | "lg" }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [step, setStep] = useState<Step>("ask");
   const [studentId, setStudentId] = useState("");
@@ -63,7 +66,7 @@ export function ApplyButton({ url, listing }: { url: string; listing: string }) 
     e.preventDefault();
     setError("");
     startTransition(async () => {
-      if (await verifyStudentId(studentId)) finish();
+      if (await verifyStudentId(studentId, { title: listing, url })) finish();
       else {
         // Unknown ID: straight to the details form, which explains why
         setIdMissed(true);
@@ -96,8 +99,12 @@ export function ApplyButton({ url, listing }: { url: string; listing: string }) 
 
   return (
     <>
-      <button type="button" onClick={open} className={primary}>
-        Apply now <ArrowUpRight className="size-3.5" />
+      <button
+        type="button"
+        onClick={open}
+        className={size === "lg" ? primaryLarge : primary}
+      >
+        Apply now <ArrowUpRight className={size === "lg" ? "size-4" : "size-3.5"} />
       </button>
 
       <dialog
@@ -138,7 +145,7 @@ export function ApplyButton({ url, listing }: { url: string; listing: string }) 
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-medium text-ink">{title}</span>
-                      <span className="block text-[13px] text-muted">{text}</span>
+                      <span className="block text-[12.5px] text-muted">{text}</span>
                     </span>
                     <ChevronRight className="size-4 text-muted transition group-hover:translate-x-0.5 group-hover:text-ink" />
                   </button>

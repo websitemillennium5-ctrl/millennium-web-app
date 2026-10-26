@@ -67,7 +67,7 @@ export function SubmitButton({ children, variant = "primary" }: { children: Reac
 }
 
 /** Confirm before submitting a destructive form (e.g. delete). With `icon`, renders as a round outlined icon button. */
-export function ConfirmButton({ children, message, icon }: { children: React.ReactNode; message: string; icon?: React.ReactNode }) {
+export function ConfirmButton({ children, message, icon, className }: { children: React.ReactNode; message: string; icon?: React.ReactNode; className?: string }) {
   const { pending } = useFormStatus();
   return (
     <button
@@ -79,9 +79,10 @@ export function ConfirmButton({ children, message, icon }: { children: React.Rea
         if (!confirm(message)) e.preventDefault();
       }}
       className={
-        icon
-          ? "flex size-9 items-center justify-center rounded-full border border-line text-ink-soft transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-60"
-          : "rounded-full px-3 py-1.5 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-60"
+        className ??
+        (icon
+          ? "flex size-8 items-center justify-center rounded-full border border-line text-ink-soft transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-60"
+          : "rounded-full px-2.5 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-60")
       }
     >
       {icon ?? children}
@@ -98,7 +99,7 @@ export function IconSubmit({ label, children, active }: { label: string; childre
       disabled={pending}
       aria-label={label}
       title={label}
-      className={`flex size-9 items-center justify-center rounded-full border transition disabled:opacity-60 ${
+      className={`flex size-8 items-center justify-center rounded-full border transition disabled:opacity-60 ${
         active ? "border-ink bg-ink text-white" : "border-line text-ink-soft hover:border-ink/25 hover:bg-mist hover:text-ink"
       }`}
     >

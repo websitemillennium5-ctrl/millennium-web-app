@@ -9,7 +9,7 @@ export function JobsBoardHeading() {
 
 // Default corner radius only when the caller doesn't set one (two rounded-* classes would fight)
 const Bone = ({ className = "" }: { className?: string }) => (
-  <div className={`animate-pulse bg-mist ${className.includes("rounded") ? "" : "rounded-md"} ${className}`} />
+  <div className={`animate-shimmer bg-mist ${className.includes("rounded") ? "" : "rounded-md"} ${className}`} />
 );
 
 function CardSkeleton() {
@@ -48,6 +48,17 @@ function CardSkeleton() {
   );
 }
 
+/** Placeholder job cards, shown in place of the results while a filter change loads. */
+export function JobCardsSkeleton({ count = 3 }: { count?: number }) {
+  return (
+    <ul aria-busy="true" aria-label="Loading jobs" className="space-y-4">
+      {Array.from({ length: count }, (_, i) => (
+        <CardSkeleton key={i} />
+      ))}
+    </ul>
+  );
+}
+
 export function JobsBoardSkeleton() {
   return (
     <section aria-busy="true" aria-label="Loading jobs" className="portal container-x pt-28 pb-12 lg:pt-36 lg:pb-16">
@@ -75,11 +86,7 @@ export function JobsBoardSkeleton() {
         </div>
         <div className="min-w-0">
           <Bone className="mb-4 h-4 w-56" />
-          <ul className="space-y-4">
-            <CardSkeleton />
-            <CardSkeleton />
-            <CardSkeleton />
-          </ul>
+          <JobCardsSkeleton />
         </div>
       </div>
     </section>

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { FormState } from "@/app/actions/auth";
 import { requireStaff } from "@/lib/auth";
+import { leadStatuses } from "@/lib/leads";
 import { eventTable, jobTable } from "@/lib/job-sources";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -179,6 +180,23 @@ export async function deleteAnnouncement(fd: FormData) {
   const supabase = await createClient();
   await supabase.from("announcements").delete().eq("id", String(fd.get("id")));
   revalidatePath("/admin/announcements");
+}
+
+// ───────── Leads ─────────
+
+export async function updateLeadStatus(id: string, status: string) {
+  await requireStaff();
+  if (!leadStatuses.some((s) => s.value === status)) return;
+  const supabase = await createClient();
+  await supabase.from("leads").update({ status }).eq("id", id);
+  revalidatePath("/admin/leads");
+}
+
+export async function deleteLead(fd: FormData) {
+  await requireStaff();
+  const supabase = await createClient();
+  await supabase.from("leads").delete().eq("id", String(fd.get("id")));
+  revalidatePath("/admin/leads");
 }
 
 // ───────── Jobs ─────────

@@ -67,7 +67,7 @@ export function PortalShell({ portal, profile, children }: { portal: "student" |
           <div className="mt-4 flex items-center gap-3 border-t border-line px-2 pt-4">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-white">{initials}</span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] font-medium text-ink">{profile.full_name || profile.email}</p>
+              <p className="truncate text-[12.5px] font-medium text-ink">{profile.full_name || profile.email}</p>
               <p className="flex items-center gap-1.5 truncate text-xs text-muted">
                 <span className="size-1.5 rounded-full bg-good/100" />
                 {roleLabel}
@@ -81,10 +81,10 @@ export function PortalShell({ portal, profile, children }: { portal: "student" |
 
       {/* White content panel */}
       <div className="flex min-w-0 flex-1 flex-col bg-white lg:my-3 lg:min-h-0 lg:mr-3 lg:overflow-hidden lg:rounded-[1.25rem] lg:border lg:border-line">
-        <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-line px-4 sm:px-6">
+        <header className="flex h-12 shrink-0 items-center justify-between gap-4 border-b border-line px-4 sm:px-6">
           <Breadcrumbs portal={portal} />
           <div className="flex items-center gap-1">
-            <span className="mr-2 hidden items-center gap-2 rounded-full border border-line px-3 py-1 text-[13px] text-muted sm:flex">
+            <span className="mr-2 hidden items-center gap-2 rounded-full border border-line px-3 py-1 text-[12.5px] text-muted sm:flex">
               <span className="size-1.5 rounded-full bg-good" />
               <span className="font-medium text-ink">{roleLabel}</span> portal
             </span>
@@ -96,7 +96,7 @@ export function PortalShell({ portal, profile, children }: { portal: "student" |
             </IconButton>
           </div>
         </header>
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:min-h-0 lg:overflow-y-auto lg:py-7">
+        <main className="flex-1 px-4 py-5 sm:px-6 lg:min-h-0 lg:overflow-y-auto lg:py-6">
           <div className="mx-auto max-w-6xl">{children}</div>
         </main>
       </div>

@@ -10,7 +10,7 @@ import { Meter } from "@/components/portal/ui";
 const relative = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 
 /** "Today", "3 days ago", "2 months ago". */
-function ago(value: string) {
+export function ago(value: string) {
   const days = Math.round((new Date(value).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 86_400_000);
   const text = Math.abs(days) < 45 ? relative.format(days, "day") : relative.format(Math.round(days / 30), "month");
   return text.charAt(0).toUpperCase() + text.slice(1);

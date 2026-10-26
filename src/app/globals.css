@@ -7,19 +7,20 @@
 }
 
 @theme {
-  --color-ink: #0b1220;
-  --color-ink-soft: #1c2536;
-  --color-muted: #5b6475;
-  --color-line: #e6e8ee;
-  --color-mist: #f5f6f9;
-  --color-sky: #eef3fb;
-  --color-brand: #e3182d;
-  --color-brand-dark: #b80f21;
-  --color-brand-soft: #fdecee;
-  --color-gold: #c9a227;
-  --color-canvas: #fafaf8;
-  --color-accent: #e3182d;
-  --color-accent-dark: #b80f21;
+  /* Logo colours: navy #17283E and red #A7222D. Theme: cream #F2EEE4 and sand #D9C4A0. */
+  --color-ink: #17283e;
+  --color-ink-soft: #263a55;
+  --color-muted: #5f6a78;
+  --color-line: #e2d8c5;
+  --color-mist: #f7f4ec;
+  --color-sky: #e9e1cf;
+  --color-brand: #a7222d;
+  --color-brand-dark: #861b24;
+  --color-brand-soft: #f5e4e1;
+  --color-gold: #d9c4a0;
+  --color-canvas: #f2eee4;
+  --color-accent: #a7222d;
+  --color-accent-dark: #861b24;
   --color-good: #3a8a3f;
 }
 
@@ -34,10 +35,23 @@
   --color-brand: #3f3f46;
   --color-brand-dark: #18181b;
   --color-brand-soft: #f4f4f5;
+  --color-canvas: #f4f4f5;
+
+  /* Compact density: a smaller type scale and ~10% tighter spacing than the marketing site.
+     Every text-*, p-*, gap-*, size-* utility reads these, so the whole portal shrinks evenly. */
+  --spacing: 0.225rem;
+  --text-xs: 0.71875rem; /* 11.5px */
+  --text-sm: 0.8125rem; /* 13px */
+  --text-base: 0.875rem; /* 14px */
+  --text-lg: 0.96875rem; /* 15.5px */
+  --text-xl: 1.0625rem; /* 17px */
+  --text-2xl: 1.25rem; /* 20px */
+  --text-3xl: 1.5rem; /* 24px */
+  font-size: var(--text-base);
 }
 
 body {
-  background: #ffffff;
+  background: var(--color-canvas);
   color: var(--color-ink);
 }
 
@@ -126,6 +140,29 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .animate-meter-wave {
     animation-duration: 2.4s;
+  }
+}
+
+/* Skeleton "shine": a soft highlight sweeps across each placeholder bone */
+@keyframes shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+
+@utility animate-shimmer {
+  background-image: linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 0.75) 50%, transparent 70%);
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-shimmer {
+    animation-duration: 3s;
   }
 }
 

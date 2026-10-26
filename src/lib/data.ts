@@ -1,5 +1,6 @@
 import { roles } from "@/lib/airlines";
 import type { Profile } from "@/lib/auth";
+import type { LeadStatus } from "@/lib/leads";
 import { JOBS_PAGE_SIZE, type JobQuery } from "@/lib/job-query";
 import { STUDENTS_PAGE_SIZE, type StudentQuery } from "@/lib/student-query";
 import { createClient } from "@/lib/supabase/server";
@@ -37,6 +38,32 @@ export type HiringEvent = {
   is_active: boolean;
   scraped_at: string;
 };
+
+export type Lead = {
+  id: string;
+  name: string;
+  phone: string;
+  email: string | null;
+  city: string | null;
+  experience: string | null;
+  experience_details: string | null;
+  course: string | null;
+  message: string | null;
+  source: string;
+  listing_title: string | null;
+  listing_url: string | null;
+  student_id_tried: string | null;
+  status: LeadStatus;
+  created_at: string;
+};
+
+/** Website leads (enquiries and jobs-page applicants), newest first. RLS limits this to staff. Filtering is done
+ *  by the page, since the list is small and the status tabs need counts across all of it. */
+export async function getLeads() {
+  const supabase = await createClient();
+  const { data } = await supabase.from("leads").select("*").order("created_at", { ascending: false }).limit(1000);
+  return ((data ?? []) as Lead[]).map((l) => ({ ...l, status: l.status ?? "new" }));
+}
 
 /** Fee payments for one student plus the paid/due totals. RLS limits students to their own rows. */
 export async function getFees(studentId: string, feeTotal: number) {
@@ -111,6 +138,25 @@ export async function searchStudents(query: StudentQuery) {
     students: (data ?? []).map((r) => ({ ...r, paid: Number(r.paid), due: Number(r.due), fee_total: Number(r.fee_total) })) as StudentRow[],
     total,
     pageCount: Math.max(1, Math.ceil(total / STUDENTS_PAGE_SIZE)),
+  };
+}
+
+/** Unfiltered roll-up for the student list's summary strip and course tabs. */
+export async function getStudentSummary() {
+  const supabase = await createClient();
+  const { data } = await supabase.from("student_overview").select("course_slug, due, joined_on");
+  const rows = (data ?? []).map((r) => ({ ...r, due: Number(r.due) }));
+  const since = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10);
+  const owing = rows.filter((r) => r.due > 0);
+  const byCourse: Record<string, number> = {};
+  for (const r of rows) if (r.course_slug) byCourse[r.course_slug] = (byCourse[r.course_slug] ?? 0) + 1;
+  return {
+    total: rows.length,
+    owing: owing.length,
+    dueAmount: owing.reduce((s, r) => s + r.due, 0),
+    paid: rows.length - owing.length,
+    recent: rows.filter((r) => r.joined_on >= since).length,
+    byCourse,
   };
 }
 

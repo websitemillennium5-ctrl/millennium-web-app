@@ -65,7 +65,7 @@ export function DateRail({ event }: { event: HiringEvent }) {
       <>
         <p className="text-2xl font-semibold tracking-tight text-ink">{online ? "Online" : "TBA"}</p>
         <Meter value={online ? 1 : 0} tone="ink" />
-        <p className="text-[13px] font-medium text-muted">{online ? "Apply any time" : "Date to be announced"}</p>
+        <p className="text-[12.5px] font-medium text-muted">{online ? "Apply any time" : "Date to be announced"}</p>
       </>
     );
   }
@@ -79,7 +79,7 @@ export function DateRail({ event }: { event: HiringEvent }) {
         <span className="text-sm tracking-[0.12em] uppercase">{monthFormat.format(date)}</span>
       </p>
       <Meter value={Math.max(1 - days / 30, 0.1)} tone={soon ? "good" : "ink"} />
-      <p className={`text-[13px] font-medium ${soon ? "text-good" : "text-muted"}`}>
+      <p className={`text-[12.5px] font-medium ${soon ? "text-good" : "text-muted"}`}>
         {days <= 0 ? "Today" : days === 1 ? "Tomorrow" : `In ${days} days`} · {weekdayFormat.format(date)}
       </p>
     </>
@@ -118,7 +118,7 @@ export function EventList({
                     <CardTitle href={basePath && eventHref(basePath, event)}>{event.title}</CardTitle>
                     {!event.is_active && <Badge>Hidden</Badge>}
                   </div>
-                  <p className="mt-0.5 text-[13px] text-muted">
+                  <p className="mt-0.5 text-[12.5px] text-muted">
                     <span className="font-medium" style={{ color: brand.color }}>
                       {event.brand}
                     </span>
@@ -126,7 +126,7 @@ export function EventList({
                     {typeLabel[event.event_type]}
                   </p>
                   {place && (
-                    <p className="mt-2 flex items-center gap-1.5 text-[13px] text-ink-soft">
+                    <p className="mt-2 flex items-center gap-1.5 text-[12.5px] text-ink-soft">
                       <MapPin className="size-3.5 shrink-0 text-muted" strokeWidth={1.75} />
                       <span className="truncate">{place}</span>
                     </p>
@@ -172,12 +172,12 @@ export function EventList({
               </GridRow>
               {event.venue && (
                 <GridRow label="Venue">
-                  <p className="line-clamp-2 text-[13px] leading-relaxed text-ink-soft sm:line-clamp-none">{event.venue}</p>
+                  <p className="line-clamp-2 text-[12.5px] leading-relaxed text-ink-soft sm:line-clamp-none">{event.venue}</p>
                 </GridRow>
               )}
               {event.description && (
                 <GridRow label="What to know">
-                  <p className="line-clamp-3 text-[13px] leading-relaxed text-ink-soft">{event.description}</p>
+                  <p className="line-clamp-3 text-[12.5px] leading-relaxed text-ink-soft">{event.description}</p>
                 </GridRow>
               )}
             </CardPanel>

@@ -54,7 +54,7 @@ export default async function StudentDashboard() {
                     {a.pinned && <Pin className="size-3.5 text-ink" />}
                     <h3 className="text-sm font-medium text-ink">{a.title}</h3>
                   </div>
-                  {a.body && <p className="mt-1 text-[13px] leading-relaxed whitespace-pre-line text-muted">{a.body}</p>}
+                  {a.body && <p className="mt-1 text-[12.5px] leading-relaxed whitespace-pre-line text-muted">{a.body}</p>}
                   <span className="mt-2 inline-flex rounded-md border border-line bg-mist px-1.5 py-0.5 text-xs text-ink-soft">{formatDate(a.created_at)}</span>
                 </li>
               ))}
@@ -65,7 +65,7 @@ export default async function StudentDashboard() {
         <div className="space-y-5 lg:col-span-2">
           {course && (
             <Card title="Your programme">
-              <p className="text-[13px] leading-relaxed text-muted">{course.summary}</p>
+              <p className="text-[12.5px] leading-relaxed text-muted">{course.summary}</p>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {course.modules.slice(0, 6).map((m) => (
                   <span key={m} className="rounded-md border border-line bg-mist px-1.5 py-0.5 text-xs text-ink-soft">
@@ -78,7 +78,7 @@ export default async function StudentDashboard() {
           <Card
             title="Latest airline jobs"
             action={
-              <Link href="/student/jobs" className="text-[13px] font-medium text-ink hover:underline">
+              <Link href="/student/jobs" className="text-[12.5px] font-medium text-ink hover:underline">
                 View all
               </Link>
             }
@@ -92,7 +92,7 @@ export default async function StudentDashboard() {
                     <a href={j.url} target="_blank" rel="noreferrer" className="group flex items-start justify-between gap-3">
                       <span>
                         <span className="block text-sm font-medium text-ink group-hover:underline">{j.title}</span>
-                        <span className="text-[13px] text-muted">
+                        <span className="text-[12.5px] text-muted">
                           {j.company}
                           {j.location && ` · ${j.location}`}
                         </span>

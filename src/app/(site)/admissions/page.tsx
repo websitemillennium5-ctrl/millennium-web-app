@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { BadgeIndianRupee, CheckCircle2, FileCheck2, Home } from "lucide-react";
+import { BadgeIndianRupee, CheckCircle2, FileCheck2, Home, Phone } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons";
 import { Accent, HeroAccent, ButtonLink, CtaBand, FaqList, PageHero, SectionHeading } from "@/components/ui";
-import { admissionSteps, documents, eligibility, faqs } from "@/lib/site";
+import { admissionSteps, documents, eligibility, faqs, site, telHref, whatsappHref } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Admissions & FAQs",
@@ -102,15 +103,37 @@ export default function AdmissionsPage() {
       </section>
 
       <section id="faq" className="container-x grid gap-12 py-20 lg:grid-cols-[1fr_1.4fr] lg:py-28">
-        <SectionHeading
-          eyebrow="FAQ"
-          title={
-            <>
-              Frequently asked <Accent>questions.</Accent>
-            </>
-          }
-          text="Can't find your answer? Call or WhatsApp us — we're happy to help."
-        />
+        <div className="lg:sticky lg:top-32 lg:self-start">
+          <SectionHeading
+            eyebrow="FAQ"
+            title={
+              <>
+                Frequently asked <Accent>questions.</Accent>
+              </>
+            }
+            text="Can't find your answer? Call or WhatsApp us — we're happy to help."
+          />
+          <div className="mt-8 rounded-3xl border border-line bg-white p-6 sm:p-8">
+            <h3 className="text-lg font-semibold">Still have questions?</h3>
+            <p className="mt-1 text-sm text-muted">Talk to a counsellor — {site.hours}.</p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <a
+                href={telHref(site.phones[0])}
+                className="inline-flex items-center gap-2 rounded-full bg-brand px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-brand/25 transition hover:bg-brand-dark"
+              >
+                <Phone className="size-4" /> Call {site.phones[0]}
+              </a>
+              <a
+                href={whatsappHref("Hi! I have a question about admissions.")}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-full bg-[#25D366] px-5 py-3 text-sm font-semibold text-white transition hover:brightness-95"
+              >
+                <WhatsAppIcon className="size-4" /> WhatsApp us
+              </a>
+            </div>
+          </div>
+        </div>
         <FaqList items={faqs} />
       </section>
 

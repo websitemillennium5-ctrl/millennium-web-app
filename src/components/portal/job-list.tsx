@@ -55,7 +55,7 @@ export function Freshness({ job }: { job: Job }) {
       <>
         <p className="text-2xl font-semibold tracking-tight text-good">{days === 1 ? "Tomorrow" : `${days} days`}</p>
         <Meter value={1} />
-        <p className="text-[13px] font-medium text-good">Until hiring event</p>
+        <p className="text-[12.5px] font-medium text-good">Until hiring event</p>
       </>
     );
   }
@@ -75,7 +75,7 @@ export function Freshness({ job }: { job: Job }) {
     <>
       <p className={`font-semibold tracking-tight ${age <= 30 ? "text-2xl" : "text-lg"} ${age <= 3 ? "text-good" : "text-ink"}`}>{big}</p>
       <Meter value={value} tone={age <= 7 ? "good" : "ink"} />
-      <p className={`text-[13px] font-medium ${age <= 3 ? "text-good" : "text-muted"}`}>{caption}</p>
+      <p className={`text-[12.5px] font-medium ${age <= 3 ? "text-good" : "text-muted"}`}>{caption}</p>
     </>
   );
 }
@@ -122,7 +122,7 @@ export function JobList({
                     <CardTitle href={basePath && jobHref(basePath, job)}>{job.title}</CardTitle>
                     {!job.is_active && <Badge>Hidden</Badge>}
                   </div>
-                  <p className="mt-0.5 text-[13px] text-muted">
+                  <p className="mt-0.5 text-[12.5px] text-muted">
                     <span className="font-medium" style={{ color: brand.color }}>
                       {job.company}
                     </span>
@@ -133,7 +133,7 @@ export function JobList({
                     )}
                   </p>
                   {job.location && (
-                    <p className="mt-2 flex items-center gap-1.5 text-[13px] text-ink-soft">
+                    <p className="mt-2 flex items-center gap-1.5 text-[12.5px] text-ink-soft">
                       <MapPin className="size-3.5 shrink-0 text-muted" strokeWidth={1.75} />
                       <span className="truncate">{job.location}</span>
                     </p>
@@ -177,7 +177,7 @@ export function JobList({
               </GridRow>
               {job.description && (
                 <GridRow label="About the role">
-                  <p className="line-clamp-3 text-[13px] leading-relaxed text-ink-soft">{job.description}</p>
+                  <p className="line-clamp-3 text-[12.5px] leading-relaxed text-ink-soft">{job.description}</p>
                 </GridRow>
               )}
             </CardPanel>

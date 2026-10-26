@@ -68,3 +68,13 @@ export function roleCategory(title: string, source: string) {
   const key = (Object.keys(roles) as RoleKey[]).find((k) => roles[k].terms.some((t) => text.includes(t)));
   return key ? { key, ...roles[key] } : null;
 }
+
+/**
+ * Whether a hiring event belongs to the role filter (none = all roles). Same any-term match as the jobs filter,
+ * but also over the event's role and source (e.g. indigo_ground_staff), since event titles are often generic.
+ */
+export function eventMatchesRole(event: { title: string; role: string | null; source: string }, role: RoleKey | "") {
+  if (!role) return true;
+  const text = `${event.title} ${event.role ?? ""} ${event.source.replace(/_/g, " ")}`.toLowerCase();
+  return roles[role].terms.some((t) => text.includes(t));
+}

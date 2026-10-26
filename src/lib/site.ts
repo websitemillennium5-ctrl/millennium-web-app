@@ -13,8 +13,8 @@ export const site = {
     mapsEmbed:
       "https://www.google.com/maps?q=Millennium+Air+Hostess+Academy+Boring+Road+Patna&output=embed",
   },
-  phones: ["+91 96433 16326", "+91 99024 34529"],
-  emails: ["info@millenniumairhostess.com", "info.maa23@gmail.com"],
+  phones: ["+91 96433 16326"],
+  emails: ["info.maa23@gmail.com"],
   whatsapp: "919643316326",
   hours: "Mon – Sat, 9:30 AM – 6:30 PM",
   social: {
@@ -70,7 +70,7 @@ export const courses: Course[] = [
     category: "Aviation",
     image: "/images/course-cabin-crew.jpg",
     duration: "6 – 12 months",
-    eligibility: "12th pass, any stream · 17–27 years",
+    eligibility: "12th pass, any stream · 18–27 years",
     tagline: "Poise, safety and service for the skies.",
     highlights: ["In-flight service", "Safety drills", "Grooming", "English Communication", "First aid", "Interview prep"],
     summary:
@@ -314,9 +314,9 @@ export const media = [
 
 export const eligibility = [
   { label: "Education", value: "10+2 (any stream — Arts, Science or Commerce)" },
-  { label: "Age", value: "17 to 27 years" },
-  { label: "Height (cabin crew)", value: "Minimum ~157.5 cm (5'2\") for women" },
-  { label: "Vision", value: "6/9 or better" },
+  { label: "Age", value: "18 to 27 years" },
+  { label: "Height (cabin crew)", value: "Minimum 155 cm for women · 170 cm for men" },
+  { label: "Vision", value: "6/6" },
   { label: "Appearance", value: "Clear complexion, no visible tattoos or piercings" },
   { label: "Languages", value: "Fluency in English and Hindi" },
 ];

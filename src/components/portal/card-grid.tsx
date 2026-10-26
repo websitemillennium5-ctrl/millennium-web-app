@@ -17,7 +17,7 @@ export function CardShell({ children }: { children: React.ReactNode }) {
 
 /** Card title that links to the detail view; its ::after stretches over the whole card so any click opens it. */
 export function CardTitle({ href, children }: { href?: string; children: React.ReactNode }) {
-  const className = "text-[15px] leading-snug font-semibold text-ink";
+  const className = "text-[14px] leading-snug font-semibold text-ink";
   if (!href) return <h3 className={className}>{children}</h3>;
   return (
     <h3 className={className}>
@@ -68,8 +68,8 @@ export function GridCells({ cells }: { cells: { label: string; value: React.Reac
       {cells.map((cell, i) => (
         // Phones: "Label ……… value" on one line per cell; wider screens: label above value
         <div key={cell.label} className={`flex min-w-0 items-center justify-between gap-3 py-2.5 sm:block sm:py-3 ${i === 0 ? "sm:pr-4" : "sm:px-4"}`}>
-          <p className="shrink-0 text-[12px] text-muted">{cell.label}</p>
-          <div className="truncate text-[13px] font-medium text-ink sm:mt-1">{cell.value}</div>
+          <p className="shrink-0 text-[11.5px] text-muted">{cell.label}</p>
+          <div className="truncate text-[12.5px] font-medium text-ink sm:mt-1">{cell.value}</div>
         </div>
       ))}
     </div>

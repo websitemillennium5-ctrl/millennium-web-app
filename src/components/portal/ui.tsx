@@ -1,9 +1,9 @@
 import { Info } from "lucide-react";
 import { courses } from "@/lib/site";
 
-export function Card({ title, action, children, className = "" }: { title?: string; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
+export function Card({ title, action, children, className = "", id }: { title?: string; action?: React.ReactNode; children: React.ReactNode; className?: string; id?: string }) {
   return (
-    <section className={`rounded-2xl border border-line bg-white p-4 sm:p-5 ${className}`}>
+    <section id={id} className={`scroll-mt-6 rounded-2xl border border-line bg-white p-4 sm:p-5 ${className}`}>
       {(title || action) && (
         <div className="mb-4 flex items-center justify-between gap-3">
           {title && <h2 className="text-[10.5px] font-semibold tracking-[0.12em] text-muted uppercase">{title}</h2>}
@@ -17,10 +17,10 @@ export function Card({ title, action, children, className = "" }: { title?: stri
 
 export function PageTitle({ title, text, action }: { title: string; text?: string; action?: React.ReactNode }) {
   return (
-    <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+    <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
       <div>
         <h1 className="text-lg font-semibold tracking-tight text-ink">{title}</h1>
-        {text && <p className="mt-0.5 text-[13px] text-muted">{text}</p>}
+        {text && <p className="mt-0.5 text-[12.5px] text-muted">{text}</p>}
       </div>
       {action}
     </div>
@@ -57,13 +57,13 @@ export function Stat({
   return (
     <div className="rounded-2xl border border-line bg-white p-4">
       <p className="text-[10.5px] font-semibold tracking-[0.12em] text-muted uppercase">{label}</p>
-      <p className={`mt-1.5 text-xl font-semibold tracking-tight ${color}`}>{value}</p>
+      <p className={`mt-1 text-lg font-semibold tracking-tight tabular-nums ${color}`}>{value}</p>
       {meter !== undefined && (
         <div className="mt-2">
           <Meter value={meter} tone={tone === "warn" ? "warn" : "good"} />
         </div>
       )}
-      {hint && <p className="mt-1 text-[13px] text-muted">{hint}</p>}
+      {hint && <p className="mt-1 text-[12.5px] text-muted">{hint}</p>}
     </div>
   );
 }
@@ -100,7 +100,7 @@ const inputClass =
 export function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[13px] font-medium text-ink-soft">{label}</span>
+      <span className="mb-1.5 block text-[12.5px] font-medium text-ink-soft">{label}</span>
       {children}
       {hint && <span className="mt-1 block text-xs text-muted">{hint}</span>}
     </label>

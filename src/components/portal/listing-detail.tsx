@@ -98,14 +98,14 @@ export function EventDetail({
       <Shell
         footer={
           <>
-            <span className="flex flex-wrap items-center gap-2 text-[13px] text-muted">
+            <span className="flex flex-wrap items-center gap-2 text-[12.5px] text-muted">
               <Badge tone="brand">{typeLabel[event.event_type]}</Badge>
               {withIcon(icon(RefreshCw), `Checked ${formatDate(event.scraped_at)}`)}
             </span>
             <div className="flex flex-wrap items-center gap-2">
               {actions}
               {gated ? (
-                <ApplyButton url={event.apply_url ?? event.url} listing={`${event.title} · ${event.brand}`} />
+                <ApplyButton url={event.apply_url ?? event.url} listing={`${event.title} · ${event.brand}`} size="lg" />
               ) : (
                 <>
                   <AddToCalendar event={event} />
@@ -213,13 +213,13 @@ export function JobDetail({ job, basePath, actions, gated }: { job: Job; basePat
       <Shell
         footer={
           <>
-            <span className="flex flex-wrap items-center gap-2 text-[13px] text-muted">
+            <span className="flex flex-wrap items-center gap-2 text-[12.5px] text-muted">
               {withIcon(icon(RefreshCw), `Checked ${formatDate(job.scraped_at)}`)}
             </span>
             <div className="flex flex-wrap items-center gap-2">
               {actions}
               {gated ? (
-                <ApplyButton url={job.url} listing={`${job.title} · ${job.company}`} />
+                <ApplyButton url={job.url} listing={`${job.title} · ${job.company}`} size="lg" />
               ) : (
                 <a href={job.url} target="_blank" rel="noreferrer" className={primaryButton}>
                   View &amp; apply <ArrowUpRight className="size-3.5" />
@@ -268,7 +268,7 @@ export function JobDetail({ job, basePath, actions, gated }: { job: Job; basePat
                   href={mapsUrl(job.location)}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 text-[13px] font-medium text-ink hover:underline"
+                  className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-ink hover:underline"
                 >
                   {icon(Navigation)} Open in Google Maps
                 </a>

@@ -82,16 +82,49 @@ export function ButtonLink({
   );
 }
 
-export function PageHero({ eyebrow, title, text }: { eyebrow: string; title: React.ReactNode; text: string }) {
+export function PageHero({
+  eyebrow,
+  title,
+  text,
+  image,
+}: {
+  eyebrow: string;
+  title: React.ReactNode;
+  text: string;
+  image?: { src: string; alt: string };
+}) {
   return (
     <section className="relative overflow-hidden bg-sky">
       <div className="pointer-events-none absolute -top-40 -right-40 size-[32rem] rounded-full bg-brand/10 blur-3xl" />
-      <div className="container-x relative pt-32 pb-16 lg:pt-44 lg:pb-24">
-        <Eyebrow>{eyebrow}</Eyebrow>
-        <h1 className="mt-4 max-w-3xl text-4xl leading-[1.05] font-semibold tracking-tight text-balance sm:text-5xl lg:text-6xl">
-          {title}
-        </h1>
-        <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted">{text}</p>
+      <div
+        className={`container-x relative pt-32 pb-16 lg:pt-44 lg:pb-24 ${
+          image ? "grid items-center gap-12 lg:grid-cols-[1.1fr_1fr]" : ""
+        }`}
+      >
+        <div>
+          <Eyebrow>{eyebrow}</Eyebrow>
+          <h1 className="mt-4 max-w-3xl text-4xl leading-[1.05] font-semibold tracking-tight text-balance sm:text-5xl lg:text-6xl">
+            {title}
+          </h1>
+          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted">{text}</p>
+        </div>
+        {image && (
+          <div className="relative">
+            <div className="relative aspect-[6/5] overflow-hidden rounded-[2rem] bg-mist shadow-2xl shadow-ink/10">
+              <Image src={image.src} alt={image.alt} fill priority sizes="(min-width: 1024px) 45vw, 100vw" className="object-cover" />
+            </div>
+            {/* Boarding-pass badge */}
+            <div className="absolute -bottom-6 left-4 flex items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-xl shadow-ink/10 sm:-left-6">
+              <span className="grid size-10 place-items-center rounded-full bg-brand/10 text-brand">
+                <Plane className="size-5" />
+              </span>
+              <div>
+                <p className="text-xs font-medium text-muted">Next destination</p>
+                <p className="text-sm font-semibold">Your career in the skies</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );
@@ -284,7 +317,47 @@ export function PartnerGrid() {
  * Student photo card that flips on hover (or keyboard focus) to reveal the student's
  * crew ID badge hanging from a lanyard in the airline's colours.
  */
+/** Plain photo card on phones and tablets, the flipping 3D ID-badge card from lg up.
+    The hidden variant's lazy images aren't fetched, so mobile only loads one photo per student. */
 export function StudentCard({ student }: { student: (typeof placedStudents)[number] }) {
+  return (
+    <>
+      <div className="lg:hidden">
+        <StudentCardPlain student={student} />
+      </div>
+      <div className="hidden lg:block">
+        <StudentCard3D student={student} />
+      </div>
+    </>
+  );
+}
+
+function StudentCardPlain({ student }: { student: (typeof placedStudents)[number] }) {
+  const partner = partners.find((p) => p.name === student.company);
+  return (
+    <figure className="relative aspect-[4/5] overflow-hidden rounded-3xl bg-ink ring-1 ring-ink/5">
+      <Image src={student.photo} alt="" fill sizes="50vw" className="object-cover" />
+      <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/25 via-45% to-transparent" />
+      {partner && (
+        <span
+          className="absolute top-3 left-3 flex h-8 items-center rounded-lg bg-white px-2.5 shadow-sm"
+          style={partner.bg ? { backgroundColor: partner.bg } : undefined}
+        >
+          <Image src={partner.logo} alt={partner.name} width={64} height={24} className="max-h-5 w-auto object-contain" />
+        </span>
+      )}
+      <figcaption className="absolute inset-x-0 bottom-0 p-4 text-white">
+        <p className="text-base font-semibold tracking-tight">{student.name}</p>
+        <p className="mt-1 text-xs text-white/75">
+          {student.role} <span className="text-white/40">at</span>{" "}
+          <span className="font-medium text-white">{student.company}</span>
+        </p>
+      </figcaption>
+    </figure>
+  );
+}
+
+function StudentCard3D({ student }: { student: (typeof placedStudents)[number] }) {
   const partner = partners.find((p) => p.name === student.company);
   const brand = partner?.brand ?? "#0b1220";
   const idNumber = `MLN-${String(placedStudents.indexOf(student) + 1).padStart(4, "0")}`;

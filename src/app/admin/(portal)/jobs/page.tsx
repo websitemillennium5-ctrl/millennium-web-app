@@ -1,9 +1,10 @@
 import { requireStaff } from "@/lib/auth";
 import { getEvents, searchJobs } from "@/lib/data";
+import { eventMatchesRole } from "@/lib/airlines";
 import { eventMatchesSources, isIndianSource } from "@/lib/job-sources";
 import { JOBS_PAGE_SIZE, jobQueryHref, parseJobQuery } from "@/lib/job-query";
 import { EventList } from "@/components/portal/event-list";
-import { JobFilters } from "@/components/portal/job-filters";
+import { JobFilters, JobNavProvider, JobResults } from "@/components/portal/job-filters";
 import { JobList } from "@/components/portal/job-list";
 import { ListingActions } from "@/components/portal/listing-actions";
 import { Pagination } from "@/components/portal/pagination";
@@ -21,7 +22,7 @@ export default async function AdminJobs({ searchParams }: PageProps<"/admin/jobs
   const events =
     query.page === 1
       ? allEvents.filter(
-          (e) => eventMatchesSources(e.source, query.source) && (query.status !== "active" || e.is_active) && (query.status !== "hidden" || !e.is_active),
+          (e) => eventMatchesSources(e.source, query.source) && eventMatchesRole(e, query.role) && (query.status !== "active" || e.is_active) && (query.status !== "hidden" || !e.is_active),
         )
       : [];
   events.sort((a, b) => Number(isIndianSource(b.source)) - Number(isIndianSource(a.source)));
@@ -30,21 +31,25 @@ export default async function AdminJobs({ searchParams }: PageProps<"/admin/jobs
     <>
       <ScrollReset key={query.page} />
       <PageTitle title="Jobs" text="Each airline has its own scraper that refreshes its listings daily. Hide anything you don't want students to see." />
-      <JobFilters basePath="/admin/jobs" query={query} total={total} staff />
-      {events.length > 0 && (
-        <section className="mb-8">
-          <h2 className="mb-3 text-sm font-semibold text-ink">Upcoming hiring events ({events.length})</h2>
-          <EventList events={events} basePath="/admin/jobs" actions={(event) => <ListingActions kind="event" item={event} />} />
-        </section>
-      )}
-      <JobList jobs={jobs} basePath="/admin/jobs" actions={(job) => <ListingActions kind="job" item={job} />} />
-      <Pagination
-        page={Math.min(query.page, pageCount)}
-        pageCount={pageCount}
-        total={total}
-        pageSize={JOBS_PAGE_SIZE}
-        href={(page) => jobQueryHref("/admin/jobs", query, { page })}
-      />
+      <JobNavProvider basePath="/admin/jobs" query={query}>
+        <JobFilters basePath="/admin/jobs" query={query} total={total} staff />
+        <JobResults>
+          {events.length > 0 && (
+            <section className="mb-8">
+              <h2 className="mb-3 text-sm font-semibold text-ink">Upcoming hiring events ({events.length})</h2>
+              <EventList events={events} basePath="/admin/jobs" actions={(event) => <ListingActions kind="event" item={event} />} />
+            </section>
+          )}
+          <JobList jobs={jobs} basePath="/admin/jobs" actions={(job) => <ListingActions kind="job" item={job} />} />
+          <Pagination
+            page={Math.min(query.page, pageCount)}
+            pageCount={pageCount}
+            total={total}
+            pageSize={JOBS_PAGE_SIZE}
+            href={(page) => jobQueryHref("/admin/jobs", query, { page })}
+          />
+        </JobResults>
+      </JobNavProvider>
     </>
   );
 }

@@ -168,11 +168,11 @@ export function FlightStory() {
   const dark = chapters[active].dark;
 
   return (
-    <section ref={section} className="relative h-[620vh] bg-[#eaf2fc]" aria-label="Your journey with Millennium">
+    <section ref={section} className="relative h-[620vh] bg-canvas" aria-label="Your journey with Millennium">
       <div className="sticky top-0 h-svh overflow-hidden">
         {/* Sky layers: day base, dawn on top at the start, dusk at the end */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#7fb2ec] via-[#bcd8f5] to-[#eef5fd]" />
-        <div ref={dawn} className="absolute inset-0 bg-gradient-to-b from-[#dbe8f8] via-[#f6efea] to-[#fde3d6]" />
+        <div ref={dawn} className="absolute inset-0 bg-gradient-to-b from-[#f2eee4] via-[#efe7d6] to-[#e4d3b4]" />
         <div ref={dusk} className="absolute inset-0 opacity-0" style={{ background: "linear-gradient(to bottom, #0b1220 0%, #1d2742 45%, #5b3550 80%, #c2474f 100%)" }}>
           <Stars />
         </div>

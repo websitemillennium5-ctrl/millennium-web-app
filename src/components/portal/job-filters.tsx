@@ -1,14 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useTransition } from "react";
+import { createContext, useContext, useOptimistic, useRef, useTransition } from "react";
 import { Check, ChevronDown, Loader2, Search, SlidersHorizontal, X } from "lucide-react";
 import { airlineBrand, roles, type RoleKey } from "@/lib/airlines";
 import { jobQueryHref, type JobQuery } from "@/lib/job-query";
 import { eventOnlySources, indianSources, jobSources, sourceLabel } from "@/lib/job-sources";
 import { RoleIcon } from "@/components/portal/role-icon";
+import { JobCardsSkeleton } from "@/components/portal/jobs-skeleton";
 
 const allAirlines = [...Object.entries(jobSources), ...Object.entries(eventOnlySources)] as [string, string][];
 const rank = (key: string) => (indianSources.includes(key) ? indianSources.indexOf(key) : indianSources.length);
@@ -57,6 +57,9 @@ export function PillSelect<T extends string>({
   );
 }
 
+/** Every filter back to its default ("Clear all"). */
+const cleared: Partial<JobQuery> = { q: "", source: [], role: "", posted: "", sort: "newest", status: "" };
+
 /** Applied filters as removable chips; each chip clears just its own filter (one per selected airline). */
 function activeFilters(query: JobQuery) {
   return [
@@ -68,12 +71,39 @@ function activeFilters(query: JobQuery) {
   ].filter(Boolean) as { key: string; label: string; clear: Partial<JobQuery> }[];
 }
 
-/** Pushes the filters with `changes` applied to the URL; `pending` is true while the new page loads. */
-function useJobNav(basePath: string, query: JobQuery) {
+/**
+ * Pushes the filters with `changes` applied to the URL. `pending` is true while the new page loads, and `query`
+ * already reflects the change (optimistically) so the tapped tab / chip lights up straight away.
+ */
+function useJobNavState(basePath: string, serverQuery: JobQuery) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const go = (changes: Partial<JobQuery>) => startTransition(() => router.push(jobQueryHref(basePath, query, changes), { scroll: false }));
-  return [pending, go] as const;
+  const [query, setQuery] = useOptimistic(serverQuery);
+  const go = (changes: Partial<JobQuery>) =>
+    startTransition(() => {
+      setQuery({ ...query, page: 1, ...changes });
+      router.push(jobQueryHref(basePath, query, changes), { scroll: false });
+    });
+  return [pending, go, query] as const;
+}
+
+const JobNavContext = createContext<ReturnType<typeof useJobNavState> | null>(null);
+
+/** Shares one navigation state between the filters and <JobResults>, so a filter change anywhere shows the skeleton. */
+export function JobNavProvider({ basePath, query, children }: { basePath: string; query: JobQuery; children: React.ReactNode }) {
+  return <JobNavContext value={useJobNavState(basePath, query)}>{children}</JobNavContext>;
+}
+
+/** The provider's state when inside <JobNavProvider>, else a standalone one. */
+function useJobNav(basePath: string, query: JobQuery) {
+  const local = useJobNavState(basePath, query);
+  return useContext(JobNavContext) ?? local;
+}
+
+/** The results (events, jobs, pagination); swapped for shimmering placeholder cards while a filter change loads. */
+export function JobResults({ children }: { children: React.ReactNode }) {
+  const pending = useContext(JobNavContext)?.[0];
+  return pending ? <JobCardsSkeleton /> : children;
 }
 
 /**
@@ -101,7 +131,7 @@ function AirlineChips({
         aria-pressed={all}
         className={`${width} inline-flex h-10 shrink-0 items-center rounded-xl border px-3.5 text-sm transition ${
           all ? "border-ink bg-ink font-medium text-white" : "border-line bg-white text-ink-soft hover:border-ink/25"
-        } ${compact ? "lg:h-8 lg:w-full lg:rounded-lg lg:px-2.5 lg:text-[13px]" : ""}`}
+        } ${compact ? "lg:h-8 lg:w-full lg:rounded-lg lg:px-2.5 lg:text-[12.5px]" : ""}`}
       >
         All airlines
       </button>
@@ -116,7 +146,7 @@ function AirlineChips({
             aria-pressed={selected}
             className={`${width} inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border bg-white py-1 pr-3.5 pl-1.5 text-sm transition ${
               selected ? "border-(--brand) font-medium text-ink ring-2 ring-(--brand-soft)" : "border-line text-ink-soft hover:border-ink/25"
-            } ${compact ? `lg:h-8 lg:w-full lg:gap-2.5 lg:rounded-lg lg:border-transparent lg:py-0 lg:pr-2 lg:pl-1.5 lg:text-[13px] lg:ring-0 lg:hover:bg-mist ${selected ? "lg:bg-mist" : ""}` : ""}`}
+            } ${compact ? `lg:h-8 lg:w-full lg:gap-2.5 lg:rounded-lg lg:border-transparent lg:py-0 lg:pr-2 lg:pl-1.5 lg:text-[12.5px] lg:ring-0 lg:hover:bg-mist ${selected ? "lg:bg-mist" : ""}` : ""}`}
             style={{ "--brand": brand.color, "--brand-soft": `color-mix(in srgb, ${brand.color} 20%, transparent)` } as React.CSSProperties}
           >
             {brand.logo ? (
@@ -154,8 +184,8 @@ const sidebarHeading = "mb-2 px-1 text-[10.5px] font-semibold tracking-[0.12em] 
  * Posted / sort / airline filters as a side column, for pages that pair it with `<JobFilters sidebar />`.
  * On phones the airlines become a horizontally scrolling row.
  */
-export function JobFiltersSidebar({ basePath, query }: { basePath: string; query: JobQuery }) {
-  const [pending, go] = useJobNav(basePath, query);
+export function JobFiltersSidebar({ basePath, query: serverQuery }: { basePath: string; query: JobQuery }) {
+  const [pending, go, query] = useJobNav(basePath, serverQuery);
   return (
     <aside className={`rounded-2xl border border-line bg-white p-3 transition ${pending ? "opacity-70" : ""}`}>
       <p className={sidebarHeading}>Sort &amp; date</p>
@@ -165,14 +195,14 @@ export function JobFiltersSidebar({ basePath, query }: { basePath: string; query
           value={query.posted}
           options={postedLabels}
           onChange={(posted) => go({ posted })}
-          className="lg:h-8 lg:w-full lg:text-[13px]"
+          className="lg:h-8 lg:w-full lg:text-[12.5px]"
         />
         <PillSelect
           label="Sort"
           value={query.sort}
           options={{ newest: "Newest", oldest: "Oldest" }}
           onChange={(sort) => go({ sort })}
-          className="lg:h-8 lg:w-full lg:text-[13px]"
+          className="lg:h-8 lg:w-full lg:text-[12.5px]"
         />
       </div>
       <p className={`${sidebarHeading} mt-3.5`}>Airlines</p>
@@ -186,7 +216,7 @@ export function JobFiltersSidebar({ basePath, query }: { basePath: string; query
 /** Search, role tabs and the active-filter summary. Without `sidebar` it also holds posted / sort / airlines. */
 export function JobFilters({
   basePath,
-  query,
+  query: serverQuery,
   total,
   staff,
   sidebar,
@@ -197,7 +227,7 @@ export function JobFilters({
   staff?: boolean;
   sidebar?: boolean;
 }) {
-  const [pending, go] = useJobNav(basePath, query);
+  const [pending, go, query] = useJobNav(basePath, serverQuery);
 
   const active = activeFilters(query);
 
@@ -262,9 +292,9 @@ export function JobFilters({
     </button>
   ));
   const clearAll = active.length > 0 && (
-    <Link href={basePath} scroll={false} className="text-xs font-medium text-muted hover:text-ink">
+    <button type="button" onClick={() => go(cleared)} className="text-xs font-medium text-muted hover:text-ink">
       Clear all
-    </Link>
+    </button>
   );
 
   // Sidebar pages: a free-standing, centred search + role bar (the rest lives in JobFiltersSidebar)
@@ -317,36 +347,43 @@ export function JobFilters({
  * Sidebar pages: job + hiring-event counts with the active-filter chips, shown above the results.
  * (Without `sidebar`, JobFilters shows the count inside its own panel.)
  */
-export function JobResultsBar({ basePath, query, total, eventCount }: { basePath: string; query: JobQuery; total: number; eventCount: number }) {
-  const [pending, go] = useJobNav(basePath, query);
+export function JobResultsBar({ basePath, query: serverQuery, total, eventCount }: { basePath: string; query: JobQuery; total: number; eventCount: number }) {
+  const [pending, go, query] = useJobNav(basePath, serverQuery);
   const active = activeFilters(query);
   return (
-    <div className={`mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm transition ${pending ? "opacity-70" : ""}`}>
-      <p className="text-muted">
-        <span className="font-semibold text-ink">{total.toLocaleString("en-IN")}</span> {total === 1 ? "job" : "jobs"}
+    <div className={`mb-5 flex flex-col gap-3 transition sm:flex-row sm:flex-wrap sm:items-center sm:gap-4 ${pending ? "opacity-70" : ""}`}>
+      <p className="text-base text-muted">
+        <span className="text-lg font-semibold text-ink">{total.toLocaleString("en-IN")}</span> {total === 1 ? "job" : "jobs"}
         {eventCount > 0 && (
           <>
-            <span className="px-1.5">·</span>
-            <span className="font-semibold text-ink">{eventCount}</span> upcoming hiring {eventCount === 1 ? "event" : "events"}
+            <span className="px-2 text-line">|</span>
+            <span className="text-lg font-semibold text-ink">{eventCount}</span> upcoming hiring {eventCount === 1 ? "event" : "events"}
           </>
         )}
       </p>
       {active.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-2">
           {active.map((f) => (
             <button
               key={f.key}
               type="button"
               onClick={() => go(f.clear)}
-              className="inline-flex items-center gap-1 rounded-full border border-line bg-mist py-0.5 pr-1.5 pl-2.5 text-xs text-ink-soft transition hover:border-ink/25 hover:text-ink"
+              aria-label={`Remove filter: ${f.label}`}
+              className="inline-flex h-9 items-center gap-1.5 rounded-full border border-ink/15 bg-white pr-2 pl-3.5 text-sm font-medium text-ink shadow-sm transition hover:border-ink/30 active:scale-95"
             >
               {f.label}
-              <X className="size-3" />
+              <span className="flex size-5 items-center justify-center rounded-full bg-mist text-muted">
+                <X className="size-3.5" />
+              </span>
             </button>
           ))}
-          <Link href={basePath} scroll={false} className="ml-1 text-xs font-medium text-muted hover:text-ink">
+          <button
+            type="button"
+            onClick={() => go(cleared)}
+            className="inline-flex h-9 items-center rounded-full px-3 text-sm font-medium text-ink-soft underline decoration-line underline-offset-4 transition hover:text-ink hover:decoration-ink"
+          >
             Clear all
-          </Link>
+          </button>
         </div>
       )}
     </div>
@@ -357,8 +394,18 @@ export function JobResultsBar({ basePath, query, total, eventCount }: { basePath
  * Phones (sidebar pages): a floating "Filters" button, bottom right, that opens the sort / date / airline
  * filters in a bottom sheet. Filters apply as they're tapped; "Show results" just closes the sheet.
  */
-export function JobFiltersSheet({ basePath, query, total }: { basePath: string; query: JobQuery; total: number }) {
-  const [pending, go] = useJobNav(basePath, query);
+export function JobFiltersSheet({
+  basePath,
+  query: serverQuery,
+  total,
+  eventCount = 0,
+}: {
+  basePath: string;
+  query: JobQuery;
+  total: number;
+  eventCount?: number;
+}) {
+  const [pending, go, query] = useJobNav(basePath, serverQuery);
   const dialog = useRef<HTMLDialogElement>(null);
   const close = () => dialog.current?.close();
   const applied = query.source.length + (query.posted ? 1 : 0) + (query.sort !== "newest" ? 1 : 0);
@@ -430,7 +477,8 @@ export function JobFiltersSheet({ basePath, query, total }: { basePath: string; 
               className="ml-auto inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-ink text-sm font-medium text-white"
             >
               {pending && <Loader2 className="size-4 animate-spin" />}
-              Show {total.toLocaleString("en-IN")} {total === 1 ? "job" : "jobs"}
+              Show {(total + eventCount).toLocaleString("en-IN")}{" "}
+              {eventCount > 0 ? (total + eventCount === 1 ? "result" : "results") : total === 1 ? "job" : "jobs"}
             </button>
           </div>
         </div>

@@ -50,7 +50,7 @@ export default async function StudentDetail({ params }: PageProps<"/admin/studen
                   const Method = methodIcons[p.method] ?? Wallet;
                   return (
                   <li key={p.id} className="flex items-center gap-3 py-3 text-sm first:pt-0 last:pb-0">
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-good/20 bg-good/10 text-good">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-good/20 bg-good/10 text-good">
                       <Method className="size-4" strokeWidth={1.75} />
                     </span>
                     <div className="min-w-0 flex-1">
@@ -76,7 +76,7 @@ export default async function StudentDetail({ params }: PageProps<"/admin/studen
         </div>
 
         <div className="space-y-6 lg:col-span-2">
-          <Card title="Record a payment">
+          <Card title="Record a payment" id="record-payment">
             <ActionForm action={addPayment.bind(null, student.id)} resetOnSuccess className="space-y-4">
               <Field label="Amount (₹) *">
                 <Input name="amount" inputMode="numeric" required />

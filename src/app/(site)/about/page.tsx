@@ -23,6 +23,7 @@ export default function AboutPage() {
           </>
         }
         text="When you picture a career that takes you around the globe, introduces you to new cultures and surrounds you with the elegance of aviation and hospitality — you're picturing the dream that fuels Millennium."
+        image={{ src: "/images/cabin-crew.jpg", alt: "Cabin crew in uniform walking across the airport apron" }}
       />
 
       <section className="container-x grid items-center gap-14 py-20 lg:grid-cols-2 lg:py-28">

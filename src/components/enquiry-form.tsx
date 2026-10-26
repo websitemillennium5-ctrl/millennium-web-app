@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { Send } from "lucide-react";
+import { sendEnquiry } from "@/app/actions/enquiry";
 import { courses, whatsappHref } from "@/lib/site";
 
-// Sends the enquiry straight to the academy's WhatsApp, so it works without a backend.
+// Emails the enquiry to the academy and opens it in WhatsApp. WhatsApp opens synchronously so popup blockers allow it.
 export function EnquiryForm({ defaultCourse = "" }: { defaultCourse?: string }) {
   const [sent, setSent] = useState(false);
 
@@ -21,6 +22,15 @@ export function EnquiryForm({ defaultCourse = "" }: { defaultCourse?: string }) 
     ]
       .filter(Boolean)
       .join("\n");
+    const value = (key: string) => String(data.get(key) ?? "");
+    sendEnquiry({
+      name: value("name"),
+      phone: value("phone"),
+      email: value("email"),
+      course: value("course"),
+      message: value("message"),
+      page: window.location.pathname,
+    }).catch(() => {});
     window.open(whatsappHref(message), "_blank", "noopener");
     setSent(true);
   }
