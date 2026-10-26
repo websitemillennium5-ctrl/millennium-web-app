@@ -1,11 +1,35 @@
-// Etihad Airways: https://jobs.smartrecruiters.com/EtihadAirways5/744000154681470-cabin-crew
-// Etihad lists its cabin crew recruitment days inside the "Cabin Crew" SmartRecruiters posting ("Meet us in person"):
-// one <li><a href="https://smrtr.io/…">13 October | Barcelona, Spain</a></li> per event, each linking to the event's
-// registration page. Finds cabin crew postings via the public API and parses those lists; dates have no year, so it's inferred.
-import { decodeEntities, fetchJson, mainEvents, stripHtml } from "../lib.mjs";
+// Etihad Airways: https://careers.etihad.com/ (upcoming events) + the "Cabin Crew" SmartRecruiters posting
+// The careers homepage embeds the full events calendar as JSON (eventCategories → eventItems, for Pilots and Cabin Crew,
+// each with a location, a dated "1 November 2026" and a registration link). The Cabin Crew posting also lists its
+// recruitment days ("13 October | Barcelona, Spain", no year) and carries the eligibility text, so both are read and
+// merged by city and date.
+import { decodeEntities, fetchJson, fetchText, mainEvents, stripHtml } from "../lib.mjs";
+
+const HOME = "https://careers.etihad.com/";
 
 const API = "https://api.smartrecruiters.com/v1/companies/EtihadAirways5/postings";
 const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+
+/** Every { title, eventItems } category embedded in the homepage (the page carries a couple of event blocks). */
+function homepageCategories(html) {
+  const text = html.replace(/\\"/g, '"');
+  const categories = [];
+  for (let at = text.indexOf('"eventCategories":['); at >= 0; at = text.indexOf('"eventCategories":[', at + 1)) {
+    const start = text.indexOf("[", at);
+    let depth = 0;
+    let end = start;
+    for (; end < text.length; end++) {
+      if (text[end] === "[") depth++;
+      else if (text[end] === "]" && --depth === 0) break;
+    }
+    try {
+      categories.push(...JSON.parse(text.slice(start, end + 1)));
+    } catch {
+      // a malformed block; the other block and the posting still cover the events
+    }
+  }
+  return categories;
+}
 
 /** "16 & 17 October" → the first day as YYYY-MM-DD, rolling into next year if it's well past. */
 function inferDate(text) {
@@ -47,6 +71,37 @@ await mainEvents({
           description: `Meet Etihad's recruitment team and fast-track your cabin crew application (register via the link; can't attend? apply online at ${postingUrl}). Requirements: ${eligibility}`,
         });
       }
+    }
+
+    // The homepage calendar: catches recruitment days missing from the posting's list, and the pilot roadshows.
+    // Dates come from the rendered list (<time dateTime="2026-10-27">); the embedded JSON says which are pilot events.
+    const html = await fetchText(HOME);
+    const roles = new Map();
+    for (const category of homepageCategories(html)) {
+      for (const item of category.eventItems ?? []) if (item.link?.href) roles.set(item.link.href.trim(), stripHtml(category.title ?? ""));
+    }
+    const key = (city, date) => `${(city ?? "").toLowerCase().trim()}|${date}`;
+    const listed = new Set(events.map((e) => key(e.city, e.event_date)));
+    const items = html.matchAll(/<time[^>]+dateTime="(\d{4}-\d{2}-\d{2})"[\s\S]*?<span class="body-text bold">([^<]+)<\/span>[\s\S]*?href="([^"]+)"/g);
+    for (const [, date, location, rawHref] of items) {
+      const href = decodeEntities(rawHref).trim().replace(/^http:/, "https:");
+      const [city, country] = stripHtml(location).split(/,\s*(?=[^,]+$)/);
+      if (listed.has(key(city, date))) continue;
+      listed.add(key(city, date));
+      const role = roles.get(href) || (/pilot/i.test(href) ? "Pilots" : "Cabin Crew");
+      const online = /virtual|online/i.test(city);
+      events.push({
+        title: `${role} ${online ? "virtual recruitment event" : `recruitment day: ${city}`}`,
+        // Several cities share one roadshow registration link, so each event gets its own fragment.
+        url: `${href}#${city.toLowerCase().replace(/\W+/g, "-")}-${date}`,
+        event_type: online ? "online_drive" : "open_day",
+        role,
+        city: online ? null : city,
+        country,
+        event_date: date,
+        apply_url: href,
+        description: `Etihad ${role.toLowerCase()} recruitment ${online ? "event online" : `day in ${city}`}. Register through the link to take part; see careers.etihad.com for requirements.`,
+      });
     }
     return events;
   },

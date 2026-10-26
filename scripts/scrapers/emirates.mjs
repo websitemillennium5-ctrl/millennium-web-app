@@ -9,8 +9,9 @@ await main({
   table: "jobs_emirates",
   company: "Emirates Group",
   async scrape() {
+    // showAll=true: with false the site hides roles it deems "similar" to ones already listed, which are still distinct jobs.
     const { data = [] } = await fetchJson(
-      `${BASE}/api/v1/jobs?title=&brand=&category=&location=&jobcategory=&showAll=false`,
+      `${BASE}/api/v1/jobs?title=&brand=&category=&location=&jobcategory=&showAll=true`,
     );
     return data.slice(0, 1000).map((job) => ({
       title: job.title,

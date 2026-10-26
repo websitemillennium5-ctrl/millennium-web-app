@@ -31,11 +31,14 @@ await mainEvents({
       const [city, country] = place.split(/,\s*(?=[^,]+$)/);
       // Event date, when the posting gives one (e.g. "on 12 November 2026" / "November 12, 2026").
       const date = body.match(new RegExp(`\\b\\d{1,2}(st|nd|rd|th)?\\s+(${MONTHS})[a-z]*,?\\s+20\\d\\d|\\b(${MONTHS})[a-z]*\\s+\\d{1,2}(st|nd|rd|th)?,?\\s+20\\d\\d`, "i"))?.[0];
-      const role = /cabin crew/i.test(title) ? "Cabin Crew" : title.split("|")[0].trim();
+      const parts = title.split("|").map((part) => part.trim());
+      // "Virtual Recruitment Event | Lead Engineer - Qatar Executive": the role is the second part, and it's online.
+      const virtual = /^virtual/i.test(parts[0]);
+      const role = /cabin crew/i.test(title) ? "Cabin Crew" : virtual && parts[1] ? parts[1] : parts[0];
       events.push({
-        title: `${role} recruitment: ${city || title}`,
+        title: virtual ? `${role}: virtual recruitment event` : `${role} recruitment: ${city || title}`,
         url,
-        event_type: /open day|walk[- ]in/i.test(title) ? "open_day" : "interview",
+        event_type: virtual ? "online_drive" : /open day|walk[- ]in/i.test(title) ? "open_day" : "interview",
         role,
         city,
         country,

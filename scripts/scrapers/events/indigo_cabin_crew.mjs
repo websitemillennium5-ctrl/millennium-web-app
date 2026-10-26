@@ -2,24 +2,24 @@
 // Server-rendered AEM page (Akamai lets fetch through with a browser UA). Each dated card
 // ("19th October 2026 - Delhi, Walk In Time : …, Venue : …") is one event; undated city cards and the
 // "Click here to apply" grid items are open online-drive registrations and become events too.
-import { decodeEntities, fetchText, mainEvents, stripHtml } from "../lib.mjs";
+import { decodeEntities, fetchText, findDate, mainEvents, mentionsMonth, stripHtml } from "../lib.mjs";
 
 const PAGE = "https://www.goindigo.in/careers/hiringevents/inflightservicesevents.html";
 const ROLE = "Cabin Crew";
 const LABEL = "Cabin Crew";
-const MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
-const DATE_RE = /(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]+)\s+(\d{4})/i;
 
 const KIND = { walk_in: "walk-in", interview: "interview", online_drive: "online drive" };
 const slug = (text) => text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 /** "19th October 2026 - Delhi, Walk In Time : 09:00 am to 12:00 pm, Venue : …" or "Mumbai - 15th October 2026" */
 function parseEvent(text) {
-  const match = text.match(DATE_RE);
-  const month = match && MONTHS.indexOf(match[2].toLowerCase());
-  const date = match && month >= 0 ? `${match[3]}-${String(month + 1).padStart(2, "0")}-${match[1].padStart(2, "0")}` : null;
   const [head, ...rest] = text.split(",");
-  const label = (match ? head.replace(match[0], "") : head).replace(/^\s*-\s*|\s*-\s*$/g, "").trim();
+  // The date sits in the first part ("19th October 2026 - Delhi"); "October 28, 2026" spills into the next one.
+  const found = findDate(head) ?? findDate(text);
+  const date = found?.date ?? null;
+  // An unreadable date would turn a dated walk-in into an undated online drive that never expires.
+  if (!date && mentionsMonth(head)) console.warn(`[indigo] couldn't read the date in "${head}"`);
+  const label = (found && head.includes(found.match) ? head.replace(found.match, "") : head).replace(/^\s*-\s*|\s*-\s*$/g, "").trim();
   const details = rest.join(",");
   const time = details.match(/Walk In Time\s*:\s*(.+?)\s*(?:,\s*Venue\b|$)/i)?.[1].replace(/\s+to\s+/i, " – ");
   const venue = details.match(/Venue\s*:\s*(.+)$/i)?.[1].trim();

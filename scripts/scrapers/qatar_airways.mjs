@@ -30,7 +30,8 @@ await main({
           posted_at: posted ? `${posted[3]}-${posted[2]}-${posted[1]}` : null,
         });
       }
-      const total = Number(html.match(/aria-label="(\d+) results"/)?.[1] ?? 0);
+      // Filtered searches render "1  results" (two spaces); without a total, keep paging until a page comes back empty.
+      const total = Number(html.match(/aria-label="(\d+)\s+results"/)?.[1] ?? Infinity);
       offset += cards.length;
       if (!cards.length || offset >= total || jobs.length >= 1000) break;
     }

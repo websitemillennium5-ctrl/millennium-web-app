@@ -38,9 +38,14 @@ const widgets = (body) =>
     body: JSON.stringify({ lang: "en_gb", deviceType: "desktop", country: "gb", siteType: "external", size: SIZE, ...body }),
   });
 
+/** "Sri Lanka" and "SriLanka" both appear on the site, so countries are compared without spaces or case. */
+const countryKey = (country) => (country ?? "").replace(/\s+/g, "").toLowerCase();
+
 /** Event-style job ads. The ads give a month at most ("October 2026"), so event_date stays empty. */
 async function eventJobAds(coveredCountries) {
   const ads = [];
+  const seen = new Set(); // the site's ordering can shift between pages, repeating a job
+
   for (let from = 0; from < 1000; from += SIZE) {
     const { refineSearch } = await widgets({
       pageName: "search-results",
@@ -55,7 +60,8 @@ async function eventJobAds(coveredCountries) {
     });
     const page = refineSearch?.data?.jobs ?? [];
     for (const job of page) {
-      if (!EVENT_TITLE.test(job.title) || coveredCountries.has(job.country)) continue;
+      if (!EVENT_TITLE.test(job.title) || coveredCountries.has(countryKey(job.country)) || seen.has(job.jobId)) continue;
+      seen.add(job.jobId);
       const url = `${BASE}/gb/en/job/${job.jobId}/${slug(job.title)}`;
       ads.push({
         title: job.title,
@@ -110,6 +116,6 @@ await mainEvents({
       }
       if (page.length < SIZE || from + SIZE >= (eventSearch?.total ?? 0)) break;
     }
-    return [...events, ...(await eventJobAds(new Set(events.map((e) => e.country))))];
+    return [...events, ...(await eventJobAds(new Set(events.map((e) => countryKey(e.country)))))];
   },
 });

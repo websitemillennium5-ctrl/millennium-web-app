@@ -73,6 +73,31 @@ export function toDate(value) {
 
 export const absoluteUrl = (href, base) => new URL(decodeEntities(href), base).href;
 
+const MONTH_RE = "jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec";
+const DAY_FIRST = new RegExp(`\\b(\\d{1,2})(?:st|nd|rd|th)?[\\s\\-/.]+(${MONTH_RE})[a-z]*\\.?(?:[\\s\\-/.,]+(\\d{4}))?`, "i");
+const MONTH_FIRST = new RegExp(`\\b(${MONTH_RE})[a-z]*\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?(?!\\d)(?:,?\\s+(\\d{4}))?`, "i");
+
+/**
+ * The first written date in `text` → { date: "YYYY-MM-DD", match } or null. Reads "28th October 2026", "28 Oct 2026",
+ * "28-Oct-2026" and "October 28, 2026"; with no year, picks the year that puts it within ~2 months back or ahead.
+ */
+export function findDate(text) {
+  const dayFirst = text.match(DAY_FIRST);
+  const monthFirst = text.match(MONTH_FIRST);
+  const m = dayFirst && (!monthFirst || dayFirst.index <= monthFirst.index) ? dayFirst : monthFirst;
+  if (!m) return null;
+  const [day, mon, year] = m === dayFirst ? [m[1], m[2], m[3]] : [m[2], m[1], m[3]];
+  const month = MONTH_RE.split("|").indexOf(mon.slice(0, 3).toLowerCase());
+  const now = new Date();
+  const date = new Date(Date.UTC(year ? Number(year) : now.getUTCFullYear(), month, Number(day)));
+  if (!year && date < now - 60 * 864e5) date.setUTCFullYear(date.getUTCFullYear() + 1);
+  if (date.getUTCDate() !== Number(day)) return null; // e.g. "31 Nov"
+  return { date: date.toISOString().slice(0, 10), match: m[0] };
+}
+
+/** Whether `text` mentions a month at all, to flag dates findDate() couldn't read. */
+export const mentionsMonth = (text) => new RegExp(`\\b(${MONTH_RE})[a-z]*\\b`, "i").test(text);
+
 /**
  * Saves one run: upserts `rows` into `table` (keyed on url), then deletes rows the site no longer lists.
  * Staff "hide" flags (is_active) survive re-scrapes because rows never carry that column.
