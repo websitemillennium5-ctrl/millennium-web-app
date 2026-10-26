@@ -47,12 +47,7 @@ export function LoginForm({ portal, next }: { portal: "student" | "admin"; next?
         </div>
         <p className="mt-6 text-center text-xs text-muted">
           {isStudent ? (
-            <>
-              Forgot your password? Ask the front office to reset it. Staff?{" "}
-              <Link href="/admin/login" className="font-medium text-ink underline-offset-2 hover:underline">
-                Staff portal
-              </Link>
-            </>
+            "Forgot your password? Ask the front office to reset it."
           ) : (
             <>
               Student?{" "}

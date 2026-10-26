@@ -6,6 +6,7 @@ import { getFees, type StudentRow } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatINR } from "@/lib/format";
 import { ActionForm, ConfirmButton, SubmitButton } from "@/components/portal/form";
+import { ResetPassword } from "@/components/portal/reset-password";
 import { StudentCard } from "@/components/portal/student-card";
 import { StudentFields } from "@/components/portal/student-fields";
 import { Badge, Card, Empty, Field, Input, Select, Stat } from "@/components/portal/ui";
@@ -104,9 +105,7 @@ export default async function StudentDetail({ params }: PageProps<"/admin/studen
 
           <Card title="Login">
             <p className="mb-4 text-sm text-muted">Student forgot their password? Generate a new one and share it with them.</p>
-            <ActionForm action={resetPassword.bind(null, student.id)} className="space-y-3">
-              <SubmitButton variant="ghost">Reset password</SubmitButton>
-            </ActionForm>
+            <ResetPassword action={resetPassword.bind(null, student.id)} student={student} />
           </Card>
 
           {me.role === "admin" && (

@@ -96,7 +96,7 @@ export async function updateStudent(id: string, _prev: FormState, fd: FormData):
   return { ok: "Saved." };
 }
 
-export async function resetPassword(id: string): Promise<FormState> {
+export async function resetPassword(id: string): Promise<FormState & { password?: string }> {
   await requireStaff();
   // Staff may only reset student passwords; staff/admin accounts are managed by admins
   const { data: target } = await (await createClient()).from("profiles").select("role").eq("id", id).single();
@@ -105,7 +105,7 @@ export async function resetPassword(id: string): Promise<FormState> {
   const password = tempPassword();
   const { error } = await createAdminClient().auth.admin.updateUserById(id, { password });
   if (error) return { error: error.message };
-  return { ok: `New password: ${password} — share it with the student.` };
+  return { ok: `New password: ${password} — share it with the student.`, password };
 }
 
 export async function deleteStudent(fd: FormData) {
