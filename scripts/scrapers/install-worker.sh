@@ -18,6 +18,12 @@ if [ "$1" = "uninstall" ]; then
 fi
 
 [ -n "$NODE" ] || { echo "node not found on PATH" >&2; exit 1; }
+# macOS privacy protection stops background agents reading these folders; the worker would fail with "Operation not permitted".
+case "$REPO" in
+  "$HOME/Documents"*|"$HOME/Desktop"*|"$HOME/Downloads"*)
+    echo "Warning: $REPO is inside Documents, Desktop or Downloads, which macOS blocks for background programs." >&2
+    echo "Move the project to e.g. ~/millennium-worker and run this again (see docs/local-worker-setup.md)." >&2 ;;
+esac
 [ -f "$REPO/.env.local" ] || { echo "$REPO/.env.local is missing (needs NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY)" >&2; exit 1; }
 
 mkdir -p "$HOME/Library/LaunchAgents" "$HOME/Library/Logs"
