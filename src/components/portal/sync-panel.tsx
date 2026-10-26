@@ -1,16 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, CircleDashed, Cloud, ExternalLink, Laptop, Loader2, RefreshCw, Square, XCircle } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUpRight,
+  CheckCircle2,
+  CircleDashed,
+  Clock,
+  Cloud,
+  ExternalLink,
+  Laptop,
+  Layers,
+  Loader2,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Square,
+  XCircle,
+} from "lucide-react";
 import { cancelSync, requestSync } from "@/app/admin/actions";
 import { ActionForm, SubmitButton } from "@/components/portal/form";
-import { Badge } from "@/components/portal/ui";
 import {
+  GITHUB_CRON_UTC,
   GITHUB_REPO,
   GITHUB_SCHEDULE,
   GITHUB_WORKFLOW,
   isActiveRun,
+  jobsFilterKey,
   runTargets,
   WORKER_TIMEOUT_MS,
   type GithubRun,
@@ -18,6 +37,8 @@ import {
   type SyncRun,
   type SyncWorker,
 } from "@/lib/sync";
+
+// ───────── Helpers ─────────
 
 /** "just now", "4 min ago", "3 h ago", "2 days ago". */
 function ago(iso: string | null, now: number) {
@@ -34,6 +55,15 @@ function duration(run: SyncRun, now: number) {
   if (!run.started_at) return null;
   const s = Math.round(((run.finished_at ? Date.parse(run.finished_at) : now) - Date.parse(run.started_at)) / 1000);
   return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`;
+}
+
+/** Time until the next daily GitHub sync, e.g. "7 h 12 min". */
+function untilNextCloudSync(now: number) {
+  const next = new Date(now);
+  next.setUTCHours(GITHUB_CRON_UTC.hour, GITHUB_CRON_UTC.minute, 0, 0);
+  if (next.getTime() <= now) next.setUTCDate(next.getUTCDate() + 1);
+  const min = Math.round((next.getTime() - now) / 60_000);
+  return min < 60 ? `${min} min` : `${Math.floor(min / 60)} h ${min % 60} min`;
 }
 
 /** A source counts as stale once it misses a daily sync. */
@@ -57,6 +87,8 @@ function useLiveRefresh(active: boolean) {
   return now;
 }
 
+// ───────── Page ─────────
+
 export function SyncPanel({
   runs,
   workers,
@@ -72,13 +104,80 @@ export function SyncPanel({
 }) {
   const current = runs.find(isActiveRun) ?? null;
   const now = useLiveRefresh(Boolean(current));
+  const worker = workers[0];
+  const online = Boolean(worker && now - Date.parse(worker.last_seen) < WORKER_TIMEOUT_MS);
+  const cloudPassedAt = github?.conclusion === "success" ? github.updated_at : null;
+
   return (
     <div className="space-y-6">
-      <LocalWorker sources={local} runs={runs} current={current} worker={workers[0]} now={now} />
-      <GithubSync sources={cloud} run={github} now={now} />
+      <Summary local={local} cloud={cloud} cloudPassedAt={cloudPassedAt} online={online} now={now} />
+      <LocalWorker sources={local} runs={runs} current={current} worker={worker} online={online} now={now} />
+      <CloudSync sources={cloud} run={github} passedAt={cloudPassedAt} now={now} />
     </div>
   );
 }
+
+// ───────── Summary ─────────
+
+function Summary({ local, cloud, cloudPassedAt, online, now }: { local: SourceStat[]; cloud: SourceStat[]; cloudPassedAt: string | null; online: boolean; now: number }) {
+  const all = [...local, ...cloud];
+  const jobs = all.filter((s) => s.kind === "jobs").reduce((n, s) => n + s.count, 0);
+  const events = all.filter((s) => s.kind === "events").reduce((n, s) => n + s.count, 0);
+  const added = all.reduce((n, s) => n + s.added, 0);
+  const withNew = all.filter((s) => s.added > 0).length;
+  const fresh = [...local.map((s) => updatedAt(s)), ...cloud.map((s) => updatedAt(s, cloudPassedAt))].filter((iso) => !isStale(iso, now)).length;
+
+  return (
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <Tile icon={Layers} label="Live listings" value={(jobs + events).toLocaleString("en-IN")} hint={`${jobs.toLocaleString("en-IN")} jobs · ${events} events`} />
+      <Tile icon={Sparkles} label="New today" value={added ? `+${added}` : "0"} tone={added ? "good" : "default"} hint={added ? `from ${withNew} source${withNew === 1 ? "" : "s"} in the last 24 h` : "nothing new in the last 24 h"} />
+      <Tile
+        icon={ShieldCheck}
+        label="Sources up to date"
+        value={`${fresh}/${all.length}`}
+        tone={fresh === all.length ? "good" : "warn"}
+        meter={fresh / all.length}
+        hint={fresh === all.length ? "all synced in the last day" : `${all.length - fresh} need attention`}
+      />
+      <Tile icon={Clock} label="Next cloud sync" value={`in ${untilNextCloudSync(now)}`} hint={`Local worker ${online ? "online" : "offline"}`} />
+    </div>
+  );
+}
+
+function Tile({
+  icon: Icon,
+  label,
+  value,
+  hint,
+  tone = "default",
+  meter,
+}: {
+  icon: typeof Cloud;
+  label: string;
+  value: string;
+  hint: string;
+  tone?: "default" | "good" | "warn";
+  meter?: number;
+}) {
+  const color = { default: "text-ink", good: "text-good", warn: "text-amber-600" }[tone];
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-line bg-white p-4">
+      <div className="flex items-center justify-between">
+        <p className="text-[10.5px] font-semibold tracking-[0.12em] text-muted uppercase">{label}</p>
+        <Icon className="size-4 text-muted" strokeWidth={1.75} />
+      </div>
+      <p className={`mt-2 text-2xl font-semibold tracking-tight tabular-nums ${color}`}>{value}</p>
+      <p className="mt-0.5 truncate text-[12.5px] text-muted">{hint}</p>
+      {meter !== undefined && (
+        <div className="absolute inset-x-0 bottom-0 h-1 bg-line">
+          <div className={`h-full ${tone === "warn" ? "bg-amber-500" : "bg-good"}`} style={{ width: `${meter * 100}%` }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ───────── Sections ─────────
 
 function Section({
   icon: Icon,
@@ -96,11 +195,11 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-line bg-white">
-      <header className="flex flex-col gap-4 border-b border-line p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
+    <section className="overflow-hidden rounded-2xl border border-line bg-white">
+      <header className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
         <div className="flex min-w-0 gap-3">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-line bg-mist text-ink">
-            <Icon className="size-4.5" strokeWidth={1.75} />
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-ink text-white">
+            <Icon className="size-[18px]" strokeWidth={1.75} />
           </span>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -135,10 +234,21 @@ function Pill({ tone, pulse, children }: { tone: "good" | "warn" | "bad" | "info
   );
 }
 
-// ───────── Local worker ─────────
-
-function LocalWorker({ sources, runs, current, worker, now }: { sources: SourceStat[]; runs: SyncRun[]; current: SyncRun | null; worker?: SyncWorker; now: number }) {
-  const online = Boolean(worker && now - Date.parse(worker.last_seen) < WORKER_TIMEOUT_MS);
+function LocalWorker({
+  sources,
+  runs,
+  current,
+  worker,
+  online,
+  now,
+}: {
+  sources: SourceStat[];
+  runs: SyncRun[];
+  current: SyncRun | null;
+  worker?: SyncWorker;
+  online: boolean;
+  now: number;
+}) {
   const targets = current ? runTargets(current) : [];
   const done = current?.results.length ?? 0;
 
@@ -179,7 +289,7 @@ function LocalWorker({ sources, runs, current, worker, now }: { sources: SourceS
       action={
         current ? (
           <form action={cancelSync} className="flex items-center gap-3">
-            <span className="text-[13px] text-muted">
+            <span className="text-[13px] text-muted tabular-nums">
               {current.status === "queued" ? "Waiting for worker…" : `${done}/${targets.length} · ${duration(current, now)}`}
             </span>
             <input type="hidden" name="id" value={current.id} />
@@ -196,12 +306,10 @@ function LocalWorker({ sources, runs, current, worker, now }: { sources: SourceS
         )
       }
     >
-      {current && (
-        <div className="h-1 bg-line">
-          <div className="h-full bg-good transition-all duration-500" style={{ width: `${(done / Math.max(targets.length, 1)) * 100}%` }} />
-        </div>
-      )}
-      <SourceRows sources={sources} now={now} status={rowStatus} statusLabel="Last worker sync" />
+      <div className="h-1 bg-line">
+        {current && <div className="h-full bg-good transition-all duration-500" style={{ width: `${(done / Math.max(targets.length, 1)) * 100}%` }} />}
+      </div>
+      <SourceTable sources={sources} now={now} status={rowStatus} statusLabel="Last worker sync" />
       <RecentRuns runs={runs} now={now} />
     </Section>
   );
@@ -220,23 +328,32 @@ function RecentRuns({ runs, now }: { runs: SyncRun[]; now: number }) {
   const finished = runs.filter((r) => !isActiveRun(r)).slice(0, 5);
   if (!finished.length) return null;
   const label = { queued: "Queued", running: "Running", done: "Done", failed: "Failed", cancelled: "Cancelled" };
-  const tone = { queued: "text-amber-700", running: "text-sky-700", done: "text-good", failed: "text-red-600", cancelled: "text-muted" };
+  const dot = { queued: "bg-amber-500", running: "bg-sky-500", done: "bg-good", failed: "bg-red-500", cancelled: "bg-line" };
   return (
     <details className="group border-t border-line">
       <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-[13px] text-muted transition hover:text-ink sm:px-5">
-        Recent runs
-        <span className="text-xs transition group-open:rotate-180">▾</span>
+        <span className="flex items-center gap-2">
+          Recent runs
+          <span className="flex gap-1">
+            {finished.map((r) => (
+              <span key={r.id} title={label[r.status]} className={`size-1.5 rounded-full ${dot[r.status]}`} />
+            ))}
+          </span>
+        </span>
+        <ArrowDown className="size-3.5 transition group-open:rotate-180" />
       </summary>
       <ul className="divide-y divide-line border-t border-line text-[13px]">
         {finished.map((run) => {
           const ok = run.results.filter((r) => r.ok).length;
+          const found = run.results.reduce((n, r) => n + (r.found ?? 0), 0);
           return (
             <li key={run.id}>
               <details className="px-4 py-2.5 sm:px-5">
                 <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-0.5">
-                  <span className={`font-medium ${tone[run.status]}`}>{label[run.status]}</span>
+                  <span className={`size-2 rounded-full ${dot[run.status]}`} />
+                  <span className="font-medium text-ink">{label[run.status]}</span>
                   <span className="text-ink-soft">
-                    {ok}/{runTargets(run).length} sources
+                    {ok}/{runTargets(run).length} sources · {found} listings
                   </span>
                   <span className="text-muted">
                     {run.trigger === "schedule" ? "Daily auto-sync" : run.requester?.full_name ?? "Staff"} · {ago(run.created_at, now)}
@@ -253,11 +370,43 @@ function RecentRuns({ runs, now }: { runs: SyncRun[]; now: number }) {
   );
 }
 
-// ───────── GitHub ─────────
+type Filter = "all" | "jobs" | "events" | "new" | "stale";
+type Sort = "listings" | "new" | "updated" | "name";
 
-function GithubSync({ sources, run, now }: { sources: SourceStat[]; run: GithubRun | null; now: number }) {
-  const passedAt = run?.conclusion === "success" ? run.updated_at : null;
-  const stale = sources.filter((s) => isStale(updatedAt(s, passedAt), now)).length;
+function CloudSync({ sources, run, passedAt, now }: { sources: SourceStat[]; run: GithubRun | null; passedAt: string | null; now: number }) {
+  const [filter, setFilter] = useState<Filter>("all");
+  const [sort, setSort] = useState<Sort>("new");
+  const [q, setQ] = useState("");
+
+  const stale = sources.filter((s) => isStale(updatedAt(s, passedAt), now));
+  const filters: { key: Filter; label: string; count: number }[] = [
+    { key: "all", label: "All", count: sources.length },
+    { key: "jobs", label: "Jobs", count: sources.filter((s) => s.kind === "jobs").length },
+    { key: "events", label: "Events", count: sources.filter((s) => s.kind === "events").length },
+    { key: "new", label: "New today", count: sources.filter((s) => s.added > 0).length },
+    ...(stale.length ? [{ key: "stale" as const, label: "Stale", count: stale.length }] : []),
+  ];
+
+  const shown = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    const rows = sources.filter(
+      (s) =>
+        (!term || s.label.toLowerCase().includes(term)) &&
+        (filter === "all" ||
+          (filter === "jobs" && s.kind === "jobs") ||
+          (filter === "events" && s.kind === "events") ||
+          (filter === "new" && s.added > 0) ||
+          (filter === "stale" && isStale(updatedAt(s, passedAt), now))),
+    );
+    const by: Record<Sort, (a: SourceStat, b: SourceStat) => number> = {
+      listings: (a, b) => b.count - a.count,
+      new: (a, b) => b.added - a.added || b.count - a.count,
+      updated: (a, b) => Date.parse(updatedAt(b, passedAt) ?? "0") - Date.parse(updatedAt(a, passedAt) ?? "0"),
+      name: (a, b) => a.label.localeCompare(b.label),
+    };
+    return rows.sort(by[sort]);
+  }, [sources, filter, sort, q, passedAt, now]);
+
   const runPill = !run ? null : run.status !== "completed" ? (
     <Pill tone="info" pulse>
       Running now
@@ -275,8 +424,9 @@ function GithubSync({ sources, run, now }: { sources: SourceStat[]; run: GithubR
       status={runPill}
       text={
         <>
-          {GITHUB_SCHEDULE}, GitHub Actions refreshes these {sources.length} sources and removes listings the airlines have closed. Nothing to do here.
-          {stale > 0 && <span className="text-amber-700"> {stale} source{stale === 1 ? " hasn't" : "s haven't"} updated in over a day.</span>}
+          {GITHUB_SCHEDULE}, GitHub Actions refreshes these {sources.length} sources, adds new openings and removes the ones airlines have closed. Nothing to
+          do here.
+          {stale.length > 0 && <span className="text-amber-700"> {stale.length} source{stale.length === 1 ? " hasn't" : "s haven't"} updated in over a day.</span>}
         </>
       }
       action={
@@ -290,52 +440,145 @@ function GithubSync({ sources, run, now }: { sources: SourceStat[]; run: GithubR
         </a>
       }
     >
-      <SourceRows sources={sources} now={now} fallback={passedAt} />
+      <div className="flex flex-col gap-3 border-y border-line bg-mist/40 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <div className="scrollbar-none -mx-1 flex gap-1 overflow-x-auto px-1">
+          {filters.map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => setFilter(f.key)}
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] transition ${
+                filter === f.key ? "border-ink bg-ink text-white" : "border-line bg-white text-ink-soft hover:border-ink/25 hover:text-ink"
+              }`}
+            >
+              {f.label}
+              <span className={`text-[11px] tabular-nums ${filter === f.key ? "text-white/70" : "text-muted"}`}>{f.count}</span>
+            </button>
+          ))}
+        </div>
+        <label className="relative block sm:w-56">
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search airlines"
+            className="h-8 w-full rounded-full border border-line bg-white pr-3 pl-8 text-[13px] text-ink outline-none transition placeholder:text-muted/70 focus:border-ink/40 focus:ring-4 focus:ring-ink/5"
+          />
+        </label>
+      </div>
+      {shown.length ? (
+        <SourceTable sources={shown} now={now} fallback={passedAt} sort={sort} onSort={setSort} />
+      ) : (
+        <p className="px-5 py-10 text-center text-sm text-muted">No sources match.</p>
+      )}
     </Section>
   );
 }
 
-// ───────── Shared ─────────
+// ───────── Source table ─────────
 
-function SourceRows({
+/** Two-letter airline monogram with a stable colour per airline. */
+function Monogram({ label }: { label: string }) {
+  const letters = label.replace(/[^A-Za-z0-9 ]/g, "").split(/\s+/).filter(Boolean);
+  const text = (letters.length > 1 ? letters[0][0] + letters[1][0] : label.slice(0, 2)).toUpperCase();
+  const hues = ["bg-rose-100 text-rose-700", "bg-sky-100 text-sky-700", "bg-amber-100 text-amber-800", "bg-emerald-100 text-emerald-700", "bg-violet-100 text-violet-700", "bg-orange-100 text-orange-700", "bg-teal-100 text-teal-700"];
+  const hue = hues[[...label].reduce((n, c) => n + c.charCodeAt(0), 0) % hues.length];
+  return <span className={`flex size-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-semibold ${hue}`}>{text}</span>;
+}
+
+/** Column header; sortable when given `by` and `onSort`. */
+function Head({ label, by, right, sort, onSort }: { label: string; by?: Sort; right?: boolean; sort?: Sort; onSort?: (sort: Sort) => void }) {
+  return (
+    <th className={`px-3 py-2.5 font-semibold first:pl-4 last:pr-4 sm:first:pl-5 sm:last:pr-5 ${right ? "text-right" : ""}`}>
+      {by && onSort ? (
+        <button type="button" onClick={() => onSort(by)} className={`inline-flex items-center gap-1 uppercase transition hover:text-ink ${sort === by ? "text-ink" : ""}`}>
+          {label}
+          {sort === by && <ArrowDown className="size-3" />}
+        </button>
+      ) : (
+        label
+      )}
+    </th>
+  );
+}
+
+function SourceTable({
   sources,
   now,
+  fallback,
   status,
   statusLabel,
-  fallback,
+  sort,
+  onSort,
 }: {
   sources: SourceStat[];
   now: number;
   fallback?: string | null;
   status?: (s: SourceStat) => React.ReactNode;
   statusLabel?: string;
+  sort?: Sort;
+  onSort?: (sort: Sort) => void;
 }) {
+  const max = Math.max(1, ...sources.map((s) => s.count));
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[520px] text-sm">
+      <table className="w-full min-w-[640px] text-sm">
         <thead>
-          <tr className="border-b border-line text-left text-[11px] font-semibold tracking-[0.1em] text-muted uppercase">
-            <th className="px-4 py-2.5 font-semibold sm:px-5">Source</th>
-            <th className="px-3 py-2.5 text-right font-semibold">Listings</th>
-            <th className="px-3 py-2.5 font-semibold">Updated</th>
-            {status && <th className="px-4 py-2.5 font-semibold sm:px-5">{statusLabel}</th>}
+          <tr className="border-b border-line text-left text-[11px] tracking-[0.1em] text-muted uppercase">
+            <Head label="Source" by="name" sort={sort} onSort={onSort} />
+            <Head label="Listings" by="listings" sort={sort} onSort={onSort} />
+            <Head label="New today" by="new" right sort={sort} onSort={onSort} />
+            <Head label="Updated" by="updated" sort={sort} onSort={onSort} />
+            {status && <Head label={statusLabel ?? "Status"} />}
+            <th className="w-10 pr-4 sm:pr-5" />
           </tr>
         </thead>
         <tbody className="divide-y divide-line">
-          {sources.map((s) => (
-            <tr key={s.name} className="transition hover:bg-mist/50">
-              <td className="px-4 py-2.5 sm:px-5">
-                <span className="text-ink">{s.label}</span>{" "}
-                <Badge tone={s.kind === "events" ? "brand" : "default"}>{s.kind === "events" ? "Events" : "Jobs"}</Badge>
-              </td>
-              <td className="px-3 py-2.5 text-right tabular-nums text-ink">{s.count}</td>
-              <td className={`px-3 py-2.5 whitespace-nowrap ${isStale(updatedAt(s, fallback), now) ? "text-amber-700" : "text-ink-soft"}`}>{ago(updatedAt(s, fallback), now)}</td>
-              {status && <td className="max-w-[16rem] px-4 py-2.5 sm:px-5">{status(s)}</td>}
-            </tr>
-          ))}
+          {sources.map((s) => {
+            const updated = updatedAt(s, fallback);
+            return (
+              <tr key={s.name} className="group transition hover:bg-mist/50">
+                <td className="py-2.5 pr-3 pl-4 sm:pl-5">
+                  <div className="flex items-center gap-3">
+                    <Monogram label={s.label} />
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-ink">{s.label}</p>
+                      <p className="text-[12px] text-muted">{s.kind === "events" ? "Hiring events" : "Job openings"}</p>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-3 py-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-9 text-right tabular-nums text-ink">{s.count}</span>
+                    <span className="hidden h-1.5 w-20 overflow-hidden rounded-full bg-line sm:block">
+                      <span className="block h-full rounded-full bg-ink/70" style={{ width: `${(s.count / max) * 100}%` }} />
+                    </span>
+                  </div>
+                </td>
+                <td className="px-3 py-2.5 text-right">
+                  {s.added > 0 ? (
+                    <span className="inline-flex items-center rounded-full bg-good/10 px-2 py-0.5 text-[12.5px] font-medium tabular-nums text-good">+{s.added}</span>
+                  ) : (
+                    <span className="text-muted">—</span>
+                  )}
+                </td>
+                <td className={`px-3 py-2.5 whitespace-nowrap ${isStale(updated, now) ? "text-amber-700" : "text-ink-soft"}`}>{ago(updated, now)}</td>
+                {status && <td className="max-w-[14rem] px-3 py-2.5">{status(s)}</td>}
+                <td className="py-2.5 pr-4 text-right sm:pr-5">
+                  <Link
+                    href={`/admin/jobs?source=${jobsFilterKey(s.name)}`}
+                    title={`View ${s.label} listings`}
+                    aria-label={`View ${s.label} listings`}
+                    className="inline-flex size-8 items-center justify-center rounded-full text-muted transition group-hover:bg-white group-hover:text-ink hover:border-line"
+                  >
+                    <ArrowUpRight className="size-4" />
+                  </Link>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
   );
 }
-

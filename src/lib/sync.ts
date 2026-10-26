@@ -33,6 +33,10 @@ export const localOnlyScrapers = ["events/indigo_cabin_crew", "events/indigo_gro
 export const GITHUB_REPO = "websitemillennium5-ctrl/millennium-web-app";
 export const GITHUB_WORKFLOW = "sync-listings.yml";
 export const GITHUB_SCHEDULE = "Every day at 6:00 am IST";
+export const GITHUB_CRON_UTC = { hour: 0, minute: 30 }; // keep in sync with the cron in sync-listings.yml
+
+/** The airline filter on the Jobs page for a scraper ("events/indigo_cabin_crew" → "indigo"). */
+export const jobsFilterKey = (name: string) => name.replace(/^events\//, "").replace(/^indigo_.+/, "indigo");
 
 export type GithubRun = { status: string; conclusion: string | null; created_at: string; updated_at: string; html_url: string };
 
@@ -54,7 +58,10 @@ export type SyncRun = {
 
 export type SyncWorker = { id: string; last_seen: string; started_at: string; run_id: string | null };
 
-export type SourceStat = Scraper & { count: number; lastScraped: string | null; last: (SyncResult & { at: string }) | null };
+export type SourceStat = Scraper & { count: number; added: number; lastScraped: string | null; last: (SyncResult & { at: string }) | null };
+
+/** "New" listings: first seen within this window, so a daily sync's additions stay visible all day. */
+export const NEW_WINDOW_MS = 24 * 3600_000;
 
 /** The worker checks in every 10 seconds; treat it as offline after a few missed check-ins. */
 export const WORKER_TIMEOUT_MS = 45_000;

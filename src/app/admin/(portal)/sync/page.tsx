@@ -1,6 +1,6 @@
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { GITHUB_REPO, GITHUB_WORKFLOW, localOnlyScrapers, scrapers, type GithubRun, type SourceStat, type SyncRun, type SyncWorker } from "@/lib/sync";
+import { GITHUB_REPO, GITHUB_WORKFLOW, localOnlyScrapers, NEW_WINDOW_MS, scrapers, type GithubRun, type SourceStat, type SyncRun, type SyncWorker } from "@/lib/sync";
 import { SyncPanel } from "@/components/portal/sync-panel";
 import { PageTitle } from "@/components/portal/ui";
 
@@ -18,6 +18,9 @@ async function latestGithubRun(): Promise<GithubRun | null> {
   }
 }
 
+/** Start of the "new today" window. Each request renders fresh, so reading the clock here is fine. */
+const newSince = () => new Date(Date.now() - NEW_WINDOW_MS).toISOString();
+
 export default async function AdminSync() {
   await requireStaff();
   const supabase = await createClient();
@@ -30,6 +33,10 @@ export default async function AdminSync() {
     latestGithubRun(),
   ]);
 
+  // Listings first seen in the last 24 hours (rows keep created_at across re-syncs), i.e. what the daily sync brought in.
+  const since = newSince();
+  const added = await Promise.all(scrapers.map((s) => supabase.from(s.table).select("id", { count: "exact", head: true }).gte("created_at", since)));
+
   const history = (runs ?? []) as SyncRun[];
   const sources: SourceStat[] = scrapers.map((s, i) => {
     const run = history.find((r) => r.results.some((x) => x.name === s.name));
@@ -37,6 +44,7 @@ export default async function AdminSync() {
     return {
       ...s,
       count: tables[i].count ?? 0,
+      added: added[i].count ?? 0,
       lastScraped: tables[i].data?.[0]?.scraped_at ?? null,
       last: result && run ? { ...result, at: run.finished_at ?? run.started_at ?? run.created_at } : null,
     };
