@@ -8,15 +8,17 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // Public, unauthenticated actions behind the jobs page "Apply now" popup. They use the service-role client,
 // so they only ever answer yes/no or insert a lead; nothing about students is sent back.
 
-/** Whether `studentId` belongs to a Millennium student (case-insensitive exact match). Emails the academy on a match. */
+/** Whether `studentId` (a student ID, or the email registered at the institute) belongs to a Millennium student
+    (case-insensitive exact match). Emails the academy on a match. */
 export async function verifyStudentId(studentId: string, listing?: { title: string; url: string }): Promise<boolean> {
   const id = studentId.trim();
-  if (!id || id.length > 40) return false;
+  const byEmail = id.includes("@");
+  if (!id || id.length > (byEmail ? 254 : 40)) return false;
   const { count } = await createAdminClient()
     .from("profiles")
     .select("id", { count: "exact", head: true })
     .eq("role", "student")
-    .ilike("student_id", id.replace(/[%_\\]/g, "\\$&"));
+    .ilike(byEmail ? "email" : "student_id", id.replace(/[%_\\]/g, "\\$&"));
   const verified = (count ?? 0) > 0;
   if (verified)
     after(() =>
@@ -26,7 +28,7 @@ export async function verifyStudentId(studentId: string, listing?: { title: stri
         title: `Student ${id}`,
         subtitle: listing ? `Applying for ${listing.title}` : "Verified their student ID on the jobs page",
         link: listing && { label: "Open job", href: listing.url },
-        fields: { "Student ID": `${id} (verified)`, "Applying for": listing?.title },
+        fields: { [byEmail ? "Student email" : "Student ID"]: `${id} (verified)`, "Applying for": listing?.title },
       }),
     );
   return verified;

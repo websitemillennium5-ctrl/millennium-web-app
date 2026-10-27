@@ -34,7 +34,7 @@ const secondary =
 
 /**
  * Public "Apply now": before handing over the airline's link, asks whether the visitor is a Millennium student.
- * Students confirm with their student ID; everyone else (or an unknown ID) shares their details, saved as a lead.
+ * Students confirm with their student ID or registered email; everyone else (or an unknown ID) shares their details, saved as a lead.
  */
 export function ApplyButton({ url, listing, size = "sm" }: { url: string; listing: string; size?: "sm" | "lg" }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -131,7 +131,7 @@ export function ApplyButton({ url, listing, size = "sm" }: { url: string; listin
               <h2 className="text-xl font-semibold tracking-tight">Are you a Millennium student?</h2>
               <div className="mt-5 space-y-2.5">
                 {[
-                  { next: "student" as const, icon: GraduationCap, title: "Yes, I'm a student", text: "Verify with your student ID" },
+                  { next: "student" as const, icon: GraduationCap, title: "Yes, I'm a student", text: "Verify with your student ID or email" },
                   { next: "details" as const, icon: UserRound, title: "No, I'm not", text: "Share a few details to continue" },
                 ].map(({ next, icon: Icon, title, text }) => (
                   <button
@@ -156,14 +156,20 @@ export function ApplyButton({ url, listing, size = "sm" }: { url: string; listin
 
           {step === "student" && (
             <form onSubmit={checkId} className="space-y-4">
-              <h2 className="text-xl font-semibold tracking-tight">Enter your student ID</h2>
-              <Field label="Student ID">
+              <div>
+                <h2 className="text-xl font-semibold tracking-tight">Verify you&apos;re a student</h2>
+                <p className="mt-1 text-sm text-muted">Use your student ID or the email you registered with at the institute.</p>
+              </div>
+              <Field label="Student ID or email">
                 <Input
                   value={studentId}
                   onChange={(e) => (setStudentId(e.target.value), setIdMissed(false))}
                   required
                   autoFocus
-                  placeholder="STU-0142"
+                  placeholder="STU-0142 or you@email.com"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                 />
               </Field>
               <div className="flex justify-between gap-2">
@@ -187,9 +193,9 @@ export function ApplyButton({ url, listing, size = "sm" }: { url: string; listin
                 <div role="alert" className="flex gap-2.5 rounded-xl border border-red-100 bg-red-50 px-3.5 py-3 text-sm text-red-700">
                   <AlertCircle className="mt-0.5 size-4 shrink-0" />
                   <p>
-                    The student ID you entered (<span className="font-medium">{studentId}</span>) is wrong. Fill in your details below to continue, or{" "}
+                    We couldn&apos;t find a student with the ID or email you entered (<span className="font-medium">{studentId}</span>). Fill in your details below to continue, or{" "}
                     <button type="button" onClick={() => setStep("student")} className="font-medium underline underline-offset-2">
-                      try another ID
+                      try again
                     </button>
                     .
                   </p>
