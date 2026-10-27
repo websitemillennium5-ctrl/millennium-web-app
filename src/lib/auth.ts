@@ -25,10 +25,17 @@ export const getProfile = cache(async (): Promise<Profile | null> => {
   const { data } = await supabase.auth.getClaims();
   const userId = data?.claims.sub;
   if (!userId) return null;
+  // Only accounts the academy created carry a role in app_metadata (set with the secret key; users can't edit it).
+  // Anyone who registered themselves through the public sign-up API has none, so treat them as signed out.
+  if (!isAcademyAccount(data.claims.app_metadata)) return null;
 
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", userId).single();
   return (profile as Profile | null) ?? null;
 });
+
+/** Whether an account was created by the academy (students via the admin panel, staff by an admin), not self-registered. */
+export const isAcademyAccount = (appMetadata: unknown) =>
+  typeof (appMetadata as { role?: unknown } | undefined)?.role === "string";
 
 export const isStaffRole = (role: Role) => role === "staff" || role === "admin";
 

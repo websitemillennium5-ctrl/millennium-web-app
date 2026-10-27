@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isStaffRole, type Role } from "@/lib/auth";
+import { isAcademyAccount, isStaffRole, type Role } from "@/lib/auth";
 
 export type FormState = { error?: string; ok?: string } | undefined;
 
@@ -21,7 +21,8 @@ export async function signIn(_prev: FormState, formData: FormData): Promise<Form
     const { data } = await createAdminClient()
       .from("profiles")
       .select("email")
-      .ilike("roll_no", identifier)
+      // escaped so "%" or "_" can't act as wildcards and match someone else's roll number
+      .ilike("roll_no", identifier.replace(/[%_\\]/g, "\\$&"))
       .eq("role", "student")
       .maybeSingle();
     if (!data?.email) return { error: "Incorrect roll number or password." };
@@ -31,6 +32,10 @@ export async function signIn(_prev: FormState, formData: FormData): Promise<Form
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error || !data.user) return { error: "Incorrect login details or password." };
+  if (!isAcademyAccount(data.user.app_metadata)) {
+    await supabase.auth.signOut();
+    return { error: "This account wasn't created by the academy. Ask the front office for your login." };
+  }
 
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).single();
   const role = profile?.role as Role | undefined;
