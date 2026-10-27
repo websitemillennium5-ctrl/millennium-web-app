@@ -5,6 +5,7 @@ import { Check, Copy } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons";
 import { FormMessage, SubmitButton } from "@/components/portal/form";
 import type { FormState } from "@/app/actions/auth";
+import { site } from "@/lib/site";
 
 type Result = (FormState & { password?: string }) | undefined;
 type Student = { full_name: string; email: string | null; phone: string | null; roll_no: string | null };
@@ -39,7 +40,7 @@ export function ResetPassword({
   const [copied, setCopied] = useState(false);
 
   // only built after a reset, which happens in the browser, so window is always available here
-  const message = state?.password ? loginMessage(student, state.password, `${window.location.origin}/student/login`) : "";
+  const message = state?.password ? loginMessage(student, state.password, `${site.url}/student/login`) : "";
   const phone = student.phone?.replace(/\D/g, "") ?? "";
   // Indian 10-digit numbers need the country code for wa.me
   const waPhone = phone.length === 10 ? `91${phone}` : phone;

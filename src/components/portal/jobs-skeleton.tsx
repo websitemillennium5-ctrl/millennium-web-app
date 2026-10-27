@@ -8,14 +8,14 @@ export function JobsBoardHeading() {
 }
 
 // Default corner radius only when the caller doesn't set one (two rounded-* classes would fight)
-const Bone = ({ className = "" }: { className?: string }) => (
+export const Bone = ({ className = "" }: { className?: string }) => (
   <div className={`animate-shimmer bg-mist ${className.includes("rounded") ? "" : "rounded-md"} ${className}`} />
 );
 
 function CardSkeleton() {
   return (
     <li className="rounded-2xl border border-line bg-white p-1.5">
-      <div className="grid overflow-hidden rounded-xl border border-line sm:grid-cols-[minmax(0,1fr)_10.5rem]">
+      <div className="grid grid-cols-1 overflow-hidden rounded-xl border border-line sm:grid-cols-[minmax(0,1fr)_10.5rem]">
         <div>
           <div className="flex items-start gap-4 p-4 sm:px-5">
             <Bone className="h-12 w-20 shrink-0 rounded-xl" />
@@ -26,7 +26,7 @@ function CardSkeleton() {
             </div>
           </div>
           {[0, 1].map((row) => (
-            <div key={row} className="grid gap-3 border-t border-line px-4 py-3.5 sm:grid-cols-[9rem_minmax(0,1fr)] sm:pl-5">
+            <div key={row} className="grid grid-cols-1 gap-3 border-t border-line px-4 py-3.5 sm:grid-cols-[9rem_minmax(0,1fr)] sm:pl-5">
               <Bone className="h-3 w-20" />
               <div className="space-y-2">
                 <Bone className="h-3 w-full" />
@@ -98,7 +98,7 @@ export function ListingDetailSkeleton() {
     <section aria-busy="true" aria-label="Loading listing" className="portal container-x pt-32 pb-16 lg:pt-40">
       <Bone className="mb-4 h-4 w-44" />
       <div className="rounded-2xl border border-line bg-white p-1.5">
-        <div className="grid overflow-hidden rounded-xl border border-line sm:grid-cols-[minmax(0,1fr)_10.5rem]">
+        <div className="grid grid-cols-1 overflow-hidden rounded-xl border border-line sm:grid-cols-[minmax(0,1fr)_10.5rem]">
           <div>
             <div className="flex items-start gap-4 p-5 sm:px-6 sm:py-6">
               <Bone className="h-12 w-20 shrink-0 rounded-xl" />
@@ -109,7 +109,7 @@ export function ListingDetailSkeleton() {
               </div>
             </div>
             {[0, 1, 2, 3].map((row) => (
-              <div key={row} className="grid gap-3 border-t border-line px-4 py-4 sm:grid-cols-[9rem_minmax(0,1fr)] sm:pl-5">
+              <div key={row} className="grid grid-cols-1 gap-3 border-t border-line px-4 py-4 sm:grid-cols-[9rem_minmax(0,1fr)] sm:pl-5">
                 <Bone className="h-3 w-20" />
                 <div className="space-y-2">
                   <Bone className="h-3 w-full" />

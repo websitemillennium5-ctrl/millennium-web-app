@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // Keep pages the user has just visited for 30s, so switching back and forth (e.g. the student
+    // portal's dock tabs) is instant instead of re-rendering on the server every time
+    staleTimes: { dynamic: 30 },
+  },
   async headers() {
     return [
       {

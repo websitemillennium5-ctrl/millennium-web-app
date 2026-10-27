@@ -1,5 +1,46 @@
 @import "tailwindcss";
 
+/* `admin-dark:` styles apply inside the staff portal while its dark mode is on */
+@custom-variant admin-dark (&:where(.admin-dark, .admin-dark *));
+
+/* Screen breakpoints, redefined to skip anything inside .app-frame: the student portal renders in a phone-width
+   column on every screen, so its pages and the shared components in it always get their mobile layout. */
+@custom-variant sm {
+  @media (width >= 40rem) {
+    &:where(:not(.app-frame *)) {
+      @slot;
+    }
+  }
+}
+@custom-variant md {
+  @media (width >= 48rem) {
+    &:where(:not(.app-frame *)) {
+      @slot;
+    }
+  }
+}
+@custom-variant lg {
+  @media (width >= 64rem) {
+    &:where(:not(.app-frame *)) {
+      @slot;
+    }
+  }
+}
+@custom-variant xl {
+  @media (width >= 80rem) {
+    &:where(:not(.app-frame *)) {
+      @slot;
+    }
+  }
+}
+@custom-variant 2xl {
+  @media (width >= 96rem) {
+    &:where(:not(.app-frame *)) {
+      @slot;
+    }
+  }
+}
+
 @theme inline {
   --font-sans: var(--font-jakarta);
   --font-serif: var(--font-instrument);
@@ -144,6 +185,88 @@ body {
 }
 
 /* Skeleton "shine": a soft highlight sweeps across each placeholder bone */
+/* ───────── Staff portal dark mode ─────────
+   Toggled by the switch in the admin header (cookie `admin-theme`), on the shell's .admin-dark class only.
+   The portal reads colour tokens, so most of it follows the swaps below; the few hard-coded light
+   utilities (white cards, dark buttons, pastel badges) are mapped to dark equivalents after them. */
+.portal.admin-dark {
+  color-scheme: dark;
+  --color-ink: #f4f4f5;
+  --color-ink-soft: #d4d4d8;
+  --color-muted: #a1a1aa;
+  --color-line: #2c2c31;
+  --color-mist: #222226;
+  --color-brand: #d4d4d8;
+  --color-brand-dark: #f4f4f5;
+  --color-brand-soft: #222226;
+  --color-canvas: #0c0c0e;
+  --surface: #161619;
+
+  /* pastel badge backgrounds and their text, re-tinted for a dark background */
+  --color-red-50: #2a1416;
+  --color-red-100: #3a1a1d;
+  --color-red-200: #5a2328;
+  --color-red-600: #f87171;
+  --color-red-700: #fca5a5;
+  --color-amber-50: #2a210f;
+  --color-amber-100: #3a2c10;
+  --color-amber-200: #5c4514;
+  --color-amber-600: #fbbf24;
+  --color-amber-700: #fcd34d;
+  --color-amber-800: #fde68a;
+  --color-sky-50: #0f2230;
+  --color-sky-100: #12293a;
+  --color-sky-200: #1c4460;
+  --color-sky-700: #7dd3fc;
+  --color-sky-800: #bae6fd;
+  --color-violet-100: #251a3d;
+  --color-violet-200: #3b2a63;
+  --color-violet-700: #c4b5fd;
+  --color-violet-800: #ddd6fe;
+  --color-emerald-100: #0f2a20;
+  --color-emerald-700: #6ee7b7;
+  --color-teal-100: #0e2a28;
+  --color-teal-700: #5eead4;
+  --color-rose-100: #33141d;
+  --color-rose-700: #fda4af;
+  --color-orange-700: #fdba74;
+}
+/* white cards and panels become dark surfaces */
+.portal.admin-dark :is(.bg-white, .hover\:bg-white:hover) {
+  background-color: var(--surface);
+}
+.portal.admin-dark :is(.bg-white\/95, .bg-white\/90, .bg-white\/80, .bg-white\/70, .bg-white\/60) {
+  background-color: color-mix(in srgb, var(--surface) 85%, transparent);
+}
+/* translucent white hovers (sidebar links, chips) become a soft dark highlight instead of a light slab */
+.portal.admin-dark
+  :is(
+    .hover\:bg-white\/50:hover,
+    .hover\:bg-white\/60:hover,
+    .hover\:bg-white\/70:hover,
+    .hover\:bg-white\/80:hover,
+    .hover\:bg-white\/90:hover,
+    .group:hover .group-hover\:bg-white
+  ) {
+  background-color: var(--color-mist);
+}
+.portal.admin-dark .focus-within\:bg-white:focus-within {
+  background-color: var(--surface);
+}
+/* primary dark buttons and chips stay dark-on-dark with white text instead of turning light */
+.portal.admin-dark :is(.bg-ink, .bg-ink\/90) {
+  background-color: #3a3a40;
+}
+.portal.admin-dark :is(.hover\:bg-ink-soft:hover, .hover\:bg-ink:hover, .group:hover .group-hover\:bg-ink) {
+  background-color: #4a4a52;
+}
+.portal.admin-dark .border-ink {
+  border-color: #71717a;
+}
+.portal.admin-dark .animate-shimmer {
+  background-image: linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 0.06) 50%, transparent 70%);
+}
+
 @keyframes shimmer {
   from {
     background-position: 150% 0;

@@ -415,7 +415,7 @@ export function JobFiltersSheet({
       <button
         type="button"
         onClick={() => dialog.current?.showModal()}
-        className="fixed right-5 bottom-5 z-[70] flex h-12 items-center gap-2 rounded-full bg-ink pr-5 pl-4 text-sm font-medium text-white shadow-lg shadow-black/25 transition active:scale-95 lg:hidden"
+        className="fixed right-[calc((var(--frame-gutter,0px)+1.25rem)/var(--frame-zoom,1))] bottom-[calc((var(--dock-space,0rem)+0.5rem)/var(--frame-zoom,1))] z-[70] flex h-12 items-center gap-2 rounded-full bg-ink pr-5 pl-4 text-sm font-medium text-white shadow-lg shadow-black/25 transition active:scale-95 lg:hidden"
       >
         <SlidersHorizontal className="size-4" />
         Filters
@@ -428,9 +428,9 @@ export function JobFiltersSheet({
         ref={dialog}
         data-lenis-prevent
         onClick={(e) => e.target === dialog.current && close()}
-        className="portal mx-0 mt-auto mb-0 max-h-[85dvh] w-full max-w-none rounded-t-3xl bg-white p-0 text-ink shadow-2xl backdrop:bg-ink/30 lg:hidden"
+        className="portal mx-auto mt-auto mb-0 max-h-[calc(85dvh/var(--frame-zoom,1))] w-full max-w-[calc(var(--frame-width,100vw)/var(--frame-zoom,1))] rounded-t-3xl bg-white p-0 text-ink shadow-2xl backdrop:bg-ink/30 lg:hidden"
       >
-        <div className="flex max-h-[85dvh] flex-col">
+        <div className="flex max-h-[calc(85dvh/var(--frame-zoom,1))] flex-col">
           <div className="flex items-center justify-between border-b border-line px-5 py-4">
             <p className="text-base font-semibold">Filters</p>
             <button

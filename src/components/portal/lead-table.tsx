@@ -2,6 +2,7 @@ import { ArrowUpRight, Mail, MessageCircle, Phone } from "lucide-react";
 import type { Lead } from "@/lib/data";
 import { formatDate } from "@/lib/format";
 import { experienceLabels, leadSources, leadStatuses, needsFollowUp, whatsappHref } from "@/lib/leads";
+import { CopyButton } from "@/components/portal/copy-button";
 import { LeadStatusSelect } from "@/components/portal/lead-status-select";
 import { initials } from "@/components/portal/student-card";
 import { ago } from "@/components/portal/student-table";
@@ -108,6 +109,7 @@ export function LeadTable({ leads, now }: { leads: Lead[]; now: number }) {
                         <Mail className="size-3.5" strokeWidth={1.75} />
                       </ContactButton>
                     )}
+                    <CopyButton text={l.phone} label={`Copy ${l.name}'s number`} small />
                   </span>
                 </td>
 

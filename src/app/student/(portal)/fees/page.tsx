@@ -31,7 +31,7 @@ export default async function StudentFees() {
       <PageTitle title="Fees" text="Your course fee, what you've paid and what's left." />
 
       <section className="overflow-hidden rounded-2xl border border-line bg-white">
-        <div className="grid gap-5 p-5 sm:grid-cols-[auto_1fr] sm:items-center">
+        <div className="grid grid-cols-1 gap-5 p-5 sm:grid-cols-[auto_1fr] sm:items-center">
           <Ring value={share} size={112} label="paid" />
           <div>
             {due > 0 ? (
@@ -74,7 +74,7 @@ export default async function StudentFees() {
         </div>
       </section>
 
-      <div className="mt-5 grid items-start gap-5 lg:grid-cols-[1fr_18rem]">
+      <div className="mt-5 grid grid-cols-1 items-start gap-5 lg:grid-cols-[1fr_18rem]">
         <Card title="Payment history" action={<span className="text-[11px] text-muted">{payments.length} {payments.length === 1 ? "payment" : "payments"}</span>}>
           {timeline.length === 0 ? (
             <div className="flex flex-col items-center py-8 text-center">

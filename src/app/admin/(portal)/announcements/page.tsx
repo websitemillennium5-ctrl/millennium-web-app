@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { BadgeCheck, Megaphone, Pin, PinOff, Trash2, UsersRound } from "lucide-react";
 import { createAnnouncement, deleteAnnouncement, toggleAnnouncementPin } from "@/app/admin/actions";
@@ -44,13 +45,14 @@ function PostCard({ a, now, reach }: { a: Post; now: number; reach: number }) {
       )}
       <div className="flex gap-3">
         <span className="relative size-10 shrink-0">
-          <span className="flex size-full items-center justify-center rounded-full bg-gradient-to-br from-accent to-accent-dark text-xs font-bold text-white">
-            {a.author ? initials(name) : "M"}
+          {/* the academy's logo mark; a fixed white disc so the black mark stays visible in dark mode too */}
+          <span className="flex size-full items-center justify-center overflow-hidden rounded-full bg-[#fff] ring-1 ring-line">
+            <Image src="/images/logo-mark.png" alt="" width={80} height={80} className="size-full scale-[1.35] object-contain" />
           </span>
           {/* Audience badge on the avatar, like a story ring */}
           <span
             className="absolute -right-0.5 -bottom-0.5 flex size-[18px] items-center justify-center rounded-full text-white ring-2 ring-white"
-            style={{ background: a.course_slug ? style.color : "var(--color-ink)" }}
+            style={{ background: a.course_slug ? style.color : "#a7222d" }}
             title={a.course_slug ? courseTitle(a.course_slug) : "All students"}
           >
             {a.course_slug ? <CourseIcon course={a.course_slug} className="size-2.5" /> : <Megaphone className="size-2.5" strokeWidth={2} />}

@@ -204,7 +204,7 @@ export function ApplyButton({ url, listing, size = "sm" }: { url: string; listin
               <Field label="Full name *">
                 <Input name="name" required autoComplete="name" />
               </Field>
-              <div className="grid gap-3.5 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
                 <Field label="Phone *">
                   <Input name="phone" type="tel" required autoComplete="tel" placeholder="+91" />
                 </Field>

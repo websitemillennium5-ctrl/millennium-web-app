@@ -53,7 +53,7 @@ export function BoardingPass({ profile, duration }: { profile: Profile; duration
   const id = profile.student_id || profile.roll_no || profile.id.slice(0, 8);
 
   return (
-    <div className="relative flex flex-col overflow-hidden rounded-2xl border border-line bg-white shadow-[0_18px_40px_-28px_rgba(24,24,27,0.45)] sm:flex-row">
+    <div className="relative flex flex-col overflow-hidden rounded-2xl border border-line bg-white sm:flex-row">
       {/* Main ticket */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between px-4 py-2 text-white" style={{ background: `linear-gradient(90deg, ${style.color}, color-mix(in srgb, ${style.color} 65%, black))` }}>

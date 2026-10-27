@@ -31,7 +31,7 @@ export function CardTitle({ href, children }: { href?: string; children: React.R
 /** Inner panel: main column plus a rail that sits to the right on wide screens and below on phones. */
 export function CardPanel({ children, rail, tint }: { children: React.ReactNode; rail?: React.ReactNode; tint?: string }) {
   return (
-    <div className="grid overflow-hidden rounded-xl border border-line sm:grid-cols-[minmax(0,1fr)_10.5rem]">
+    <div className="grid grid-cols-1 overflow-hidden rounded-xl border border-line sm:grid-cols-[minmax(0,1fr)_10.5rem]">
       <div
         className="min-w-0"
         style={tint ? { background: `linear-gradient(180deg, color-mix(in srgb, ${tint} 6%, white) 0%, white 96px)` } : undefined}
@@ -51,7 +51,7 @@ export function CardPanel({ children, rail, tint }: { children: React.ReactNode;
 /** One ruled row: label column, then content. */
 export function GridRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="grid border-t border-line sm:grid-cols-[9rem_minmax(0,1fr)]">
+    <div className="grid grid-cols-1 border-t border-line sm:grid-cols-[9rem_minmax(0,1fr)]">
       <p className="px-4 pt-3 text-[10.5px] font-semibold tracking-[0.12em] text-muted uppercase sm:py-3.5 sm:pl-5">{label}</p>
       <div className="min-w-0 px-4 py-3 sm:pl-0">{children}</div>
     </div>
