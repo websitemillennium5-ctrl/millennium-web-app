@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { BadgeIndianRupee, CheckCircle2, FileCheck2, Home, Phone } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons";
 import { Accent, HeroAccent, ButtonLink, CtaBand, FaqList, PageHero, SectionHeading } from "@/components/ui";
@@ -41,13 +42,17 @@ export default function AdmissionsPage() {
         </div>
         <ol className="relative space-y-5 before:absolute before:top-4 before:bottom-4 before:left-[1.6rem] before:w-px before:bg-line">
           {admissionSteps.map((s, i) => (
-            <li key={s.title} className="relative flex gap-6 rounded-3xl border border-line bg-white p-6">
-              <span className="relative z-10 flex size-10 shrink-0 items-center justify-center rounded-full bg-ink text-sm font-semibold text-white">
-                {i + 1}
-              </span>
-              <div>
-                <h3 className="text-lg font-semibold">{s.title}</h3>
-                <p className="mt-1 text-muted">{s.text}</p>
+            <li key={s.title} className="group relative flex flex-col gap-5 overflow-hidden rounded-3xl border border-line bg-white p-4 sm:flex-row sm:items-center sm:gap-6 sm:p-6 sm:pr-4">
+              {/* photo: a wide banner on phones, a thumbnail on the right from sm up */}
+              <div className="relative aspect-[16/9] w-full shrink-0 overflow-hidden rounded-2xl bg-mist sm:order-last sm:aspect-[4/3] sm:w-36">
+                <Image src={s.image.src} alt={s.image.alt} fill sizes="(min-width: 640px) 144px, 100vw" className="object-cover transition duration-500 group-hover:scale-105" />
+              </div>
+              <div className="flex min-w-0 flex-1 items-start gap-4 px-2 pb-2 sm:items-center sm:gap-6 sm:p-0">
+                <span className="relative z-10 flex size-10 shrink-0 items-center justify-center rounded-full bg-ink text-sm font-semibold text-white">{i + 1}</span>
+                <div className="min-w-0">
+                  <h3 className="text-lg font-semibold">{s.title}</h3>
+                  <p className="mt-1 text-muted">{s.text}</p>
+                </div>
               </div>
             </li>
           ))}

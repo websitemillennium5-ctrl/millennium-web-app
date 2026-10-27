@@ -4,7 +4,7 @@ export const site = {
   tagline: "Where Dreams Take Flight",
   description:
     "Bihar's oldest and most respected aviation & hospitality training institute. Cabin crew, ground operations, hospitality and retail programs with 100% placement assistance in Patna.",
-  url: "https://millenniumairhostess.com",
+  url: "https://www.millenniumairhostess.com",
   address: {
     line1: "22/C, Jaya Rani, Basawan Park Rd",
     line2: "Boring Rd, Patna, Bihar 800001",
@@ -324,11 +324,31 @@ export const eligibility = [
 ];
 
 export const admissionSteps = [
-  { title: "Free counselling", text: "Visit the campus or call us for a one-on-one session and a demo class." },
-  { title: "Written test", text: "A short assessment of aptitude and English skills." },
-  { title: "Group discussion", text: "We evaluate communication, confidence and teamwork." },
-  { title: "Personal interview", text: "A conversation about your personality, goals and passion." },
-  { title: "Enrolment", text: "Choose your batch, submit documents and start your journey." },
+  {
+    title: "Free counselling",
+    text: "Visit the campus or call us for a one-on-one session and a demo class.",
+    image: { src: "/images/ground-ops.jpg", alt: "A Millennium counsellor in uniform talking with visitors" },
+  },
+  {
+    title: "Written test",
+    text: "A short assessment of aptitude and English skills.",
+    image: { src: "/images/students/ananya.jpg", alt: "Students at the Millennium academy" },
+  },
+  {
+    title: "Group discussion",
+    text: "We evaluate communication, confidence and teamwork.",
+    image: { src: "/images/hospitality.jpg", alt: "A group of trainees in professional uniforms" },
+  },
+  {
+    title: "Personal interview",
+    text: "A conversation about your personality, goals and passion.",
+    image: { src: "/images/namaste.jpg", alt: "A poised student greeting with a namaste" },
+  },
+  {
+    title: "Enrolment",
+    text: "Choose your batch, submit documents and start your journey.",
+    image: { src: "/images/cabin-crew.jpg", alt: "Cabin crew walking out to their aircraft" },
+  },
 ];
 
 export const documents = [
