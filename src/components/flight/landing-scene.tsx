@@ -11,7 +11,7 @@ import { Airport } from "./airport";
 import type { Progress } from "./plane-scene";
 import { SceneWarmup } from "./scene-warmup";
 import { memo } from "./texture-cache";
-import { AdaptiveResolution, SCENE_DPR, watchContextLoss } from "./scene-gl";
+import { AdaptiveResolution, SCENE_DPR, SCENE_GL, watchContextLoss } from "./scene-gl";
 
 /*
  * Night landing that closes the story the hero's take-off starts. Same airliner, same runway:
@@ -290,7 +290,7 @@ export default function LandingScene({
       frameloop={active ? "always" : "never"}
       dpr={SCENE_DPR}
       camera={{ position: [0, 0.4, 9], fov: 35 }}
-      gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+      gl={SCENE_GL}
       onCreated={({ gl, scene, camera }) => {
         watchContextLoss(gl, onContextLost);
         camera.lookAt(0, 0, 0);

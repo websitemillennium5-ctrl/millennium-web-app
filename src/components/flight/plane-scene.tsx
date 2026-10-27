@@ -9,7 +9,7 @@ import { TowBanner } from "./tow-banner";
 import { planeShadowTexture, Runway, SHADOW_SIZE } from "./runway";
 import { SceneWarmup } from "./scene-warmup";
 import { memo } from "./texture-cache";
-import { AdaptiveResolution, SCENE_DPR, watchContextLoss } from "./scene-gl";
+import { AdaptiveResolution, SCENE_DPR, SCENE_GL, watchContextLoss } from "./scene-gl";
 
 export type Progress = { current: number };
 
@@ -333,7 +333,7 @@ export default function PlaneScene({
       frameloop={active ? "always" : "never"}
       dpr={SCENE_DPR}
       camera={{ position: [0, 0.4, 9], fov: 35 }}
-      gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+      gl={SCENE_GL}
       onCreated={({ gl, scene }) => {
         watchContextLoss(gl, onContextLost);
         // studio-style reflections so the paint and metal read as real materials

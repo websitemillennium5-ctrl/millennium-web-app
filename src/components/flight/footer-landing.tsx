@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { useLenis } from "lenis/react";
 import { onPageScroll } from "@/lib/page-scroll";
+import { useCoarse } from "./device";
 import { NightSky } from "./night-sky";
 
 // once the scene is on screen the landing plays by itself, in real time, over this long
@@ -36,6 +37,7 @@ export function FooterLanding() {
   const [gl, setGl] = useState({ key: 0, lost: false });
   if (gl.lost && inView) setGl({ key: gl.key + 1, lost: false });
   const lenis = useLenis();
+  const lite = useCoarse();
 
   useEffect(() => {
     const el = band.current;
@@ -89,8 +91,11 @@ export function FooterLanding() {
       <div className="relative isolate h-svh overflow-hidden bg-ink">
         <NightSky />
 
+        {/* Phones only mount the canvas near the viewport, so it never holds GPU memory alongside the hero scene */}
         <div aria-hidden className="absolute inset-0">
-          <LandingScene targetRef={target} landedRef={landed} catchUpRef={catchUp} active={inView} key={gl.key} onContextLost={() => setGl((g) => ({ ...g, lost: true }))} />
+          {(inView || !lite) && (
+            <LandingScene targetRef={target} landedRef={landed} catchUpRef={catchUp} active={inView} key={gl.key} onContextLost={() => setGl((g) => ({ ...g, lost: true }))} />
+          )}
         </div>
         {/* runway fades into the footer below */}
         <div

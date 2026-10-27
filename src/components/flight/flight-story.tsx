@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowRight, ChevronsDown } from "lucide-react";
 import { useLenis } from "lenis/react";
 import { onPageScroll } from "@/lib/page-scroll";
+import { useCoarse } from "./device";
 
 const PlaneScene = dynamic(() => import("./plane-scene"), { ssr: false });
 
@@ -108,6 +109,7 @@ export function FlightStory() {
   // mutable progress shared with the 3D scene without re-rendering on every scroll
   const progress = useRef(0);
   const [active, setActive] = useState(0);
+  const lite = useCoarse();
   const [inView, setInView] = useState(true);
   // WebGL context dropped by the browser while off screen: rebuild the canvas when it's next in view
   const [gl, setGl] = useState({ key: 0, lost: false });
@@ -194,8 +196,11 @@ export function FlightStory() {
         </div>
 
         {/* 3D scene */}
+        {/* Phones drop the canvas entirely while it's off screen, freeing its GPU memory for the rest of the page */}
         <div className="absolute inset-0">
-          <PlaneScene progress={progress} active={inView} key={gl.key} onContextLost={() => setGl((g) => ({ ...g, lost: true }))} />
+          {(inView || !lite) && (
+            <PlaneScene progress={progress} active={inView} key={gl.key} onContextLost={() => setGl((g) => ({ ...g, lost: true }))} />
+          )}
         </div>
 
         {/* Story chapters */}
@@ -209,8 +214,8 @@ export function FlightStory() {
                   aria-hidden={state !== "on"}
                   className={`[grid-area:1/1] self-end transition-all duration-700 ease-out lg:self-center ${
                     state === "on"
-                      ? "pointer-events-auto translate-y-0 opacity-100 blur-0"
-                      : `opacity-0 blur-sm ${state === "past" ? "-translate-y-10" : "translate-y-10"}`
+                      ? "pointer-events-auto translate-y-0 opacity-100 lg:blur-0"
+                      : `opacity-0 lg:blur-sm ${state === "past" ? "-translate-y-10" : "translate-y-10"}`
                   }`}
                 >
                   <span
