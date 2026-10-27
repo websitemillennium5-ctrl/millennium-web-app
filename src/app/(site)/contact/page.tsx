@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Clock, Mail, MapPin, Phone } from "lucide-react";
 import { EnquiryForm } from "@/components/enquiry-form";
-import { InstagramIcon, FacebookIcon, WhatsAppIcon } from "@/components/icons";
+import { InstagramIcon, FacebookIcon, LinkedInIcon, YouTubeIcon, WhatsAppIcon } from "@/components/icons";
 import { HeroAccent, PageHero } from "@/components/ui";
 import { site, telHref, whatsappHref } from "@/lib/site";
 
@@ -84,6 +84,12 @@ export default function ContactPage() {
             </a>
             <a href={site.social.facebook} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border border-line px-5 py-3 text-sm font-semibold hover:border-ink">
               <FacebookIcon className="size-4" /> Facebook
+            </a>
+            <a href={site.social.linkedin} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border border-line px-5 py-3 text-sm font-semibold hover:border-ink">
+              <LinkedInIcon className="size-4" /> LinkedIn
+            </a>
+            <a href={site.social.youtube} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border border-line px-5 py-3 text-sm font-semibold hover:border-ink">
+              <YouTubeIcon className="size-4" /> YouTube
             </a>
           </div>
         </div>

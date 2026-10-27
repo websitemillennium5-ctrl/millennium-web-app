@@ -18,8 +18,10 @@ export const site = {
   whatsapp: "919643316326",
   hours: "Mon – Sat, 9:30 AM – 6:30 PM",
   social: {
-    instagram: "https://www.instagram.com/millenniumairhostess01/",
-    facebook: "https://www.facebook.com/millenniumairhostess",
+    instagram: "https://www.instagram.com/millenniumairhostess/",
+    facebook: "https://www.facebook.com/millenniumairhostessacademy",
+    linkedin: "https://in.linkedin.com/company/millennium-airhostess-academy",
+    youtube: "https://www.youtube.com/@millenniumairhostess",
   },
 };
 

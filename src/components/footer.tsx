@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { courses, nav, site, telHref } from "@/lib/site";
-import { InstagramIcon, FacebookIcon } from "@/components/icons";
+import { InstagramIcon, FacebookIcon, LinkedInIcon, YouTubeIcon } from "@/components/icons";
 import { FooterLanding } from "@/components/flight/footer-landing";
 
 export function Footer() {
@@ -22,6 +22,12 @@ export function Footer() {
             </a>
             <a href={site.social.facebook} target="_blank" rel="noreferrer" aria-label="Facebook" className="rounded-full bg-white/10 p-2.5 transition hover:bg-brand hover:text-white">
               <FacebookIcon className="size-4" />
+            </a>
+            <a href={site.social.linkedin} target="_blank" rel="noreferrer" aria-label="LinkedIn" className="rounded-full bg-white/10 p-2.5 transition hover:bg-brand hover:text-white">
+              <LinkedInIcon className="size-4" />
+            </a>
+            <a href={site.social.youtube} target="_blank" rel="noreferrer" aria-label="YouTube" className="rounded-full bg-white/10 p-2.5 transition hover:bg-brand hover:text-white">
+              <YouTubeIcon className="size-4" />
             </a>
           </div>
         </div>
