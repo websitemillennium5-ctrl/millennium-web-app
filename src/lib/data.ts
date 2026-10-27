@@ -7,6 +7,19 @@ import { createClient } from "@/lib/supabase/server";
 
 export type FeePayment = { id: string; student_id: string; amount: number; paid_on: string; method: string; note: string | null; created_at: string };
 export type Announcement = { id: string; title: string; body: string; course_slug: string | null; pinned: boolean; created_at: string };
+export type StudyMaterial = {
+  id: string;
+  title: string;
+  description: string;
+  /** null = every student */
+  batch: string | null;
+  file_path: string | null;
+  file_name: string | null;
+  file_size: number | null;
+  mime_type: string | null;
+  link_url: string | null;
+  created_at: string;
+};
 export type Job = {
   id: string;
   title: string;
@@ -84,6 +97,13 @@ export async function getAnnouncements(limit = 20) {
     .order("created_at", { ascending: false })
     .limit(limit);
   return (data ?? []) as Announcement[];
+}
+
+/** Study material the signed-in user can see (RLS limits students to their batch plus everyone's), newest first. */
+export async function getStudyMaterials(limit = 200) {
+  const supabase = await createClient();
+  const { data } = await supabase.from("study_materials").select("*").order("created_at", { ascending: false }).limit(limit);
+  return (data ?? []) as StudyMaterial[];
 }
 
 /** Jobs from every source table merged through the `all_jobs` view, newest first. */

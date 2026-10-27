@@ -10,6 +10,7 @@ import { eventTable, jobTable } from "@/lib/job-sources";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { localOnlyScrapers } from "@/lib/sync";
+import { STUDY_BUCKET, STUDY_MAX_BYTES } from "@/lib/study";
 
 const text = (fd: FormData, key: string) => {
   const v = String(fd.get(key) ?? "").trim();
@@ -180,6 +181,65 @@ export async function deleteAnnouncement(fd: FormData) {
   const supabase = await createClient();
   await supabase.from("announcements").delete().eq("id", String(fd.get("id")));
   revalidatePath("/admin/announcements");
+}
+
+// ───────── Study material ─────────
+
+/**
+ * Step 1 of an upload: a one-time signed upload URL for the private bucket, so the browser sends the file
+ * straight to storage (Vercel caps request bodies at 4.5 MB, far below a typical PDF or video).
+ */
+export async function prepareStudyUpload(fileName: string, size: number): Promise<{ path: string; token: string } | { error: string }> {
+  await requireStaff();
+  if (size > STUDY_MAX_BYTES) return { error: "That file is over 50 MB. Upload a smaller copy, or share it as a link instead." };
+  const safe = fileName.normalize("NFKD").replace(/[^\w.-]+/g, "-").replace(/-+/g, "-").slice(-80) || "file";
+  const path = `${new Date().toISOString().slice(0, 7)}/${crypto.randomUUID()}-${safe}`;
+  const { data, error } = await createAdminClient().storage.from(STUDY_BUCKET).createSignedUploadUrl(path);
+  if (error || !data) return { error: error?.message ?? "Couldn't start the upload." };
+  return { path: data.path, token: data.token };
+}
+
+/** Step 2: save the material once its file (if any) is in storage. */
+export async function createStudyMaterial(_prev: FormState, fd: FormData): Promise<FormState> {
+  const staff = await requireStaff();
+  const title = text(fd, "title");
+  if (!title) return { error: "Add a title." };
+  const filePath = text(fd, "file_path");
+  const link = text(fd, "link_url");
+  if (!filePath && !link) return { error: "Attach a file or add a link." };
+  if (link && !/^https?:\/\//i.test(link)) return { error: "Links must start with http:// or https://" };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("study_materials").insert({
+    title,
+    description: text(fd, "description") ?? "",
+    batch: text(fd, "batch"),
+    file_path: filePath,
+    file_name: text(fd, "file_name"),
+    file_size: Number(fd.get("file_size")) || null,
+    mime_type: text(fd, "mime_type"),
+    link_url: link,
+    created_by: staff.id,
+  });
+  if (error) {
+    // don't leave an orphaned upload behind
+    if (filePath) await createAdminClient().storage.from(STUDY_BUCKET).remove([filePath]);
+    return { error: error.message };
+  }
+
+  revalidatePath("/admin/study");
+  revalidatePath("/student/study");
+  return { ok: "Study material shared." };
+}
+
+export async function deleteStudyMaterial(fd: FormData) {
+  await requireStaff();
+  const id = String(fd.get("id"));
+  const supabase = await createClient();
+  const { data } = await supabase.from("study_materials").delete().eq("id", id).select("file_path").maybeSingle();
+  if (data?.file_path) await createAdminClient().storage.from(STUDY_BUCKET).remove([data.file_path]);
+  revalidatePath("/admin/study");
+  revalidatePath("/student/study");
 }
 
 // ───────── Leads ─────────
