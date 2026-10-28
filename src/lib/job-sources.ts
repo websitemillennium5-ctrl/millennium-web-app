@@ -14,7 +14,24 @@ export const jobSources = {
   akasa: "Akasa Air",
   star_air: "Star Air",
   fly91: "Fly91",
+  // Hotel groups (scripts/scrapers/<key>.mjs, tables from supabase/migrations/0014_hotel_jobs.sql)
+  marriott: "Marriott",
+  radisson: "Radisson Hotel Group",
+  accor: "Accor",
+  hilton: "Hilton",
+  hyatt: "Hyatt",
+  ihcl: "IHCL (Taj)",
+  lemon_tree: "Lemon Tree Hotels",
+  itc: "ITC Limited",
+  fortune: "Fortune Hotels",
+  wyndham: "Wyndham",
+  nile: "NILE Hospitality",
 } as const;
+
+/** Hotel-group sources: listed after the airlines in the filter chips and treated as hospitality roles. */
+export const hotelSources: string[] = ["marriott", "radisson", "accor", "hilton", "hyatt", "ihcl", "lemon_tree", "itc", "fortune", "wyndham", "nile"];
+
+export const isHotelSource = (source: string) => hotelSources.includes(source);
 
 export type JobSource = keyof typeof jobSources;
 
@@ -34,10 +51,18 @@ export function sourceLabel(source: string) {
   );
 }
 
-/** Indian airlines, listed first in the airline chips and the hiring events. */
+/** Indian airlines, listed first in the employer chips and the hiring events. */
 export const indianSources = ["air_india", "indigo", "spicejet", "akasa", "star_air", "fly91"];
 
 export const isIndianSource = (source: string) => indianSources.some((key) => eventMatchesSource(source, key));
+
+const rank = (key: string) => (indianSources.includes(key) ? indianSources.indexOf(key) : isHotelSource(key) ? indianSources.length + 1 : indianSources.length);
+
+/** Employer filter chips: Indian airlines first (in indianSources order), other airlines, hotel groups, then hand-added jobs. */
+export const employerFilters: [string, string][] = [
+  ...([...Object.entries(jobSources), ...Object.entries(eventOnlySources)] as [string, string][]).sort((a, b) => rank(a[0]) - rank(b[0])),
+  ["manual", "Placement team"],
+];
 
 /** Whether an event source belongs to the airline filter `source` ("indigo" covers indigo_cabin_crew and indigo_ground_staff). */
 export const eventMatchesSource = (eventSource: string, source: string) =>

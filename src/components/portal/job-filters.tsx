@@ -6,14 +6,12 @@ import { createContext, useContext, useOptimistic, useRef, useTransition } from 
 import { Check, ChevronDown, Loader2, Search, SlidersHorizontal, X } from "lucide-react";
 import { airlineBrand, roles, type RoleKey } from "@/lib/airlines";
 import { jobQueryHref, type JobQuery } from "@/lib/job-query";
-import { eventOnlySources, indianSources, jobSources, sourceLabel } from "@/lib/job-sources";
+import { employerFilters, sourceLabel } from "@/lib/job-sources";
 import { RoleIcon } from "@/components/portal/role-icon";
 import { JobCardsSkeleton } from "@/components/portal/jobs-skeleton";
 
-const allAirlines = [...Object.entries(jobSources), ...Object.entries(eventOnlySources)] as [string, string][];
-const rank = (key: string) => (indianSources.includes(key) ? indianSources.indexOf(key) : indianSources.length);
-// Indian airlines first (in indianSources order), then the rest as listed, then hand-added jobs.
-const airlines = [...allAirlines.sort((a, b) => rank(a[0]) - rank(b[0])), ["manual", "Placement team"]] as [string, string][];
+// Indian airlines first, then other airlines, hotel groups, then hand-added jobs.
+const airlines = employerFilters;
 
 const postedLabels = {
   "": "Any time",
@@ -107,7 +105,7 @@ export function JobResults({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * "All airlines" plus one toggle chip per airline (multi-select; selected ones get a tick).
+ * "All employers" plus one toggle chip per airline / hotel group (multi-select; selected ones get a tick).
  * `compact`: on desktop the chips become a dense checklist (small logo, name, checkbox) for the sidebar.
  */
 function AirlineChips({
@@ -133,7 +131,7 @@ function AirlineChips({
           all ? "border-ink bg-ink font-medium text-white" : "border-line bg-white text-ink-soft hover:border-ink/25"
         } ${compact ? "lg:h-8 lg:w-full lg:rounded-lg lg:px-2.5 lg:text-[12.5px]" : ""}`}
       >
-        All airlines
+        All employers
       </button>
       {airlines.map(([key, label]) => {
         const brand = airlineBrand(key, label);
@@ -181,7 +179,7 @@ function AirlineChips({
 const sidebarHeading = "mb-2 px-1 text-[10.5px] font-semibold tracking-[0.12em] text-muted uppercase";
 
 /**
- * Posted / sort / airline filters as a side column, for pages that pair it with `<JobFilters sidebar />`.
+ * Posted / sort / employer filters as a side column, for pages that pair it with `<JobFilters sidebar />`.
  * On phones the airlines become a horizontally scrolling row.
  */
 export function JobFiltersSidebar({ basePath, query: serverQuery }: { basePath: string; query: JobQuery }) {
@@ -205,7 +203,7 @@ export function JobFiltersSidebar({ basePath, query: serverQuery }: { basePath: 
           className="lg:h-8 lg:w-full lg:text-[12.5px]"
         />
       </div>
-      <p className={`${sidebarHeading} mt-3.5`}>Airlines</p>
+      <p className={`${sidebarHeading} mt-3.5`}>Airlines &amp; hotels</p>
       <div className="scrollbar-none -mx-3 flex gap-2 overflow-x-auto px-3 lg:mx-0 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:px-0">
         <AirlineChips query={query} go={go} compact />
       </div>
@@ -262,7 +260,7 @@ export function JobFilters({
       <input
         name="q"
         defaultValue={query.q}
-        placeholder="Search by role, city or airline…"
+        placeholder="Search by role, city, airline or hotel…"
         className="h-10 min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-muted/70"
       />
       <button className="h-9 shrink-0 rounded-full bg-ink px-4 text-sm font-medium text-white transition hover:bg-ink-soft">Search</button>
@@ -327,7 +325,7 @@ export function JobFilters({
 
       {/* Airlines */}
       <div className="border-t border-line bg-mist/50 px-3 py-3">
-        <p className="mb-2 px-1 text-[10.5px] font-semibold tracking-[0.12em] text-muted uppercase">Airlines</p>
+        <p className="mb-2 px-1 text-[10.5px] font-semibold tracking-[0.12em] text-muted uppercase">Airlines &amp; hotels</p>
         <div className="scrollbar-none fade-right -mx-3 flex gap-2 overflow-x-auto px-3 pr-12">
           <AirlineChips query={query} go={go} />
         </div>
@@ -455,7 +453,7 @@ export function JobFiltersSheet({
                 className="w-full"
               />
             </div>
-            <p className={`${sidebarHeading} mt-5`}>Airlines</p>
+            <p className={`${sidebarHeading} mt-5`}>Airlines &amp; hotels</p>
             <div className="grid grid-cols-2 gap-2">
               <AirlineChips query={query} go={go} fill />
             </div>

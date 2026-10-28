@@ -73,6 +73,78 @@ export function toDate(value) {
 
 export const absoluteUrl = (href, base) => new URL(decodeEntities(href), base).href;
 
+/** Runs fn over items with at most `limit` in flight; resolves to the results in order. */
+export async function mapLimit(items, limit, fn) {
+  const results = new Array(items.length);
+  let next = 0;
+  const worker = async () => {
+    for (let i; (i = next++) < items.length; ) results[i] = await fn(items[i], i);
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+}
+
+/** The schema.org JobPosting embedded in a job page's <script type="application/ld+json">, or null. */
+export async function fetchJobPosting(url) {
+  const html = await fetchText(url).catch(() => "");
+  for (const [, json] of html.matchAll(/<script type="application\/ld\+json">\s*([\s\S]*?)\s*<\/script>/g)) {
+    if (!json.includes('"JobPosting"')) continue;
+    try {
+      return JSON.parse(json.replace(/[\u0000-\u001f]+/g, " ")); // some sites leave raw newlines inside strings
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/**
+ * Attrax career sites (Radisson, Accor): server-rendered vacancy tiles, paged with ?page=N, each with a title link,
+ * a free-text location and labelled fields. Pages until a page adds nothing new. Returns
+ * [{ id, title, url, location, description, fields }], with `fields` keyed by the tile's CSS key
+ * ("option-brand", "option-department", "expiry", …).
+ */
+export async function scrapeAttrax(listUrl, { maxPages = 60 } = {}) {
+  const seen = new Set();
+  const jobs = [];
+  for (let page = 1; page <= maxPages; page++) {
+    const html = (await fetchText(`${listUrl}${listUrl.includes("?") ? "&" : "?"}page=${page}`)).replace(/\s+/g, " ");
+    let added = 0;
+    for (const tile of html.split(/<div class="attrax-vacancy-tile /).slice(1)) {
+      const id = tile.match(/data-jobid="(\d+)"/)?.[1];
+      const link = tile.match(/attrax-vacancy-tile__title[^>]*href="([^"]+)"[^>]*>\s*([^<]+?)\s*</);
+      if (!id || !link || seen.has(id)) continue;
+      seen.add(id);
+      added++;
+      const fields = {};
+      for (const m of tile.matchAll(/attrax-vacancy-tile__([a-z-]+?)(?: attrax-vacancy-tile__[a-z-]+--[a-z0-9-]+)? attrax-vacancy-tile__item"[\s\S]*?attrax-vacancy-tile__item-value">\s*([^<]*?)\s*<\/p>/g)) {
+        fields[m[1]] = m[2];
+      }
+      jobs.push({
+        id,
+        title: link[2],
+        url: absoluteUrl(link[1], listUrl),
+        location: fields["location-freetext"] || null,
+        description: fields.description || null,
+        fields,
+      });
+    }
+    if (!added) break;
+  }
+  return jobs;
+}
+
+/**
+ * Plain-text job description from an Attrax JSON-LD JobPosting: drops the boilerplate "Company Description"
+ * section and the section headings, keeps job description, qualifications and additional information.
+ */
+export function attraxDescription(posting) {
+  if (!posting?.description) return null;
+  return decodeEntities(posting.description)
+    .replace(/<div class='jobad-companydescription'>[\s\S]*?(?=<div class='jobad-|$)/, "")
+    .replace(/<div class='jobad-[a-z]+'>[^<]*<\/div>/g, " ");
+}
+
 const MONTH_RE = "jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec";
 const DAY_FIRST = new RegExp(`\\b(\\d{1,2})(?:st|nd|rd|th)?[\\s\\-/.]+(${MONTH_RE})[a-z]*\\.?(?:[\\s\\-/.,]+(\\d{4}))?`, "i");
 const MONTH_FIRST = new RegExp(`\\b(${MONTH_RE})[a-z]*\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?(?!\\d)(?:,?\\s+(\\d{4}))?`, "i");

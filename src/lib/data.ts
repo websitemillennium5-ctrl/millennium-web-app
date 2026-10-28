@@ -2,6 +2,7 @@ import { roles } from "@/lib/airlines";
 import type { Profile } from "@/lib/auth";
 import type { LeadStatus } from "@/lib/leads";
 import { JOBS_PAGE_SIZE, type JobQuery } from "@/lib/job-query";
+import { hotelSources } from "@/lib/job-sources";
 import { STUDENTS_PAGE_SIZE, type StudentQuery } from "@/lib/student-query";
 import { createClient } from "@/lib/supabase/server";
 
@@ -201,7 +202,12 @@ export async function searchJobs(query: JobQuery, { includeInactive = false } = 
   if (!includeInactive || query.status === "active") request = request.eq("is_active", true);
   else if (query.status === "hidden") request = request.eq("is_active", false);
   if (query.source.length) request = request.in("source", query.source);
-  if (query.role) request = request.or(roles[query.role].terms.map((t) => `title.ilike.%${t}%`).join(","));
+  if (query.role === "hospitality") {
+    // Hotel-group jobs are all hospitality roles, whatever the title says
+    request = request.or([...roles.hospitality.terms.map((t) => `title.ilike.%${t}%`), `source.in.(${hotelSources.join(",")})`].join(","));
+  } else if (query.role) {
+    request = request.or(roles[query.role].terms.map((t) => `title.ilike.%${t}%`).join(",")).not("source", "in", `(${hotelSources.join(",")})`);
+  }
   if (query.posted) {
     const since = new Date(Date.now() - Number(query.posted) * 86_400_000).toISOString().slice(0, 10);
     request = request.gte("posted_at", since);

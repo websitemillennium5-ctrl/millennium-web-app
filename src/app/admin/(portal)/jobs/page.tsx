@@ -30,7 +30,7 @@ export default async function AdminJobs({ searchParams }: PageProps<"/admin/jobs
   return (
     <>
       <ScrollReset key={query.page} />
-      <PageTitle title="Jobs" text="Each airline has its own scraper that refreshes its listings daily. Hide anything you don't want students to see." />
+      <PageTitle title="Jobs" text="Each airline and hotel group has its own scraper that refreshes its listings daily. Hide anything you don't want students to see." />
       <JobNavProvider basePath="/admin/jobs" query={query}>
         <JobFilters basePath="/admin/jobs" query={query} total={total} staff />
         <JobResults>

@@ -11,3 +11,11 @@ export function onPageScroll(lenis: Lenis | undefined, fn: () => void) {
   window.addEventListener("scroll", fn, { passive: true });
   return () => window.removeEventListener("scroll", fn);
 }
+
+/** Jumps the window and every panel marked data-scroll-reset back to the top, with no animation. */
+export function scrollPageToTop() {
+  window.scrollTo(0, 0);
+  document.querySelectorAll<HTMLElement>("[data-scroll-reset]").forEach((el) => {
+    el.scrollTop = 0;
+  });
+}
