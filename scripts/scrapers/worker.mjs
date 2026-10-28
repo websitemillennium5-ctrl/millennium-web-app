@@ -90,14 +90,15 @@ async function execute(run) {
       dirty = true;
     },
     onResult: (result, all) => {
-      if (!result.ok) log += `${stamp()} ✗ ${result.name}: ${result.error}\n`;
+      if (!result.ok) log += `${stamp()} ${result.unavailable ? "⚠" : "✗"} ${result.name}: ${result.error}\n`;
       return flush({ results: all });
     },
   });
   clearInterval(ticker);
 
-  const failed = results.filter((r) => !r.ok).length;
-  log += `${stamp()} synced ${results.length - failed}/${targets.length} sources\n`;
+  const failed = results.filter((r) => !r.ok && !r.unavailable).length;
+  const down = results.filter((r) => r.unavailable).length;
+  log += `${stamp()} synced ${results.length - failed - down}/${targets.length} sources${down ? `, ${down} site(s) down (listings kept)` : ""}\n`;
   const status = controller.signal.aborted ? "cancelled" : failed ? "failed" : "done";
   await supabase.from("sync_runs").update({ status, log, results, finished_at: new Date().toISOString() }).eq("id", run.id);
   console.log(`[worker] run ${run.id} ${status}`);

@@ -3,26 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  ArrowDown,
-  ArrowUpRight,
-  CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
-  CircleDashed,
-  Clock,
-  Cloud,
-  ExternalLink,
-  Laptop,
-  Layers,
-  Loader2,
-  RefreshCw,
-  Search,
-  ShieldCheck,
-  Sparkles,
-  Square,
-  XCircle,
-} from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUpRight, CheckCircle2, ChevronLeft, ChevronRight, CircleDashed, Clock, Cloud, ExternalLink, Laptop, Layers, Loader2, RefreshCw, Search, ShieldCheck, Sparkles, Square, XCircle } from "lucide-react";
 import { cancelSync, requestSync } from "@/app/admin/actions";
 import { ActionForm, SubmitButton } from "@/components/portal/form";
 import {
@@ -36,6 +17,7 @@ import {
   WORKER_TIMEOUT_MS,
   type GithubRun,
   type SourceStat,
+  type SyncResult,
   type SyncRun,
   type SyncWorker,
 } from "@/lib/sync";
@@ -258,7 +240,7 @@ function LocalWorker({
   const rowStatus = (s: SourceStat) => {
     if (current && targets.includes(s.name)) {
       const result = current.results.find((r) => r.name === s.name);
-      if (result) return <ResultMark ok={result.ok} text={result.ok ? `${result.found ?? 0} found` : result.error} />;
+      if (result) return <ResultMark result={result} text={result.ok ? `${result.found ?? 0} found` : result.unavailable ? `Site down · listings kept` : result.error} />;
       const first = targets.find((n) => !current.results.some((r) => r.name === n));
       return current.status === "running" && first === s.name ? (
         <span className="inline-flex items-center gap-1.5 text-sky-700">
@@ -270,7 +252,11 @@ function LocalWorker({
         </span>
       );
     }
-    return s.last ? <ResultMark ok={s.last.ok} text={s.last.ok ? ago(s.last.at, now) : s.last.error} /> : <span className="text-muted">—</span>;
+    return s.last ? (
+      <ResultMark result={s.last} text={s.last.ok ? ago(s.last.at, now) : s.last.unavailable ? `Site down ${ago(s.last.at, now)} · listings kept` : s.last.error} />
+    ) : (
+      <span className="text-muted">—</span>
+    );
   };
 
   return (
@@ -317,10 +303,18 @@ function LocalWorker({
   );
 }
 
-function ResultMark({ ok, text }: { ok: boolean; text: string }) {
+/** ✓ synced, ⚠ the site was down (listings kept), ✗ the scraper failed. */
+function ResultMark({ result, text }: { result: Pick<SyncResult, "ok" | "unavailable">; text: string }) {
+  const tone = result.ok ? "text-ink-soft" : result.unavailable ? "text-amber-700" : "text-red-600";
   return (
-    <span className={`inline-flex min-w-0 items-center gap-1.5 ${ok ? "text-ink-soft" : "text-red-600"}`} title={ok ? undefined : text}>
-      {ok ? <CheckCircle2 className="size-3.5 shrink-0 text-good" /> : <XCircle className="size-3.5 shrink-0" />}
+    <span className={`inline-flex min-w-0 items-center gap-1.5 ${tone}`} title={result.ok ? undefined : text}>
+      {result.ok ? (
+        <CheckCircle2 className="size-3.5 shrink-0 text-good" />
+      ) : result.unavailable ? (
+        <AlertTriangle className="size-3.5 shrink-0" />
+      ) : (
+        <XCircle className="size-3.5 shrink-0" />
+      )}
       <span className="truncate">{text}</span>
     </span>
   );

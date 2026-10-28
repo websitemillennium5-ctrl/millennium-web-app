@@ -10,7 +10,11 @@ export const USER_AGENT =
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** fetch() with a browser user agent, a timeout and a couple of retries. Throws on non-2xx. */
+/**
+ * fetch() with a browser user agent, a timeout and a couple of retries. Throws on non-2xx. The thrown error carries
+ * `unavailable: true` when the site itself is down (5xx, 429, timeout, DNS or connection failure) as opposed to a
+ * 4xx, which usually means the page moved; the scraper entry points report the two differently.
+ */
 export async function request(url, { retries = 2, timeout = 30_000, headers, ...init } = {}) {
   for (let attempt = 0; ; attempt++) {
     try {
@@ -19,10 +23,13 @@ export async function request(url, { retries = 2, timeout = 30_000, headers, ...
         headers: { "user-agent": USER_AGENT, "accept-language": "en-US,en;q=0.9", ...headers },
         signal: AbortSignal.timeout(timeout),
       });
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText} for ${url}`);
+      if (!res.ok) throw Object.assign(new Error(`${res.status} ${res.statusText} for ${url}`), { unavailable: res.status >= 500 || res.status === 429 });
       return res;
     } catch (error) {
-      if (attempt >= retries) throw error;
+      if (attempt >= retries) {
+        if (error.unavailable === undefined) error.unavailable = true; // no response at all: timeout, DNS, reset
+        throw error;
+      }
       await sleep(1500 * (attempt + 1));
     }
   }
@@ -275,15 +282,26 @@ export async function runEventScraper({ source, table, brand, scrape, allowEmpty
   return save({ source, table, rows, started, allowEmpty, noun: "events" });
 }
 
-async function exitOnError(run) {
+/** Exit code when the site is down (sync-all.mjs reports it as unavailable rather than failed). */
+export const EXIT_UNAVAILABLE = 3;
+
+async function exitOnError(source, run) {
   try {
     await run();
   } catch (error) {
+    if (error?.unavailable) {
+      // The site, not the scraper, is the problem: keep the current listings and let the run carry on.
+      console.error(`[${source}] site unavailable: ${error.message} — keeping the current listings`);
+      process.exit(EXIT_UNAVAILABLE);
+    }
     console.error(error instanceof Error ? error.message : error);
     process.exit(1);
   }
 }
 
-/** Entry points so each scraper file can `await main(...)` / `await mainEvents(...)` and exit non-zero on failure. */
-export const main = (options) => exitOnError(() => runScraper(options));
-export const mainEvents = (options) => exitOnError(() => runEventScraper(options));
+/**
+ * Entry points so each scraper file can `await main(...)` / `await mainEvents(...)`: exit 1 on failure,
+ * EXIT_UNAVAILABLE when the site is down.
+ */
+export const main = (options) => exitOnError(options.source, () => runScraper(options));
+export const mainEvents = (options) => exitOnError(options.source, () => runEventScraper(options));

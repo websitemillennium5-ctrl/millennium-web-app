@@ -40,7 +40,16 @@ export const jobsFilterKey = (name: string) => name.replace(/^events\//, "").rep
 
 export type GithubRun = { status: string; conclusion: string | null; created_at: string; updated_at: string; html_url: string };
 
-export type SyncResult = { name: string; ok: boolean; found: number | null; removed: number | null; seconds: number; error: string };
+export type SyncResult = {
+  name: string;
+  ok: boolean;
+  /** The site was down (5xx / timeout), so its listings were kept as they were; not counted as a failure. */
+  unavailable?: boolean;
+  found: number | null;
+  removed: number | null;
+  seconds: number;
+  error: string;
+};
 
 export type SyncRun = {
   id: string;

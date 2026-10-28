@@ -10,6 +10,7 @@ import { spawn } from "node:child_process";
 import { appendFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { EXIT_UNAVAILABLE } from "./lib.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SKIP = new Set(["lib", "sync-all", "worker"]);
@@ -46,8 +47,9 @@ function run(name, { flags = [], onLine, signal }) {
 }
 
 /**
- * Runs the named scrapers in turn and returns [{ name, ok, found, removed, seconds, error }].
- * onResult fires after each one; aborting `signal` kills the current scraper and skips the rest.
+ * Runs the named scrapers in turn and returns [{ name, ok, unavailable, found, removed, seconds, error }].
+ * `unavailable` means the site was down (5xx / timeout), so its listings were left as they were; that doesn't count
+ * as a failed run. onResult fires after each one; aborting `signal` kills the current scraper and skips the rest.
  */
 export async function syncAll(targets, { flags = [], onLine, onResult, signal } = {}) {
   const results = [];
@@ -59,6 +61,7 @@ export async function syncAll(targets, { flags = [], onLine, onResult, signal } 
     const result = {
       name,
       ok: code === 0,
+      unavailable: code === EXIT_UNAVAILABLE,
       found: count(/found (\d+)/),
       removed: count(/removed (\d+)/),
       seconds: Number(((Date.now() - started) / 1000).toFixed(1)),
@@ -81,20 +84,32 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const targets = (only.length ? all.filter((n) => only.includes(n)) : all).filter((n) => !skip.includes(n));
 
   const results = await syncAll(targets, { flags, onLine: (line) => console.log(line) });
-  const failed = results.filter((r) => !r.ok);
+  const failed = results.filter((r) => !r.ok && !r.unavailable);
+  const down = results.filter((r) => r.unavailable);
   const show = (v) => v ?? "–";
-  console.log(`\nSynced ${results.length - failed.length}/${results.length} sources`);
-  console.table(results.map(({ name, ok, found, removed, seconds }) => ({ name, ok, found: show(found), removed: show(removed), seconds })));
+  const status = (r) => (r.ok ? "ok" : r.unavailable ? "site down" : "FAILED");
+  console.log(`\nSynced ${results.length - failed.length - down.length}/${results.length} sources${down.length ? `, ${down.length} site(s) down` : ""}`);
+  console.table(results.map((r) => ({ name: r.name, status: status(r), found: show(r.found), removed: show(r.removed), seconds: r.seconds })));
+  for (const r of down) console.warn(`⚠ ${r.name}: ${r.error}`);
   for (const r of failed) console.error(`✗ ${r.name}: ${r.error}`);
 
   // On GitHub Actions, also write the summary to the run page.
   if (process.env.GITHUB_STEP_SUMMARY) {
-    const rows = results.map((r) => `| ${r.ok ? "✅" : "❌"} | ${r.name} | ${show(r.found)} | ${show(r.removed)} | ${r.error.replace(/\|/g, "\\|")} |`);
+    const mark = (r) => (r.ok ? "✅" : r.unavailable ? "⚠️" : "❌");
+    const rows = results.map((r) => `| ${mark(r)} | ${r.name} | ${show(r.found)} | ${show(r.removed)} | ${r.error.replace(/\|/g, "\\|")} |`);
     appendFileSync(
       process.env.GITHUB_STEP_SUMMARY,
-      [`### Synced ${results.length - failed.length}/${results.length} sources`, "", "| | Source | Found | Removed | Error |", "|---|---|---|---|---|", ...rows, ""].join("\n"),
+      [
+        `### Synced ${results.length - failed.length - down.length}/${results.length} sources${down.length ? ` (⚠️ ${down.length} site(s) down, listings kept)` : ""}`,
+        "",
+        "| | Source | Found | Removed | Error |",
+        "|---|---|---|---|---|",
+        ...rows,
+        "",
+      ].join("\n"),
     );
   }
 
+  // A site being down is their outage, not our failure; only scraper errors make the run red.
   process.exit(failed.length ? 1 : 0);
 }
