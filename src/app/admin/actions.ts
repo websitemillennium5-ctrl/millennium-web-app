@@ -38,6 +38,7 @@ function studentFields(fd: FormData) {
     student_id: text(fd, "student_id"),
     course_slug: text(fd, "course_slug"),
     batch: text(fd, "batch"),
+    date_of_birth: text(fd, "date_of_birth"),
     fee_total: money(fd, "fee_total"),
     joined_on: text(fd, "joined_on") ?? undefined,
   };

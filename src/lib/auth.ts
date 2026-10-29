@@ -15,6 +15,8 @@ export type Profile = {
   roll_no: string | null;
   student_id: string | null;
   fee_total: number;
+  /** ISO date (yyyy-mm-dd) or null when the front office hasn't entered it */
+  date_of_birth: string | null;
   joined_on: string;
   created_at: string;
 };

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, ChevronDown, ChevronRight, CircleCheck, GraduationCap, Hash, IdCard, IndianRupee, KeyRound, Mail, Phone, UserRound, UsersRound } from "lucide-react";
+import { Cake, CalendarDays, ChevronDown, ChevronRight, CircleCheck, GraduationCap, Hash, IdCard, IndianRupee, KeyRound, Mail, Phone, UserRound, UsersRound } from "lucide-react";
 import { changePassword } from "@/app/actions/auth";
 import { requireStudent } from "@/lib/auth";
 import { getFees } from "@/lib/data";
@@ -21,6 +21,7 @@ export default async function StudentProfile() {
     { icon: Hash, label: "Roll number", value: profile.roll_no, copy: true },
     { icon: Mail, label: "Email", value: profile.email },
     { icon: Phone, label: "Phone", value: profile.phone },
+    { icon: Cake, label: "Date of birth", value: profile.date_of_birth ? formatDate(profile.date_of_birth) : null },
     { icon: GraduationCap, label: "Course", value: courseTitle(profile.course_slug) },
     { icon: UsersRound, label: "Batch", value: profile.batch },
     { icon: CalendarDays, label: "Joined", value: formatDate(profile.joined_on) },
@@ -28,7 +29,7 @@ export default async function StudentProfile() {
 
   return (
     <>
-      <PageTitle title="Profile" text="Your digital student pass and account details." />
+      <PageTitle title="Profile" />
 
       <BoardingPass profile={profile} duration={course?.duration} />
 

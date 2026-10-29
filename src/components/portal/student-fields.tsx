@@ -11,6 +11,9 @@ export function StudentFields({ student }: { student?: Profile }) {
       <Field label="Phone">
         <Input name="phone" type="tel" defaultValue={student?.phone ?? ""} placeholder="+91" />
       </Field>
+      <Field label="Date of birth">
+        <Input name="date_of_birth" type="date" defaultValue={student?.date_of_birth ?? ""} max={new Date().toISOString().slice(0, 10)} />
+      </Field>
       <Field label="Roll number" hint="Students can sign in with this instead of email.">
         <Input name="roll_no" defaultValue={student?.roll_no ?? ""} placeholder="MAA2026-014" />
       </Field>
