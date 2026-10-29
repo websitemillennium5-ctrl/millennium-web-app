@@ -5,16 +5,67 @@ import { courseStyle } from "@/lib/course-style";
 import { courseTitle } from "@/lib/format";
 import { site } from "@/lib/site";
 
-/** Birthday wishes for the signed-in student, shown on their birthday (India time). Quiet and minimal: one line, the cake. */
+const COLORS = ["#ffffff", "#f59e0b", "#38bdf8", "#4ade80", "#f472b6", "#a78bfa", "#facc15"];
+
+// Confetti is laid out once with a seeded generator so the server and the browser render the same pieces.
+function seeded(seed: number) {
+  return () => {
+    seed = (seed * 1664525 + 1013904223) % 4294967296;
+    return seed / 4294967296;
+  };
+}
+const rand = seeded(2024);
+const pieces = Array.from({ length: 28 }, (_, i) => ({
+  left: rand() * 100,
+  delay: rand() * 4,
+  duration: 3.6 + rand() * 2.4,
+  drift: (rand() - 0.5) * 90,
+  size: 4 + rand() * 4,
+  round: rand() > 0.65,
+  color: COLORS[i % COLORS.length],
+}));
+
+/** Falling confetti over the parent (which must be `relative overflow-hidden`). */
+function Confetti() {
+  return (
+    <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+      {pieces.map((p, i) => (
+        <span
+          key={i}
+          className="animate-confetti absolute -top-3 block"
+          style={
+            {
+              left: `${p.left}%`,
+              width: p.size,
+              height: p.round ? p.size : p.size * 1.7,
+              background: p.color,
+              borderRadius: p.round ? "50%" : 2,
+              animationDelay: `${p.delay}s`,
+              animationDuration: `${p.duration}s`,
+              "--drift": `${p.drift}px`,
+            } as React.CSSProperties
+          }
+        />
+      ))}
+    </span>
+  );
+}
+
+/**
+ * Birthday wishes for the signed-in student, shown on their birthday (India time): a photo of balloons
+ * (Unsplash, unsplash.com/photos/de8c9debad1d) under a dark gradient, confetti, and a short greeting.
+ */
 export function BirthdayBanner({ name, className = "" }: { name: string; className?: string }) {
   return (
-    <section aria-label="Birthday wishes" className={`flex items-center gap-5 rounded-2xl border border-line bg-white p-5 sm:p-6 ${className}`}>
-      <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-medium tracking-[0.12em] text-muted uppercase">Today</p>
-        <h2 className="mt-1 text-[22px] leading-tight font-semibold tracking-tight text-ink sm:text-[26px]">Happy birthday, {firstName(name)}</h2>
-        <p className="mt-1.5 text-sm text-muted">From all of us at {site.shortName}.</p>
+    <section aria-label="Birthday wishes" className={`relative isolate overflow-hidden rounded-2xl text-white ${className}`}>
+      <Image src="/images/birthday-bg.jpg" alt="" fill sizes="(min-width: 1024px) 48rem, 100vw" className="-z-10 object-cover" priority />
+      <span aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-r from-black/75 via-black/45 to-black/15" />
+      <Confetti />
+      <div className="relative px-5 py-5 sm:px-6">
+        <p className="text-[10.5px] font-medium tracking-[0.14em] text-white/70 uppercase">Today</p>
+        <h2 className="mt-1 text-lg leading-tight font-semibold tracking-tight sm:text-xl">Happy birthday, {firstName(name)}</h2>
+        <p className="mt-1 text-[12.5px] text-white/75">From all of us at {site.shortName}.</p>
       </div>
-      <Image src="/images/birthday.svg" alt="" width={200} height={200} className="w-20 shrink-0 sm:w-24" priority />
     </section>
   );
 }
