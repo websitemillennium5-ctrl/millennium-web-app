@@ -1,3 +1,4 @@
+import { istDay } from "@/lib/format";
 import { roles } from "@/lib/airlines";
 import type { Profile } from "@/lib/auth";
 import type { BirthdayStudent } from "@/lib/birthdays";
@@ -167,7 +168,7 @@ export async function searchStudents(query: StudentQuery) {
   if (query.fees === "due") request = request.gt("due", 0);
   if (query.fees === "paid") request = request.eq("due", 0);
   if (query.joined) {
-    const since = new Date(Date.now() - Number(query.joined) * 86_400_000).toISOString().slice(0, 10);
+    const since = istDay(Date.now() - Number(query.joined) * 86_400_000);
     request = request.gte("joined_on", since);
   }
   if (query.q) {
@@ -195,7 +196,7 @@ export async function getStudentSummary() {
   const supabase = await createClient();
   const { data } = await supabase.from("student_overview").select("course_slug, due, joined_on");
   const rows = (data ?? []).map((r) => ({ ...r, due: Number(r.due) }));
-  const since = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10);
+  const since = istDay(Date.now() - 30 * 86_400_000);
   const owing = rows.filter((r) => r.due > 0);
   const byCourse: Record<string, number> = {};
   for (const r of rows) if (r.course_slug) byCourse[r.course_slug] = (byCourse[r.course_slug] ?? 0) + 1;
@@ -245,7 +246,7 @@ export async function searchJobs(query: JobQuery, { includeInactive = false } = 
       request = request.or(roles[query.role].terms.map((t) => `title.ilike.%${t}%`).join(",")).not("source", "in", `(${hotelSources.join(",")})`);
     }
     if (query.posted) {
-      const since = new Date(Date.now() - Number(query.posted) * 86_400_000).toISOString().slice(0, 10);
+      const since = istDay(Date.now() - Number(query.posted) * 86_400_000);
       request = request.gte("posted_at", since);
     }
     if (query.q) {

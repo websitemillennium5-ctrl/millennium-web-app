@@ -1,3 +1,4 @@
+import { istDay } from "@/lib/format";
 import type { Profile } from "@/lib/auth";
 import { CourseSelect, Field, Input } from "@/components/portal/ui";
 
@@ -12,7 +13,7 @@ export function StudentFields({ student }: { student?: Profile }) {
         <Input name="phone" type="tel" defaultValue={student?.phone ?? ""} placeholder="+91" />
       </Field>
       <Field label="Date of birth">
-        <Input name="date_of_birth" type="date" defaultValue={student?.date_of_birth ?? ""} max={new Date().toISOString().slice(0, 10)} />
+        <Input name="date_of_birth" type="date" defaultValue={student?.date_of_birth ?? ""} max={istDay()} />
       </Field>
       <Field label="Roll number" hint="Students can sign in with this instead of email.">
         <Input name="roll_no" defaultValue={student?.roll_no ?? ""} placeholder="MAA2026-014" />
@@ -30,7 +31,7 @@ export function StudentFields({ student }: { student?: Profile }) {
         <Input name="fee_total" inputMode="numeric" defaultValue={student ? String(student.fee_total) : "0"} />
       </Field>
       <Field label="Joined on">
-        <Input name="joined_on" type="date" defaultValue={student?.joined_on ?? new Date().toISOString().slice(0, 10)} />
+        <Input name="joined_on" type="date" defaultValue={student?.joined_on ?? istDay()} />
       </Field>
     </div>
   );

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Briefcase, ChevronRight, House, IndianRupee, Inbox, LayoutDashboard, Megaphone, RefreshCw, ShieldCheck, UserRound, Users } from "lucide-react";
+import { BookOpen, Briefcase, Cake, ChevronRight, House, IndianRupee, Inbox, LayoutDashboard, Megaphone, RefreshCw, ShieldCheck, UserRound, Users } from "lucide-react";
 
 const links = {
   student: [
@@ -16,6 +16,7 @@ const links = {
   admin: [
     { href: "/admin", label: "Overview", icon: LayoutDashboard },
     { href: "/admin/students", label: "Students", icon: Users },
+    { href: "/admin/birthdays", label: "Birthdays", icon: Cake },
     { href: "/admin/leads", label: "Leads", icon: Inbox },
     { href: "/admin/announcements", label: "Announcements", icon: Megaphone },
     { href: "/admin/study", label: "Study material", icon: BookOpen },

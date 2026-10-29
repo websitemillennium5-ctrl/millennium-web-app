@@ -4,7 +4,7 @@ import { addPayment, deletePayment, deleteStudent, resetPassword, updateStudent 
 import { requireStaff } from "@/lib/auth";
 import { getFees, type StudentRow } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
-import { formatDate, formatINR } from "@/lib/format";
+import { formatDate, formatINR, istDay } from "@/lib/format";
 import { ActionForm, ConfirmButton, SubmitButton } from "@/components/portal/form";
 import { ResetPassword } from "@/components/portal/reset-password";
 import { StudentCard } from "@/components/portal/student-card";
@@ -84,7 +84,7 @@ export default async function StudentDetail({ params }: PageProps<"/admin/studen
               </Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Date">
-                  <Input name="paid_on" type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
+                  <Input name="paid_on" type="date" defaultValue={istDay()} />
                 </Field>
                 <Field label="Method">
                   <Select name="method" defaultValue="cash">
