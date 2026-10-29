@@ -69,7 +69,7 @@ export default async function StudentStudy() {
 
   return (
     <>
-      <PageTitle title="Study material" text="Notes, slides and videos from your trainers." />
+      <PageTitle title="Study material" />
 
       {materials.length === 0 ? (
         <section className="flex flex-col items-center rounded-2xl border border-line bg-white px-6 py-14 text-center">

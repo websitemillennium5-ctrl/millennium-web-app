@@ -1,4 +1,4 @@
-import { Banknote, CircleCheck, CreditCard, Landmark, MapPin, Phone, Receipt, Smartphone, Wallet } from "lucide-react";
+import { Banknote, CircleCheck, Clock, CreditCard, Landmark, MapPin, Navigation, Phone, Receipt, Smartphone, Wallet } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
 import { getFees } from "@/lib/data";
 import { formatDate, formatINR } from "@/lib/format";
@@ -28,7 +28,7 @@ export default async function StudentFees() {
 
   return (
     <>
-      <PageTitle title="Fees" text="Your course fee, what you've paid and what's left." />
+      <PageTitle title="Fees" />
 
       <section className="overflow-hidden rounded-2xl border border-line bg-white">
         <div className="grid grid-cols-1 gap-5 p-5 sm:grid-cols-[auto_1fr] sm:items-center">
@@ -124,22 +124,47 @@ export default async function StudentFees() {
         </Card>
 
         <Card title="How to pay">
-          <ul className="space-y-3 text-[12.5px] text-ink-soft">
-            <li className="flex gap-2.5">
-              <MapPin className="mt-0.5 size-4 shrink-0 text-muted" strokeWidth={1.75} />
-              <span>Pay at the front office by cash, UPI, card or bank transfer.</span>
-            </li>
-            <li className="flex gap-2.5">
-              <Receipt className="mt-0.5 size-4 shrink-0 text-muted" strokeWidth={1.75} />
-              <span>Ask for a receipt. Payments appear here as soon as they&apos;re recorded.</span>
-            </li>
+          {/* Accepted methods */}
+          <ul className="grid grid-cols-4 gap-2">
+            {(["cash", "upi", "card", "bank"] as const).map((key) => {
+              const m = methods[key];
+              const Icon = m.icon;
+              return (
+                <li key={key} className={`flex flex-col items-center gap-1.5 rounded-xl py-3 text-[11.5px] font-semibold ${m.tone}`}>
+                  <Icon className="size-5" strokeWidth={1.75} />
+                  {m.label}
+                </li>
+              );
+            })}
           </ul>
-          <a
-            href={telHref(site.phones[0])}
-            className="mt-4 flex items-center justify-center gap-2 rounded-full bg-ink py-2 text-sm font-medium text-white transition hover:bg-ink-soft"
-          >
-            <Phone className="size-3.5" /> Call front office
-          </a>
+          {/* Where: the front office */}
+          <div className="mt-3 flex gap-3 rounded-xl border border-line bg-mist/50 p-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#a7222d]/10 text-[#a7222d]">
+              <MapPin className="size-[18px]" strokeWidth={1.75} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-ink">Front office</p>
+              <p className="mt-0.5 text-[12.5px] text-ink-soft">
+                {site.address.line1}, {site.address.line2}
+              </p>
+              <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
+                <Clock className="size-3" /> {site.hours}
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2.5">
+            <a
+              href={site.address.mapsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-center gap-2 rounded-full border border-line bg-white py-2 text-sm font-medium text-ink transition hover:border-ink/25"
+            >
+              <Navigation className="size-3.5" /> Directions
+            </a>
+            <a href={telHref(site.phones[0])} className="flex items-center justify-center gap-2 rounded-full bg-ink py-2 text-sm font-medium text-white transition hover:bg-ink-soft">
+              <Phone className="size-3.5" /> Call
+            </a>
+          </div>
         </Card>
       </div>
     </>

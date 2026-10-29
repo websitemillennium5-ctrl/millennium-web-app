@@ -1,5 +1,6 @@
 import { roles } from "@/lib/airlines";
 import type { Profile } from "@/lib/auth";
+import type { BirthdayStudent } from "@/lib/birthdays";
 import type { LeadStatus } from "@/lib/leads";
 import { JOBS_PAGE_SIZE, type JobQuery } from "@/lib/job-query";
 import { groupRecruiters, type RecruiterEmail } from "@/lib/recruiters";
@@ -113,6 +114,17 @@ export async function getAnnouncements(limit = 20) {
 }
 
 /** Study material the signed-in user can see (RLS limits students to their batch plus everyone's), newest first. */
+/** Students whose birthday is today (India time), via the `birthdays_today()` function; empty when it can't be read. */
+export async function getBirthdaysToday() {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("birthdays_today");
+  if (error) {
+    console.error("birthdays_today failed", error.message);
+    return [] as BirthdayStudent[];
+  }
+  return (data ?? []) as BirthdayStudent[];
+}
+
 export async function getStudyMaterials(limit = 200) {
   const supabase = await createClient();
   const { data } = await supabase.from("study_materials").select("*").order("created_at", { ascending: false }).limit(limit);

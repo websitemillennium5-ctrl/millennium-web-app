@@ -1,9 +1,11 @@
 import Image from "next/image";
 import { BadgeCheck, GraduationCap, Megaphone, Pin } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
-import { getAnnouncements, type Announcement } from "@/lib/data";
+import { isBirthdayToday } from "@/lib/birthdays";
+import { getAnnouncements, getBirthdaysToday, type Announcement } from "@/lib/data";
 import { courseTitle, formatDate } from "@/lib/format";
 import { AnnouncementImage } from "@/components/portal/announcement-image";
+import { BirthdayBanner, BirthdayList } from "@/components/portal/birthday";
 import { PageTitle } from "@/components/portal/ui";
 
 const DAY = 86_400_000;
@@ -87,13 +89,21 @@ function AnnouncementCard({ a, now }: { a: Announcement; now: number }) {
 }
 
 export default async function StudentAnnouncements() {
-  await requireStudent();
+  const profile = await requireStudent();
   const now = requestTime();
-  const announcements = await getAnnouncements(100);
+  const [announcements, birthdays] = await Promise.all([getAnnouncements(100), getBirthdaysToday()]);
+  const myBirthday = isBirthdayToday(profile.date_of_birth, istDay(now));
 
   return (
     <>
-      <PageTitle title="Announcements" text="Class updates and notices from the Millennium team." />
+      <PageTitle title="Announcements" />
+
+      {myBirthday && <BirthdayBanner name={profile.full_name} className="mb-6" />}
+      {birthdays.length > 0 && (
+        <div className="mb-6">
+          <BirthdayList students={birthdays} selfId={profile.id} />
+        </div>
+      )}
 
       {announcements.length === 0 ? (
         <section className="flex flex-col items-center rounded-2xl border border-line bg-white px-6 py-14 text-center">

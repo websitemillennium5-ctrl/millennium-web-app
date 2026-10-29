@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, Briefcase, CalendarDays, CalendarClock, ChevronRight, CircleCheck, IndianRupee, MapPin, Megaphone, Sparkles } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
+import { isBirthdayToday } from "@/lib/birthdays";
 import { airlineBrand } from "@/lib/airlines";
 import { getAnnouncements, getFees, getJobs, type HiringEvent } from "@/lib/data";
 import { courseStyle } from "@/lib/course-style";
@@ -9,6 +10,7 @@ import { formatDate, formatINR } from "@/lib/format";
 import { getCourse } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 import { AnnouncementThumb } from "@/components/portal/announcement-image";
+import { BirthdayBanner } from "@/components/portal/birthday";
 import { BoardingPass } from "@/components/portal/boarding-pass";
 import { BrandLogo } from "@/components/portal/card-grid";
 import { eventHref, typeLabel } from "@/components/portal/event-list";
@@ -117,6 +119,8 @@ export default async function StudentDashboard() {
           </h1>
         </div>
       </div>
+
+      {isBirthdayToday(profile.date_of_birth, today) && <BirthdayBanner name={profile.full_name} className="mb-5" />}
 
       {todays.length > 0 && (
         <Link

@@ -81,21 +81,21 @@ export function LoginForm({ portal, next, error }: { portal: "student" | "admin"
             </p>
             <h1 className="mt-2 text-2xl font-semibold tracking-tight text-ink sm:text-3xl">Welcome back</h1>
             <p className="mt-1.5 text-sm text-muted">
-              {isStudent ? "Sign in with the details the institute gave you." : "Sign in with your staff account to continue."}
+              {isStudent ? "Sign in with the email the institute gave you, or your Gmail." : "Sign in with your staff account to continue."}
             </p>
 
             <form action={action} className="mt-8 space-y-5">
               <input type="hidden" name="portal" value={portal} />
               <input type="hidden" name="next" value={next ?? ""} />
-              <IconField label={isStudent ? "Roll number or email" : "Email address"} icon={isStudent ? UserRound : Mail}>
+              <IconField label="Email address" icon={Mail}>
                 <input
                   name="identifier"
-                  type={isStudent ? "text" : "email"}
-                  autoComplete="username"
+                  type="email"
+                  autoComplete="email"
                   required
                   autoCapitalize="none"
                   spellCheck={false}
-                  placeholder={isStudent ? "e.g. MAA2026-014" : "you@millenniumairhostess.com"}
+                  placeholder={isStudent ? "you@gmail.com" : "you@millenniumairhostess.com"}
                   className={loginInput}
                 />
               </IconField>
@@ -113,22 +113,17 @@ export function LoginForm({ portal, next, error }: { portal: "student" | "admin"
                   <input type="hidden" name="next" value={next ?? ""} />
                   <GoogleButton />
                 </form>
-                <p className="mt-3 text-center text-xs text-muted">Works with the Gmail address on your student record.</p>
               </>
             )}
 
-            <p className="mt-6 border-t border-line pt-5 text-center text-sm text-muted">
-              {isStudent ? (
-                "Forgot your password? Ask the front office to reset it."
-              ) : (
-                <>
-                  Are you a student?{" "}
-                  <Link href="/student/login" className="font-semibold text-[#a7222d] underline-offset-2 hover:underline">
-                    Go to the student portal
-                  </Link>
-                </>
-              )}
-            </p>
+            {!isStudent && (
+              <p className="mt-6 border-t border-line pt-5 text-center text-sm text-muted">
+                Are you a student?{" "}
+                <Link href="/student/login" className="font-semibold text-[#a7222d] underline-offset-2 hover:underline">
+                  Go to the student portal
+                </Link>
+              </p>
+            )}
           </div>
         </div>
 

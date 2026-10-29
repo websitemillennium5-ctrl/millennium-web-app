@@ -160,6 +160,34 @@ body {
   }
 }
 
+/* Birthday banner confetti: each piece drifts down from the top edge and fades, on a loop */
+@keyframes confetti-fall {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--drift, 0px), 280px, 0) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+@utility animate-confetti {
+  animation: confetti-fall 4s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-confetti {
+    animation: none;
+    opacity: 0.6;
+    top: auto;
+    bottom: 10%;
+  }
+}
+
 /* Portal "loading details" meter: each bar lights up in turn, like the strength meters on the cards */
 @keyframes meter-wave {
   0%,

@@ -23,7 +23,7 @@ export default async function StudentJobs({ searchParams }: PageProps<"/student/
   return (
     <>
       <ScrollReset key={query.page} />
-      <PageTitle title="Airline jobs" text="Openings and walk-ins, updated daily." />
+      <PageTitle title="Airline jobs" />
       <JobNavProvider basePath="/student/jobs" query={query}>
         {/* Same layout as the public jobs board on a phone: search and role tabs up top, the rest in a bottom sheet */}
         <JobFilters basePath="/student/jobs" query={query} total={total} sidebar />

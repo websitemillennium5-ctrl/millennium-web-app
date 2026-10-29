@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="Birthday cake with balloons">
+  <defs>
+    <linearGradient id="b1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8fa3"/><stop offset="1" stop-color="#e11d48"/></linearGradient>
+    <linearGradient id="b2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#f59e0b"/></linearGradient>
+    <linearGradient id="b3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#93c5fd"/><stop offset="1" stop-color="#2563eb"/></linearGradient>
+    <linearGradient id="cake" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbcfe8"/><stop offset="1" stop-color="#f472b6"/></linearGradient>
+    <linearGradient id="cake2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#fbbf24"/></linearGradient>
+    <radialGradient id="flame" cx="0.5" cy="0.7" r="0.6"><stop offset="0" stop-color="#fff7ae"/><stop offset="0.6" stop-color="#fb923c"/><stop offset="1" stop-color="#ef4444" stop-opacity="0.9"/></radialGradient>
+  </defs>
+  <!-- balloons -->
+  <g stroke="#94a3b8" stroke-width="1.2" fill="none" stroke-linecap="round">
+    <path d="M38 72 C 40 95, 30 110, 46 130"/>
+    <path d="M166 66 C 160 90, 170 108, 156 128"/>
+    <path d="M60 50 C 64 70, 52 86, 66 104"/>
+  </g>
+  <ellipse cx="38" cy="50" rx="18" ry="23" fill="url(#b1)"/>
+  <path d="M34 72 l4 5 l4 -5 z" fill="#e11d48"/>
+  <ellipse cx="31" cy="40" rx="5" ry="8" fill="#fff" opacity="0.35" transform="rotate(-20 31 40)"/>
+  <ellipse cx="166" cy="44" rx="18" ry="23" fill="url(#b3)"/>
+  <path d="M162 66 l4 5 l4 -5 z" fill="#2563eb"/>
+  <ellipse cx="159" cy="34" rx="5" ry="8" fill="#fff" opacity="0.35" transform="rotate(-20 159 34)"/>
+  <ellipse cx="60" cy="30" rx="15" ry="19" fill="url(#b2)"/>
+  <path d="M57 48 l3 4 l3 -4 z" fill="#f59e0b"/>
+  <ellipse cx="54" cy="22" rx="4" ry="6" fill="#fff" opacity="0.4" transform="rotate(-20 54 22)"/>
+  <!-- plate -->
+  <ellipse cx="100" cy="172" rx="66" ry="12" fill="#e2e8f0"/>
+  <ellipse cx="100" cy="169" rx="60" ry="9" fill="#f8fafc"/>
+  <!-- bottom tier -->
+  <rect x="52" y="124" width="96" height="44" rx="8" fill="url(#cake)"/>
+  <path d="M52 132 q6 10 12 0 t12 0 t12 0 t12 0 t12 0 t12 0 t12 0 t12 0 v-8 h-96 z" fill="#fdf2f8"/>
+  <!-- top tier -->
+  <rect x="66" y="92" width="68" height="36" rx="8" fill="url(#cake2)"/>
+  <path d="M66 100 q5 9 10 0 t10 0 t10 0 t10 0 t10 0 t10 0 t8 0 v-8 h-68 z" fill="#fffbeb"/>
+  <!-- sprinkles -->
+  <g stroke-width="2.4" stroke-linecap="round">
+    <path d="M72 150 l4 -3" stroke="#2563eb"/><path d="M90 158 l4 2" stroke="#22c55e"/><path d="M112 148 l4 -2" stroke="#f59e0b"/><path d="M130 157 l4 -3" stroke="#e11d48"/>
+    <path d="M80 118 l3 -3" stroke="#e11d48"/><path d="M100 120 l4 1" stroke="#2563eb"/><path d="M120 116 l3 -3" stroke="#22c55e"/>
+  </g>
+  <!-- candles -->
+  <g>
+    <rect x="80" y="66" width="7" height="28" rx="2" fill="#60a5fa"/><rect x="80" y="72" width="7" height="4" fill="#fff" opacity="0.6"/><rect x="80" y="82" width="7" height="4" fill="#fff" opacity="0.6"/>
+    <rect x="96.5" y="60" width="7" height="34" rx="2" fill="#f87171"/><rect x="96.5" y="66" width="7" height="4" fill="#fff" opacity="0.6"/><rect x="96.5" y="76" width="7" height="4" fill="#fff" opacity="0.6"/><rect x="96.5" y="86" width="7" height="4" fill="#fff" opacity="0.6"/>
+    <rect x="113" y="66" width="7" height="28" rx="2" fill="#4ade80"/><rect x="113" y="72" width="7" height="4" fill="#fff" opacity="0.6"/><rect x="113" y="82" width="7" height="4" fill="#fff" opacity="0.6"/>
+    <path d="M83.5 52 c-5 7 -4 12 0 13 c4 -1 5 -6 0 -13 z" fill="url(#flame)"/>
+    <path d="M100 45 c-6 8 -5 14 0 15 c5 -1 6 -7 0 -15 z" fill="url(#flame)"/>
+    <path d="M116.5 52 c-5 7 -4 12 0 13 c4 -1 5 -6 0 -13 z" fill="url(#flame)"/>
+  </g>
+  <!-- sparkles -->
+  <g fill="#f59e0b">
+    <path d="M140 20 l2 6 l6 2 l-6 2 l-2 6 l-2 -6 l-6 -2 l6 -2 z"/>
+    <path d="M22 110 l1.5 4.5 l4.5 1.5 l-4.5 1.5 l-1.5 4.5 l-1.5 -4.5 l-4.5 -1.5 l4.5 -1.5 z" fill="#e11d48"/>
+    <path d="M182 100 l1.5 4.5 l4.5 1.5 l-4.5 1.5 l-1.5 4.5 l-1.5 -4.5 l-4.5 -1.5 l4.5 -1.5 z" fill="#2563eb"/>
+  </g>
+</svg>
