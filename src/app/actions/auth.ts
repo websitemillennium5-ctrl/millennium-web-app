@@ -1,9 +1,11 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAcademyAccount, isStaffRole, type Role } from "@/lib/auth";
+import { site } from "@/lib/site";
 
 export type FormState = { error?: string; ok?: string } | undefined;
 
@@ -52,6 +54,30 @@ export async function signIn(_prev: FormState, formData: FormData): Promise<Form
 
   const next = String(formData.get("next") ?? "");
   redirect(next.startsWith(`/${portal}`) && !next.startsWith(`/${portal}/login`) ? next : `/${portal}`);
+}
+
+/**
+ * "Continue with Google" on the student login: sends the browser to Google, which comes back to /auth/callback
+ * (src/app/auth/callback/route.ts) where the account is checked the same way as a password sign-in.
+ * Only the student portal offers this; staff keep their passwords.
+ */
+export async function signInWithGoogle(formData: FormData) {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const origin = h.get("origin") ?? (host ? `${h.get("x-forwarded-proto") ?? "https"}://${host}` : site.url);
+  const callback = new URL("/auth/callback", origin);
+  const next = String(formData.get("next") ?? "");
+  if (next.startsWith("/student") && !next.startsWith("/student/login")) callback.searchParams.set("next", next);
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: callback.toString(), queryParams: { prompt: "select_account" } },
+  });
+  if (error || !data.url) {
+    redirect(`/student/login?error=${encodeURIComponent("Google sign-in isn't available right now. Use your roll number and password.")}`);
+  }
+  redirect(data.url);
 }
 
 export async function signOut(formData: FormData) {

@@ -8,6 +8,6 @@ export const metadata: Metadata = { title: "Student login", robots: { index: fal
 export default async function StudentLogin({ searchParams }: PageProps<"/student/login">) {
   const profile = await getProfile();
   if (profile?.role === "student") redirect("/student");
-  const { next } = await searchParams;
-  return <LoginForm portal="student" next={typeof next === "string" ? next : undefined} />;
+  const { next, error } = await searchParams;
+  return <LoginForm portal="student" next={typeof next === "string" ? next : undefined} error={typeof error === "string" ? error : undefined} />;
 }

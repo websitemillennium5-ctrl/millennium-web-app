@@ -5,11 +5,13 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { ArrowLeft, ArrowRight, Eye, EyeOff, Loader2, LockKeyhole, Mail, Phone, ShieldCheck, UserRound } from "lucide-react";
-import { signIn } from "@/app/actions/auth";
+import { signIn, signInWithGoogle } from "@/app/actions/auth";
 import { courses, site, telHref } from "@/lib/site";
 import { FormMessage } from "@/components/portal/form";
+import { GoogleMark } from "@/components/portal/google-mark";
 
-export function LoginForm({ portal, next }: { portal: "student" | "admin"; next?: string }) {
+/** `error` is a message carried back from the Google callback (/auth/callback) in the URL. */
+export function LoginForm({ portal, next, error }: { portal: "student" | "admin"; next?: string; error?: string }) {
   const [state, action] = useActionState(signIn, undefined);
   const isStudent = portal === "student";
 
@@ -98,9 +100,22 @@ export function LoginForm({ portal, next }: { portal: "student" | "admin"; next?
                 />
               </IconField>
               <PasswordField />
-              <FormMessage state={state} />
+              <FormMessage state={state ?? (error ? { error } : undefined)} />
               <LoginButton />
             </form>
+
+            {isStudent && (
+              <>
+                <p className="my-5 flex items-center gap-3 text-xs text-muted" aria-hidden>
+                  <span className="h-px flex-1 bg-line" /> or <span className="h-px flex-1 bg-line" />
+                </p>
+                <form action={signInWithGoogle}>
+                  <input type="hidden" name="next" value={next ?? ""} />
+                  <GoogleButton />
+                </form>
+                <p className="mt-3 text-center text-xs text-muted">Works with the Gmail address on your student record.</p>
+              </>
+            )}
 
             <p className="mt-6 border-t border-line pt-5 text-center text-sm text-muted">
               {isStudent ? (
@@ -163,6 +178,20 @@ function PasswordField() {
     >
       <input name="password" type={show ? "text" : "password"} autoComplete="current-password" required className={`${loginInput} pr-12`} />
     </IconField>
+  );
+}
+
+function GoogleButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-line bg-white text-[15px] font-medium text-ink transition hover:border-ink/25 hover:bg-mist disabled:opacity-70"
+    >
+      {pending ? <Loader2 className="size-4 animate-spin" /> : <GoogleMark />}
+      {pending ? "Opening Google…" : "Continue with Google"}
+    </button>
   );
 }
 
