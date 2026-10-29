@@ -8,6 +8,7 @@ import { courseStyle } from "@/lib/course-style";
 import { formatDate, formatINR } from "@/lib/format";
 import { getCourse } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
+import { AnnouncementThumb } from "@/components/portal/announcement-image";
 import { BoardingPass } from "@/components/portal/boarding-pass";
 import { BrandLogo } from "@/components/portal/card-grid";
 import { eventHref, typeLabel } from "@/components/portal/event-list";
@@ -141,6 +142,7 @@ export default async function StudentDashboard() {
             <span className="mt-0.5 block truncate text-[13.5px] font-semibold text-ink">{todays[0].title}</span>
             {todays[0].body && <span className="mt-0.5 line-clamp-2 block text-[12.5px] leading-snug text-ink-soft">{todays[0].body}</span>}
           </span>
+          <AnnouncementThumb a={todays[0]} className="mt-0.5" />
           <ChevronRight className="mt-2.5 size-4 shrink-0 text-muted transition group-hover:translate-x-0.5 group-hover:text-ink" />
         </Link>
       )}

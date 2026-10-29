@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { BadgeCheck, Megaphone, Pin, PinOff, Trash2, UsersRound } from "lucide-react";
-import { createAnnouncement, deleteAnnouncement, toggleAnnouncementPin } from "@/app/admin/actions";
+import { deleteAnnouncement, toggleAnnouncementPin } from "@/app/admin/actions";
 import { requireStaff } from "@/lib/auth";
 import type { Announcement } from "@/lib/data";
 import { courseStyle } from "@/lib/course-style";
@@ -9,9 +9,11 @@ import { courseTitle, formatDate } from "@/lib/format";
 import { courses } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 import { CourseIcon } from "@/components/portal/course-icon";
-import { ActionForm, ConfirmButton, SubmitButton } from "@/components/portal/form";
+import { AnnouncementForm } from "@/components/portal/announcement-form";
+import { AnnouncementImage } from "@/components/portal/announcement-image";
+import { ConfirmButton } from "@/components/portal/form";
 import { initials } from "@/components/portal/student-card";
-import { Card, CourseSelect, Field, Input, PageTitle, Textarea } from "@/components/portal/ui";
+import { Card, PageTitle } from "@/components/portal/ui";
 
 const DAY = 86_400_000;
 const requestTime = () => Date.now();
@@ -76,6 +78,7 @@ function PostCard({ a, now, reach }: { a: Post; now: number; reach: number }) {
 
           <h3 className="mt-2 text-[14px] leading-snug font-semibold text-ink">{a.title}</h3>
           {a.body && <p className="mt-1 text-[13.5px] leading-relaxed whitespace-pre-line text-ink-soft">{a.body}</p>}
+          <AnnouncementImage a={a} className="mt-2.5" />
 
           {/* Action bar */}
           <div className="mt-2 -ml-2 flex items-center justify-between gap-2">
@@ -155,24 +158,7 @@ export default async function AdminAnnouncements({ searchParams }: PageProps<"/a
                 Posting as <span className="font-medium text-ink">{me.full_name || me.email}</span>
               </span>
             </div>
-            <ActionForm action={createAnnouncement} resetOnSuccess className="space-y-3.5">
-              <Field label="Title *">
-                <Input name="title" required maxLength={120} placeholder="Mock interview on Friday" />
-              </Field>
-              <Field label="Message">
-                <Textarea name="body" rows={4} placeholder="Details, timings, what to bring…" />
-              </Field>
-              <Field label="Who should see it?">
-                <CourseSelect emptyLabel="All students" />
-              </Field>
-              <label className="flex items-center gap-2 rounded-xl border border-line bg-mist/50 px-3 py-2 text-sm text-ink-soft">
-                <input type="checkbox" name="pinned" className="size-4 accent-brand" />
-                <span>
-                  Pin to top <span className="text-xs text-muted">— stays above newer notices</span>
-                </span>
-              </label>
-              <SubmitButton>Post announcement</SubmitButton>
-            </ActionForm>
+            <AnnouncementForm />
           </Card>
 
           <div className="grid grid-cols-3 divide-x divide-line rounded-2xl border border-line bg-white">

@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
+// Announcement pictures live in a public Supabase storage bucket and are served through next/image.
+const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname : null;
+
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: supabaseHost ? [{ protocol: "https", hostname: supabaseHost, pathname: "/storage/v1/object/public/announcement-images/**" }] : [],
+  },
   experimental: {
     // Keep pages the user has just visited for 30s, so switching back and forth (e.g. the student
     // portal's dock tabs) is instant instead of re-rendering on the server every time

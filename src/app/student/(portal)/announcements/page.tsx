@@ -3,6 +3,7 @@ import { BadgeCheck, GraduationCap, Megaphone, Pin } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
 import { getAnnouncements, type Announcement } from "@/lib/data";
 import { courseTitle, formatDate } from "@/lib/format";
+import { AnnouncementImage } from "@/components/portal/announcement-image";
 import { PageTitle } from "@/components/portal/ui";
 
 const DAY = 86_400_000;
@@ -74,6 +75,7 @@ function AnnouncementCard({ a, now }: { a: Announcement; now: number }) {
 
         <h2 className="mt-2.5 text-[15px] leading-snug font-semibold text-ink">{a.title}</h2>
         {a.body && <p className="mt-1 text-[13.5px] leading-relaxed whitespace-pre-line text-ink-soft">{a.body}</p>}
+        <AnnouncementImage a={a} className="mt-3" />
         {a.course_slug && (
           <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-mist px-2.5 py-1 text-[11px] font-medium text-ink-soft">
             <GraduationCap className="size-3.5 text-muted" /> For {courseTitle(a.course_slug)}

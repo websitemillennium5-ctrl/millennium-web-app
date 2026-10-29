@@ -3,7 +3,9 @@
 import { randomInt } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import sharp from "sharp";
 import type { FormState } from "@/app/actions/auth";
+import { ANNOUNCEMENT_IMAGE_BUCKET, ANNOUNCEMENT_IMAGE_MAX_BYTES, ANNOUNCEMENT_IMAGE_MAX_EDGE, ANNOUNCEMENT_IMAGE_TYPES } from "@/lib/announcements";
 import { requireStaff } from "@/lib/auth";
 import { leadStatuses } from "@/lib/leads";
 import { eventTable, jobTable } from "@/lib/job-sources";
@@ -150,10 +152,57 @@ export async function deletePayment(fd: FormData) {
 
 // ───────── Announcements ─────────
 
+const announcementImages = () => createAdminClient().storage.from(ANNOUNCEMENT_IMAGE_BUCKET);
+
+/**
+ * Step 1 of attaching a picture: a one-time signed upload URL under `incoming/`, so the browser sends the
+ * original straight to storage (Vercel caps request bodies at 4.5 MB; phone photos are bigger).
+ * createAnnouncement then compresses it and throws the original away.
+ */
+export async function prepareAnnouncementImage(fileName: string, size: number, type: string): Promise<{ path: string; token: string } | { error: string }> {
+  await requireStaff();
+  if (!ANNOUNCEMENT_IMAGE_TYPES.includes(type)) return { error: "Use a JPG, PNG, WebP or GIF picture." };
+  if (size > ANNOUNCEMENT_IMAGE_MAX_BYTES) return { error: "That picture is over 15 MB. Pick a smaller one." };
+  const ext = fileName.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "img";
+  const { data, error } = await announcementImages().createSignedUploadUrl(`incoming/${crypto.randomUUID()}.${ext}`);
+  if (error || !data) return { error: error?.message ?? "Couldn't start the upload." };
+  return { path: data.path, token: data.token };
+}
+
+/**
+ * Shrinks a just-uploaded original to a web-sized WebP (longest edge ANNOUNCEMENT_IMAGE_MAX_EDGE, camera rotation
+ * applied, EXIF such as GPS dropped), stores that under a permanent path and deletes the original either way.
+ */
+async function compressAnnouncementImage(incoming: string): Promise<{ path: string; width: number; height: number } | { error: string }> {
+  if (!incoming.startsWith("incoming/")) return { error: "That upload isn't valid. Pick the picture again." };
+  const bucket = announcementImages();
+  try {
+    const { data: blob, error } = await bucket.download(incoming);
+    if (error || !blob) return { error: "The uploaded picture couldn't be found. Pick it again." };
+    const { data, info } = await sharp(Buffer.from(await blob.arrayBuffer()))
+      .rotate()
+      .resize({ width: ANNOUNCEMENT_IMAGE_MAX_EDGE, height: ANNOUNCEMENT_IMAGE_MAX_EDGE, fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 82 })
+      .toBuffer({ resolveWithObject: true });
+    const path = `${new Date().toISOString().slice(0, 7)}/${crypto.randomUUID()}.webp`;
+    const { error: saveError } = await bucket.upload(path, data, { contentType: "image/webp", cacheControl: "31536000" });
+    if (saveError) return { error: `Couldn't save the picture: ${saveError.message}` };
+    return { path, width: info.width, height: info.height };
+  } catch {
+    return { error: "That picture couldn't be read. Try a JPG or PNG." };
+  } finally {
+    await bucket.remove([incoming]);
+  }
+}
+
 export async function createAnnouncement(_prev: FormState, fd: FormData): Promise<FormState> {
   const staff = await requireStaff();
   const title = text(fd, "title");
   if (!title) return { error: "Add a title." };
+
+  const incoming = text(fd, "image_path");
+  const image = incoming ? await compressAnnouncementImage(incoming) : null;
+  if (image && "error" in image) return { error: image.error };
 
   const supabase = await createClient();
   const { error } = await supabase.from("announcements").insert({
@@ -161,9 +210,16 @@ export async function createAnnouncement(_prev: FormState, fd: FormData): Promis
     body: text(fd, "body") ?? "",
     course_slug: text(fd, "course_slug"),
     pinned: fd.get("pinned") === "on",
+    image_path: image?.path ?? null,
+    image_width: image?.width ?? null,
+    image_height: image?.height ?? null,
     created_by: staff.id,
   });
-  if (error) return { error: error.message };
+  if (error) {
+    // don't leave an orphaned picture behind
+    if (image) await announcementImages().remove([image.path]);
+    return { error: error.message };
+  }
 
   revalidatePath("/admin/announcements");
   return { ok: "Announcement posted." };
@@ -179,7 +235,8 @@ export async function toggleAnnouncementPin(fd: FormData) {
 export async function deleteAnnouncement(fd: FormData) {
   await requireStaff();
   const supabase = await createClient();
-  await supabase.from("announcements").delete().eq("id", String(fd.get("id")));
+  const { data } = await supabase.from("announcements").delete().eq("id", String(fd.get("id"))).select("image_path").maybeSingle();
+  if (data?.image_path) await announcementImages().remove([data.image_path]);
   revalidatePath("/admin/announcements");
 }
 

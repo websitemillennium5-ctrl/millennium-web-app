@@ -7,7 +7,18 @@ import { STUDENTS_PAGE_SIZE, type StudentQuery } from "@/lib/student-query";
 import { createClient } from "@/lib/supabase/server";
 
 export type FeePayment = { id: string; student_id: string; amount: number; paid_on: string; method: string; note: string | null; created_at: string };
-export type Announcement = { id: string; title: string; body: string; course_slug: string | null; pinned: boolean; created_at: string };
+export type Announcement = {
+  id: string;
+  title: string;
+  body: string;
+  course_slug: string | null;
+  pinned: boolean;
+  /** optional picture in the announcement-images bucket (see src/lib/announcements.ts), with its pixel size */
+  image_path: string | null;
+  image_width: number | null;
+  image_height: number | null;
+  created_at: string;
+};
 export type StudyMaterial = {
   id: string;
   title: string;
