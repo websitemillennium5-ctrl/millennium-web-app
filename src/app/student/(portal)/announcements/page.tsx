@@ -6,7 +6,7 @@ import { getAnnouncements, getBirthdaysToday, type Announcement } from "@/lib/da
 import { courseTitle, formatDate } from "@/lib/format";
 import { videoOf } from "@/lib/video";
 import { AnnouncementImage } from "@/components/portal/announcement-image";
-import { BirthdayBanner, BirthdayList } from "@/components/portal/birthday";
+import { BirthdayList, BirthdayPost } from "@/components/portal/birthday";
 import { YouTubeEmbed } from "@/components/portal/video-embed";
 import { PageTitle } from "@/components/portal/ui";
 
@@ -102,7 +102,11 @@ export default async function StudentAnnouncements() {
     <>
       <PageTitle title="Announcements" />
 
-      {myBirthday && <BirthdayBanner name={profile.full_name} className="mb-6" />}
+      {myBirthday && (
+        <div className="mb-6">
+          <BirthdayPost name={profile.full_name} />
+        </div>
+      )}
       {birthdays.length > 0 && (
         <div className="mb-6">
           <BirthdayList students={birthdays} selfId={profile.id} />

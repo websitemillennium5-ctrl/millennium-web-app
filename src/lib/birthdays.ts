@@ -23,3 +23,19 @@ export function isBirthdayToday(dateOfBirth: string | null | undefined, today: s
 }
 
 export const firstName = (fullName: string) => fullName.trim().split(/\s+/)[0] || "there";
+
+/** Who signs the birthday post on the notices page. */
+export const BIRTHDAY_FROM = { name: "Manish", role: "Founder" };
+
+/** The birthday post's wording, written as a note from the founder and the team (same text in the mobile app). */
+export function birthdayNote(fullName: string) {
+  const name = firstName(fullName);
+  return {
+    title: `Happy birthday, ${name}! 🎂`,
+    body:
+      `Dear ${name}, on behalf of everyone at Millennium Air Hostess Academy, I wish you a very happy birthday. ` +
+      `May this year bring you new heights, confident interviews and the wings you are working so hard for. ` +
+      `Enjoy your day. We are proud to have you with us.`,
+    signature: `${BIRTHDAY_FROM.name}, ${BIRTHDAY_FROM.role}, and the Millennium team`,
+  };
+}
