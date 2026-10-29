@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, Briefcase, CalendarDays, CalendarClock, ChevronRight, CircleCheck, IndianRupee, MapPin, Megaphone, Sparkles } from "lucide-react";
+import { ArrowUpRight, Briefcase, CalendarDays, CalendarClock, ChevronRight, CircleCheck, IndianRupee, MapPin, Megaphone, Sparkles } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
 import { airlineBrand } from "@/lib/airlines";
 import { getAnnouncements, getFees, getJobs, type HiringEvent } from "@/lib/data";
@@ -52,7 +52,7 @@ function QuickStat({
   return (
     <Link
       href={href}
-      className="group relative isolate flex flex-col overflow-hidden rounded-2xl border border-line bg-white p-3.5 transition hover:-translate-y-0.5 hover:shadow-[0_14px_32px_-22px_rgba(24,24,27,0.5)] active:scale-[0.98]"
+      className="group relative isolate flex flex-col overflow-hidden rounded-2xl border border-line bg-white p-4 transition hover:-translate-y-0.5 hover:shadow-[0_14px_32px_-22px_rgba(24,24,27,0.5)] active:scale-[0.98]"
     >
       {/* soft colour wash in the corner */}
       <span aria-hidden className="absolute -top-10 -right-10 -z-10 size-28 rounded-full opacity-[0.13] blur-2xl" style={{ background: color }} />
@@ -107,7 +107,7 @@ export default async function StudentDashboard() {
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="inline-flex items-center gap-1.5 text-xs font-medium" style={{ color: style.color }}>
             <Sparkles className="size-3.5" /> Day {days} of your journey
@@ -116,19 +116,12 @@ export default async function StudentDashboard() {
             {greeting}, {firstName} 👋
           </h1>
         </div>
-        {fees.due > 0 && (
-          <Link href="/student/fees" className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-100">
-            <span className="size-1.5 rounded-full bg-red-500" />
-            {formatINR(fees.due)} fee balance due
-            <ArrowRight className="size-3" />
-          </Link>
-        )}
       </div>
 
       {todays.length > 0 && (
         <Link
           href="/student/announcements"
-          className="group mb-4 flex items-start gap-3 rounded-2xl border border-[#a7222d]/15 bg-gradient-to-br from-[#a7222d]/[0.06] to-white p-3.5 transition hover:border-[#a7222d]/30 active:scale-[0.99]"
+          className="group mb-5 flex items-start gap-3 rounded-2xl border border-[#a7222d]/15 bg-gradient-to-br from-[#a7222d]/[0.06] to-white p-3.5 transition hover:border-[#a7222d]/30 active:scale-[0.99]"
         >
           <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#a7222d] text-white shadow-md shadow-[#a7222d]/25">
             <Megaphone className="size-4" />
@@ -149,7 +142,7 @@ export default async function StudentDashboard() {
 
       <BoardingPass profile={profile} duration={course?.duration} />
 
-      <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="mt-5 grid grid-cols-2 gap-3.5 lg:grid-cols-4">
         <QuickStat
           href="/student/fees"
           icon={fees.due > 0 ? <IndianRupee className="size-4" /> : <CircleCheck className="size-4" />}
@@ -185,10 +178,10 @@ export default async function StudentDashboard() {
         />
       </div>
 
-      <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
+      <div className="mt-7 grid grid-cols-1 gap-7 lg:grid-cols-2">
         {/* Upcoming hiring events: a swipeable row of cards, like an app's "up next" shelf */}
         <section className="min-w-0">
-          <div className="mb-2.5 flex items-center justify-between">
+          <div className="mb-3 flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-[13px] font-semibold text-ink">
               <CalendarClock className="size-4 text-[#7c3aed]" /> Upcoming hiring events
             </h2>
@@ -248,7 +241,7 @@ export default async function StudentDashboard() {
         </section>
 
         <section className="min-w-0">
-          <div className="mb-2.5 flex items-center justify-between">
+          <div className="mb-3 flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-[13px] font-semibold text-ink">
               <Briefcase className="size-4 text-[#a7222d]" /> Latest airline jobs
             </h2>
@@ -265,7 +258,7 @@ export default async function StudentDashboard() {
                 const posted = j.posted_at ? postedAgo(j.posted_at, today) : null;
                 return (
                   <li key={`${j.source}:${j.id}`}>
-                    <Link href={jobHref("/student/jobs", j)} className="group flex items-center gap-3 px-3.5 py-3 transition hover:bg-mist/60 active:bg-mist">
+                    <Link href={jobHref("/student/jobs", j)} className="group flex items-center gap-3 px-4 py-3.5 transition hover:bg-mist/60 active:bg-mist">
                       {brand.logo ? (
                         <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-line bg-white p-1.5">
                           <Image src={brand.logo} alt={brand.name} width={44} height={44} className="max-h-full w-auto object-contain" />
@@ -311,7 +304,7 @@ export default async function StudentDashboard() {
       {course && (
         <Link
           href={`/courses/${course.slug}`}
-          className="group mt-5 flex items-center gap-3 rounded-2xl border border-line bg-white p-3 transition hover:border-ink/15 active:scale-[0.99]"
+          className="group mt-7 flex items-center gap-3 rounded-2xl border border-line bg-white p-3.5 transition hover:border-ink/15 active:scale-[0.99]"
         >
           <span className="size-12 shrink-0 rounded-xl bg-cover bg-center" style={{ backgroundImage: `url(${course.image})` }} />
           <span className="min-w-0 flex-1">

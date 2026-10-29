@@ -2,6 +2,7 @@ import { roles } from "@/lib/airlines";
 import type { Profile } from "@/lib/auth";
 import type { LeadStatus } from "@/lib/leads";
 import { JOBS_PAGE_SIZE, type JobQuery } from "@/lib/job-query";
+import { groupRecruiters, type RecruiterEmail } from "@/lib/recruiters";
 import { hotelSources } from "@/lib/job-sources";
 import { STUDENTS_PAGE_SIZE, type StudentQuery } from "@/lib/student-query";
 import { createClient } from "@/lib/supabase/server";
@@ -257,6 +258,13 @@ export async function getJobDetail(source: string, id: string) {
   const supabase = await createClient();
   const { data } = await supabase.from("all_jobs").select("*").eq("source", source).eq("id", id).maybeSingle();
   return data ? { job: data as Job } : null;
+}
+
+/** Every employer's active recruiter addresses, grouped by employer key (a small table, read whole). */
+export async function getRecruiterEmails() {
+  const supabase = await createClient();
+  const { data } = await supabase.from("recruiter_emails").select("*").eq("is_active", true).order("created_at");
+  return groupRecruiters((data ?? []) as RecruiterEmail[]);
 }
 
 /** One upcoming hiring event for the event detail page. */

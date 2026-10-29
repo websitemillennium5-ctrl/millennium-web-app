@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Caveat, Instrument_Serif, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { site } from "@/lib/site";
+import { ScrollToTop } from "@/components/scroll-to-top";
 
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
@@ -42,7 +43,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${jakarta.variable} ${instrument.variable} ${caveat.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col font-sans">{children}</body>
+      <body className="flex min-h-full flex-col font-sans">
+        <ScrollToTop />
+        {children}
+      </body>
     </html>
   );
 }

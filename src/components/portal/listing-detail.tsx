@@ -4,7 +4,9 @@ import { airlineBrand, roleCategory } from "@/lib/airlines";
 import type { HiringEvent, Job } from "@/lib/data";
 import { formatDate, isEmailLink, linkProps } from "@/lib/format";
 import { sourceLabel } from "@/lib/job-sources";
+import { recruitersFor, type Applicant, type RecruiterBook } from "@/lib/recruiters";
 import { BrandLogo, CardPanel, GridCells, GridRow } from "@/components/portal/card-grid";
+import { EmailRecruiterButton, RecruiterAddresses } from "@/components/portal/email-recruiter";
 import { AddToCalendar, DateRail, dateFormat, eventDay, typeLabel } from "@/components/portal/event-list";
 import { Freshness, host } from "@/components/portal/job-list";
 import { RoleIcon } from "@/components/portal/role-icon";
@@ -83,15 +85,22 @@ export function EventDetail({
   basePath,
   actions,
   gated,
+  recruiters,
+  applicant,
 }: {
   event: HiringEvent;
   basePath: string;
   actions?: React.ReactNode;
   gated?: boolean;
+  /** Student portal: "Email recruiter" draft for brands with an address on file. */
+  recruiters?: RecruiterBook;
+  applicant?: Applicant;
 }) {
   const brand = airlineBrand("", event.brand);
   const place = [event.city, event.country].filter(Boolean).join(", ");
   const where = event.venue ?? place;
+  const emails = recruitersFor(recruiters, event.source, event.brand);
+  const listing = { title: event.title, company: event.brand, location: place, url: event.apply_url ?? event.url, kind: "event" as const };
   return (
     <>
       <BackLink basePath={basePath} />
@@ -104,6 +113,7 @@ export function EventDetail({
             </span>
             <div className="flex flex-wrap items-center gap-2">
               {actions}
+              {applicant && <EmailRecruiterButton emails={emails} listing={listing} applicant={applicant} />}
               {gated ? (
                 <ApplyButton url={event.apply_url ?? event.url} listing={`${event.title} · ${event.brand}`} size="lg" />
               ) : (
@@ -182,6 +192,11 @@ export function EventDetail({
               <p className="text-sm leading-relaxed whitespace-pre-line text-ink-soft">{event.description}</p>
             </GridRow>
           )}
+          {applicant && emails.length > 0 && (
+            <GridRow label="Email the recruiter">
+              <RecruiterAddresses emails={emails} listing={listing} applicant={applicant} />
+            </GridRow>
+          )}
           {!gated && (
             <GridRow label="Next steps">
               <div className="flex flex-wrap gap-2">
@@ -202,11 +217,27 @@ export function EventDetail({
   );
 }
 
-export function JobDetail({ job, basePath, actions, gated }: { job: Job; basePath: string; actions?: React.ReactNode; gated?: boolean }) {
+export function JobDetail({
+  job,
+  basePath,
+  actions,
+  gated,
+  recruiters,
+  applicant,
+}: {
+  job: Job;
+  basePath: string;
+  actions?: React.ReactNode;
+  gated?: boolean;
+  /** Student portal: "Email recruiter" draft for employers with an address on file. */
+  recruiters?: RecruiterBook;
+  applicant?: Applicant;
+}) {
   const brand = airlineBrand(job.source, job.company);
   const category = roleCategory(job.title, job.source);
   const label = sourceLabel(job.source);
   const via = label !== job.company && !label.includes("_") ? label : null;
+  const emails = recruitersFor(recruiters, job.source, job.company);
   return (
     <>
       <BackLink basePath={basePath} />
@@ -218,6 +249,7 @@ export function JobDetail({ job, basePath, actions, gated }: { job: Job; basePat
             </span>
             <div className="flex flex-wrap items-center gap-2">
               {actions}
+              {applicant && <EmailRecruiterButton emails={emails} listing={job} applicant={applicant} />}
               {gated ? (
                 <ApplyButton url={job.url} listing={`${job.title} · ${job.company}`} size="lg" />
               ) : (
@@ -286,6 +318,11 @@ export function JobDetail({ job, basePath, actions, gated }: { job: Job; basePat
               the placement team if you&apos;d like help with your application.
             </p>
           </GridRow>
+          {applicant && emails.length > 0 && (
+            <GridRow label="Email the recruiter">
+              <RecruiterAddresses emails={emails} listing={job} applicant={applicant} />
+            </GridRow>
+          )}
         </CardPanel>
       </Shell>
     </>

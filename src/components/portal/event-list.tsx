@@ -2,6 +2,8 @@ import { ArrowUpRight, CalendarDays, CalendarPlus, Clock, MapPin, UserRound } fr
 import { airlineBrand } from "@/lib/airlines";
 import type { HiringEvent } from "@/lib/data";
 import { emailAddress, isEmailLink, linkProps } from "@/lib/format";
+import { recruitersFor, type Applicant, type RecruiterBook } from "@/lib/recruiters";
+import { EmailRecruiterButton } from "@/components/portal/email-recruiter";
 import { BrandLogo, CardFooter, CardPanel, CardShell, CardTitle, GridCells, GridRow } from "@/components/portal/card-grid";
 import { ApplyButton } from "@/components/portal/apply-button";
 import { Badge, Empty, Meter } from "@/components/portal/ui";
@@ -94,12 +96,17 @@ export function EventList({
   actions,
   basePath,
   gated,
+  recruiters,
+  applicant,
 }: {
   events: HiringEvent[];
   actions?: (event: HiringEvent) => React.ReactNode;
   basePath?: string;
   /** Public page: one "Apply now" that opens the student-check / lead-capture popup instead of direct links. */
   gated?: boolean;
+  /** Student portal: "Email recruiter" draft button for brands with an address on file. */
+  recruiters?: RecruiterBook;
+  applicant?: Applicant;
 }) {
   if (events.length === 0) return <Empty>No upcoming hiring events right now. Check back soon.</Empty>;
   return (
@@ -184,6 +191,13 @@ export function EventList({
 
             <CardFooter status={<Badge tone="brand">{typeLabel[event.event_type]}</Badge>}>
               {actions?.(event)}
+              {applicant && (
+                <EmailRecruiterButton
+                  emails={recruitersFor(recruiters, event.source, event.brand)}
+                  listing={{ title: event.title, company: event.brand, location: place, url: event.apply_url ?? event.url, kind: "event" }}
+                  applicant={applicant}
+                />
+              )}
               {gated ? (
                 <ApplyButton url={event.apply_url ?? event.url} listing={`${event.title} · ${event.brand}`} />
               ) : (

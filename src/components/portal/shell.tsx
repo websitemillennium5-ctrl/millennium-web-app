@@ -48,8 +48,8 @@ export async function PortalShell({ portal, profile, children }: { portal: "stud
       // --dock-space: room kept clear under the content (and other floating buttons) for the dock;
       // --frame-gutter / --frame-width: the empty space either side of the column and its width, so fixed buttons and
       // sheets can line up with it; --frame-zoom: the content scale, which they divide back out of their screen positions.
-      <div className="app-frame portal flex min-h-screen flex-1 flex-col bg-[#e7e7ea] [--dock-space:6.5rem] [--frame-gutter:max(0px,calc(50vw-14rem))] [--frame-width:min(100vw,28rem)] [--frame-zoom:1.12]">
-        <div className="mx-auto flex w-full max-w-md flex-1 flex-col overflow-x-clip bg-canvas bg-[radial-gradient(120%_22rem_at_50%_0%,rgba(59,130,246,0.10),transparent)] bg-no-repeat [--color-canvas:#eef3fb] shadow-[0_0_0_1px_var(--color-line),0_0_60px_-20px_rgba(24,24,27,0.25)]">
+      <div className="app-frame portal flex min-h-screen flex-1 flex-col bg-[#e7e7ea] [--dock-space:6.5rem] [--spacing:0.25rem] [--frame-gutter:max(0px,calc(50vw-14rem))] [--frame-width:min(100vw,28rem)] [--frame-zoom:1.12]">
+        <div className="mx-auto flex w-full max-w-md flex-1 flex-col overflow-x-clip bg-canvas [--color-canvas:#f5f5f7] shadow-[0_0_0_1px_var(--color-line),0_0_60px_-20px_rgba(24,24,27,0.25)]">
           <header className="sticky top-0 z-40 bg-canvas/75 shadow-[0_1px_0_rgba(11,18,32,0.05),0_8px_24px_-18px_rgba(11,18,32,0.35)] backdrop-blur-2xl backdrop-saturate-[1.6]">
             <div className="flex h-16 items-center justify-between gap-3 px-4">
               <Link href="/student" className="block transition active:scale-[0.97]">
@@ -80,7 +80,7 @@ export async function PortalShell({ portal, profile, children }: { portal: "stud
           </header>
           {/* The portal's type scale is compact for the staff desk; on a phone-sized screen students need it ~12% larger.
               zoom scales every size at once, including the fixed text-[..px] ones shared with the staff portal. */}
-          <main className="flex-1 px-4 pt-5 pb-[var(--dock-space)] [zoom:var(--frame-zoom)]">{children}</main>
+          <main className="flex-1 px-4 pt-6 pb-[var(--dock-space)] [zoom:var(--frame-zoom)]">{children}</main>
         </div>
         <StudentDock />
       </div>
@@ -153,7 +153,7 @@ export async function PortalShell({ portal, profile, children }: { portal: "stud
             </span>
           </div>
         </header>
-        <main className="flex-1 px-4 py-5 sm:px-6 lg:min-h-0 lg:overflow-y-auto lg:py-6">
+        <main data-scroll-reset className="flex-1 px-4 py-5 sm:px-6 lg:min-h-0 lg:overflow-y-auto lg:py-6">
           <div className="mx-auto max-w-6xl">{children}</div>
         </main>
       </div>

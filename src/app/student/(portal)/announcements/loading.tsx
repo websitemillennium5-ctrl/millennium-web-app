@@ -1,5 +1,5 @@
-import { ListSkeleton } from "@/components/portal/student-skeletons";
+import { AnnouncementsSkeleton } from "@/components/portal/student-skeletons";
 
 export default function Loading() {
-  return <ListSkeleton rows={3} />;
+  return <AnnouncementsSkeleton />;
 }

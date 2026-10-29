@@ -44,6 +44,17 @@ const brands: (AirlineBrand & { sources?: string[]; match: RegExp })[] = [
   { name: "NILE Hospitality", color: "#0b2545", code: "NL", sources: ["nile"], match: /\bnile\b/i },
 ];
 
+/**
+ * The source key an employer is filed under (e.g. "indigo" for an IndiGo hiring event, "marriott" for a hand-added
+ * Sheraton job), used to look up its recruiter emails. Null when the company matches no known brand.
+ */
+export function brandKey(source: string, company: string): string | null {
+  const brand = brands.find((b) => b.sources?.includes(source)) ?? brands.find((b) => b.match.test(company));
+  const key = brand?.sources?.[0] ?? null;
+  // IndiGo's event sources (indigo_cabin_crew, indigo_ground_staff) share one employer key
+  return key?.startsWith("indigo") ? "indigo" : key;
+}
+
 export function airlineBrand(source: string, company: string): AirlineBrand {
   const brand = brands.find((b) => b.sources?.includes(source)) ?? brands.find((b) => b.match.test(company));
   if (brand) return { ...brand, logo: brand.logo && `/images/partners/${brand.logo}` };

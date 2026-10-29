@@ -3,7 +3,9 @@ import { airlineBrand, roleCategory } from "@/lib/airlines";
 import type { Job } from "@/lib/data";
 import { formatDate } from "@/lib/format";
 import { sourceLabel } from "@/lib/job-sources";
+import { recruitersFor, type Applicant, type RecruiterBook } from "@/lib/recruiters";
 import { ApplyButton } from "@/components/portal/apply-button";
+import { EmailRecruiterButton } from "@/components/portal/email-recruiter";
 import { BrandLogo, CardFooter, CardPanel, CardShell, CardTitle, GridCells, GridRow } from "@/components/portal/card-grid";
 import { RoleIcon } from "@/components/portal/role-icon";
 import { Badge, Empty, Meter } from "@/components/portal/ui";
@@ -91,17 +93,24 @@ export const host = (url: string) => {
 /** Detail page for a job under `basePath` (e.g. /student/jobs/emirates/<id>). */
 export const jobHref = (basePath: string, job: Job) => `${basePath}/${job.source}/${job.id}`;
 
-/** `gated`: the public page swaps the direct link for the student-check / lead-capture popup. */
+/**
+ * `gated`: the public page swaps the direct link for the student-check / lead-capture popup.
+ * `recruiters` + `applicant` (student portal): adds an "Email recruiter" draft button for employers with an address on file.
+ */
 export function JobList({
   jobs,
   actions,
   basePath,
   gated,
+  recruiters,
+  applicant,
 }: {
   jobs: Job[];
   actions?: (job: Job) => React.ReactNode;
   basePath?: string;
   gated?: boolean;
+  recruiters?: RecruiterBook;
+  applicant?: Applicant;
 }) {
   if (jobs.length === 0) return <Empty>No jobs match these filters. Try clearing some of them.</Empty>;
   return (
@@ -184,6 +193,7 @@ export function JobList({
 
             <CardFooter status={<Status job={job} />}>
               {actions?.(job)}
+              {applicant && <EmailRecruiterButton emails={recruitersFor(recruiters, job.source, job.company)} listing={job} applicant={applicant} />}
               {gated ? (
                 <ApplyButton url={job.url} listing={`${job.title} · ${job.company}`} />
               ) : (

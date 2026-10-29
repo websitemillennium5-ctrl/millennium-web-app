@@ -1,5 +1,5 @@
 import { requireStudent } from "@/lib/auth";
-import { getEvents, searchJobs } from "@/lib/data";
+import { getEvents, getRecruiterEmails, searchJobs } from "@/lib/data";
 import { eventMatchesRole } from "@/lib/airlines";
 import { eventMatchesSources, isIndianSource } from "@/lib/job-sources";
 import { JOBS_PAGE_SIZE, jobQueryHref, parseJobQuery } from "@/lib/job-query";
@@ -11,9 +11,9 @@ import { ScrollReset } from "@/components/portal/scroll-reset";
 import { PageTitle } from "@/components/portal/ui";
 
 export default async function StudentJobs({ searchParams }: PageProps<"/student/jobs">) {
-  await requireStudent();
+  const profile = await requireStudent();
   const query = parseJobQuery(await searchParams);
-  const [{ jobs, total, pageCount }, allEvents] = await Promise.all([searchJobs(query), getEvents({ search: query.q })]);
+  const [{ jobs, total, pageCount }, allEvents, recruiters] = await Promise.all([searchJobs(query), getEvents({ search: query.q }), getRecruiterEmails()]);
   // Hiring events sit above the openings on the first page, narrowed by the same search and airline filters;
   // the filter sheet's button counts them on every page.
   const matchingEvents = allEvents.filter((e) => eventMatchesSources(e.source, query.source) && eventMatchesRole(e, query.role));
@@ -33,10 +33,10 @@ export default async function StudentJobs({ searchParams }: PageProps<"/student/
           {events.length > 0 && (
             <section className="mb-8">
               <h2 className="mb-3 text-sm font-semibold text-ink">Upcoming hiring events</h2>
-              <EventList events={events} basePath="/student/jobs" />
+              <EventList events={events} basePath="/student/jobs" recruiters={recruiters} applicant={profile} />
             </section>
           )}
-          <JobList jobs={jobs} basePath="/student/jobs" />
+          <JobList jobs={jobs} basePath="/student/jobs" recruiters={recruiters} applicant={profile} />
           <Pagination
             page={Math.min(query.page, pageCount)}
             pageCount={pageCount}

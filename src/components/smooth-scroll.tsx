@@ -15,16 +15,11 @@ export function SmoothScroll() {
   const [enabled, setEnabled] = useState(false);
   const pathname = usePathname();
 
-  // Every page opens at the top — on reload too — unless the URL targets a section (#hash)
-  useEffect(() => {
-    window.history.scrollRestoration = "manual";
-  }, []);
-
+  // ScrollToTop (root layout) resets the window on every page change; Lenis also has to be told, or a
+  // glide still in flight when the link was clicked would carry the new page back down
   useLayoutEffect(() => {
     if (window.location.hash) return;
-    const lenis = lenisRef.current?.lenis;
-    if (lenis) lenis.scrollTo(0, { immediate: true, force: true });
-    else window.scrollTo(0, 0);
+    lenisRef.current?.lenis?.scrollTo(0, { immediate: true, force: true });
   }, [pathname]);
 
   // Respect reduced-motion users: keep native scrolling for them
