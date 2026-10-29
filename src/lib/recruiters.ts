@@ -4,8 +4,6 @@
  * src/lib/recruiters.ts (keep in sync).
  */
 import { brandKey } from "@/lib/airlines";
-import { courseTitle } from "@/lib/format";
-import { site } from "@/lib/site";
 
 export type RecruiterEmail = {
   id: string;
@@ -45,43 +43,42 @@ export type Applicant = {
 export type Listing = { title: string; company: string; location?: string | null; url: string; kind?: "job" | "event" };
 
 /**
- * `mailto:` draft to every address, with the subject and body pre-typed: the role, its link and the student's
- * saved details. Email clients accept several comma-separated recipients (RFC 6068).
+ * `mailto:` draft to every address, with the subject and a full cover note pre-typed: the role, its link and the
+ * student's name. Deliberately no institute, ID, course or batch details; the student can add anything they
+ * like before sending. Email clients accept several comma-separated recipients (RFC 6068).
  */
 export function recruiterMailto(emails: RecruiterEmail[], listing: Listing, applicant: Applicant) {
   if (emails.length === 0) return null;
   const to = emails.map((e) => e.email).join(",");
-  const name = applicant.full_name.trim() || "Millennium student";
+  const name = applicant.full_name.trim() || "Applicant";
   const isEvent = listing.kind === "event";
-  const subject = `Application for ${listing.title} – ${name}`;
-  const details = [
-    ["Name", name],
-    ["Student ID", applicant.student_id],
-    ["Course", applicant.course_slug ? courseTitle(applicant.course_slug) : null],
-    ["Batch", applicant.batch],
-    ["Phone", applicant.phone],
-    ["Email", applicant.email],
-  ]
-    .filter(([, value]) => value)
-    .map(([label, value]) => `${label}: ${value}`)
-    .join("\r\n");
+  const where = listing.location ? ` in ${listing.location}` : "";
+  const subject = isEvent ? `Registration for ${listing.title} – ${name}` : `Application for ${listing.title} – ${name}`;
   const body = [
     `Dear Hiring Team at ${listing.company},`,
     "",
     isEvent
-      ? `I would like to register for the ${listing.title}${listing.location ? ` in ${listing.location}` : ""}:`
-      : `I would like to apply for the ${listing.title} position${listing.location ? ` (${listing.location})` : ""} listed on your careers site:`,
+      ? `I hope this message finds you well. I am writing to register my interest in the ${listing.title}${where} and to request a place at the event. I came across the details here:`
+      : `I hope this message finds you well. I am writing to express my keen interest in the ${listing.title} position${where} that I came across on your careers page:`,
     listing.url,
     "",
-    `I am a student at ${site.name}, Patna, and would be glad to be considered. My details:`,
+    `${listing.company} has long stood out to me for the warmth and professionalism of its people, and the standard of service it is known for is exactly the kind of environment in which I want to build my career. I have been preparing for a role like this with real commitment and would be grateful for the opportunity to be considered.`,
     "",
-    details,
+    "What I would bring to the role:",
+    "• Genuine passion for hospitality and customer care, and the patience to stay calm and courteous under pressure.",
+    "• Clear, confident communication in English and Hindi, with a friendly and well-groomed presence.",
+    "• Strong awareness of safety, discipline and punctuality, and the attention to detail that passengers and guests notice.",
+    "• A team-first attitude: I enjoy working with people from different backgrounds and I learn quickly.",
+    "• Flexibility to work shifts, weekends and holidays, and willingness to relocate as the role requires.",
     "",
-    `My CV is attached. I look forward to hearing from you.`,
+    isEvent
+      ? "Please let me know if there is anything I should bring or complete beforehand. I will be present with my documents and would appreciate confirmation of my registration."
+      : "I would welcome the chance to discuss how I can contribute to your team, and I am available for an interview or assessment at your convenience. Please let me know if you need any further information or documents from me.",
     "",
-    "Kind regards,",
+    "My CV is attached for your reference. Thank you very much for your time and consideration. I look forward to hearing from you.",
+    "",
+    "Warm regards,",
     name,
-    applicant.phone ?? "",
   ].join("\r\n");
   return `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
