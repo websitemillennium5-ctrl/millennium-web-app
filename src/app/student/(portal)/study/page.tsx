@@ -3,6 +3,8 @@ import { requireStudent } from "@/lib/auth";
 import { getStudyMaterials, type StudyMaterial } from "@/lib/data";
 import { formatDate } from "@/lib/format";
 import { formatBytes, studyKind } from "@/lib/study";
+import { videoOf, youtubeWatchUrl } from "@/lib/video";
+import { YouTubeEmbed } from "@/components/portal/video-embed";
 import { PageTitle } from "@/components/portal/ui";
 
 const DAY = 86_400_000;
@@ -12,7 +14,8 @@ function MaterialCard({ m, now }: { m: StudyMaterial; now: number }) {
   const kind = studyKind(m);
   const Icon = kind.icon;
   const isNew = now - Date.parse(m.created_at) < 3 * DAY;
-  const href = m.file_path ? `/student/study/${m.id}/file` : m.link_url!;
+  const video = videoOf(m);
+  const href = m.file_path ? `/student/study/${m.id}/file` : (m.link_url ?? (video ? youtubeWatchUrl(video.id) : "#"));
 
   return (
     <li className="rounded-2xl border border-line bg-white p-3.5">
@@ -33,6 +36,8 @@ function MaterialCard({ m, now }: { m: StudyMaterial; now: number }) {
         </div>
       </div>
 
+      {video && <YouTubeEmbed id={video.id} start={video.start} title={`Video: ${m.title}`} className="mt-3" />}
+
       <div className="mt-3 flex gap-2">
         <a
           href={href}
@@ -40,7 +45,7 @@ function MaterialCard({ m, now }: { m: StudyMaterial; now: number }) {
           rel="noreferrer"
           className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl bg-ink text-[12.5px] font-semibold text-white transition hover:bg-ink-soft active:scale-[0.98]"
         >
-          <ExternalLink className="size-3.5" /> {m.file_path ? "Open" : "Open link"}
+          <ExternalLink className="size-3.5" /> {m.file_path ? "Open" : video && !m.link_url ? "Watch on YouTube" : "Open link"}
         </a>
         {m.file_path && (
           <a

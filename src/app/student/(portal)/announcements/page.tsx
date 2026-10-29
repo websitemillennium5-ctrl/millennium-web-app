@@ -4,8 +4,10 @@ import { requireStudent } from "@/lib/auth";
 import { isBirthdayToday } from "@/lib/birthdays";
 import { getAnnouncements, getBirthdaysToday, type Announcement } from "@/lib/data";
 import { courseTitle, formatDate } from "@/lib/format";
+import { videoOf } from "@/lib/video";
 import { AnnouncementImage } from "@/components/portal/announcement-image";
 import { BirthdayBanner, BirthdayList } from "@/components/portal/birthday";
+import { YouTubeEmbed } from "@/components/portal/video-embed";
 import { PageTitle } from "@/components/portal/ui";
 
 const DAY = 86_400_000;
@@ -39,6 +41,7 @@ function group(announcements: Announcement[], now: number) {
 
 function AnnouncementCard({ a, now }: { a: Announcement; now: number }) {
   const isNew = now - Date.parse(a.created_at) < 2 * DAY;
+  const video = videoOf(a);
   return (
     <li className={`relative flex gap-3 px-4 py-4 ${a.pinned ? "bg-amber-50/60" : ""}`}>
       {/* avatar, with an unread dot while the notice is new */}
@@ -78,6 +81,7 @@ function AnnouncementCard({ a, now }: { a: Announcement; now: number }) {
         <h2 className="mt-2.5 text-[15px] leading-snug font-semibold text-ink">{a.title}</h2>
         {a.body && <p className="mt-1 text-[13.5px] leading-relaxed whitespace-pre-line text-ink-soft">{a.body}</p>}
         <AnnouncementImage a={a} className="mt-3" />
+        {video && <YouTubeEmbed id={video.id} start={video.start} title={`Video: ${a.title}`} className="mt-3" />}
         {a.course_slug && (
           <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-mist px-2.5 py-1 text-[11px] font-medium text-ink-soft">
             <GraduationCap className="size-3.5 text-muted" /> For {courseTitle(a.course_slug)}

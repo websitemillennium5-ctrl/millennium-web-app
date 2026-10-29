@@ -2,7 +2,7 @@
 
 import { useActionState, useRef, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
-import { Link2, Loader2, Paperclip, Upload, X } from "lucide-react";
+import { Link2, Loader2, Paperclip, Upload, Video, X } from "lucide-react";
 import { createStudyMaterial, prepareStudyUpload } from "@/app/admin/actions";
 import type { FormState } from "@/app/actions/auth";
 import { FormMessage } from "@/components/portal/form";
@@ -94,7 +94,14 @@ export function StudyUploadForm({ batches }: { batches: string[] }) {
         </label>
       )}
 
-      <Field label="Or a link" hint="YouTube, Google Drive, a website… (optional if you attach a file)">
+      <Field label="YouTube video" hint="Optional · plays inside the student portal and the app">
+        <div className="relative">
+          <Video className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" />
+          <Input name="video_url" type="url" inputMode="url" placeholder="https://youtu.be/…" className="pl-9" />
+        </div>
+      </Field>
+
+      <Field label="Or a link" hint="Google Drive, a website… (optional if you attach a file or a video)">
         <div className="relative">
           <Link2 className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" />
           <Input name="link_url" type="url" placeholder="https://" className="pl-9" />

@@ -2,7 +2,7 @@
 
 import { useActionState, useRef, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
-import { ImagePlus, Loader2, X } from "lucide-react";
+import { ImagePlus, Loader2, Video, X } from "lucide-react";
 import { createAnnouncement, prepareAnnouncementImage } from "@/app/admin/actions";
 import type { FormState } from "@/app/actions/auth";
 import { ANNOUNCEMENT_IMAGE_BUCKET, ANNOUNCEMENT_IMAGE_MAX_BYTES, ANNOUNCEMENT_IMAGE_TYPES } from "@/lib/announcements";
@@ -92,6 +92,13 @@ export function AnnouncementForm() {
           <input type="file" accept={ANNOUNCEMENT_IMAGE_TYPES.join(",")} className="sr-only" onChange={(e) => pick(e.target.files?.[0] ?? null)} />
         </label>
       )}
+
+      <Field label="YouTube video" hint="Optional · paste a YouTube link and it plays inside the announcement">
+        <div className="relative">
+          <Video className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" />
+          <Input name="video_url" type="url" inputMode="url" placeholder="https://youtu.be/…" className="pl-9" />
+        </div>
+      </Field>
 
       <Field label="Who should see it?">
         <CourseSelect emptyLabel="All students" />

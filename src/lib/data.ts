@@ -19,6 +19,8 @@ export type Announcement = {
   image_path: string | null;
   image_width: number | null;
   image_height: number | null;
+  /** optional YouTube link, embedded as a player (src/lib/video.ts) */
+  video_url: string | null;
   created_at: string;
 };
 export type StudyMaterial = {
@@ -32,6 +34,8 @@ export type StudyMaterial = {
   file_size: number | null;
   mime_type: string | null;
   link_url: string | null;
+  /** optional YouTube link, embedded as a player (src/lib/video.ts) */
+  video_url: string | null;
   created_at: string;
 };
 export type Job = {
@@ -113,7 +117,6 @@ export async function getAnnouncements(limit = 20) {
   return (data ?? []) as Announcement[];
 }
 
-/** Study material the signed-in user can see (RLS limits students to their batch plus everyone's), newest first. */
 /** Students whose birthday is today (India time), via the `birthdays_today()` function; empty when it can't be read. */
 export async function getBirthdaysToday() {
   const supabase = await createClient();
@@ -125,6 +128,7 @@ export async function getBirthdaysToday() {
   return (data ?? []) as BirthdayStudent[];
 }
 
+/** Study material the signed-in user can see (RLS limits students to their batch plus everyone's), newest first. */
 export async function getStudyMaterials(limit = 200) {
   const supabase = await createClient();
   const { data } = await supabase.from("study_materials").select("*").order("created_at", { ascending: false }).limit(limit);

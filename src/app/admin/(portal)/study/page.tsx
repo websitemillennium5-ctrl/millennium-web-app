@@ -6,6 +6,8 @@ import type { StudyMaterial } from "@/lib/data";
 import { formatDate } from "@/lib/format";
 import { formatBytes, studyKind } from "@/lib/study";
 import { createClient } from "@/lib/supabase/server";
+import { videoOf, youtubeWatchUrl } from "@/lib/video";
+import { YouTubeEmbed } from "@/components/portal/video-embed";
 import { ConfirmButton } from "@/components/portal/form";
 import { StudyUploadForm } from "@/components/portal/study-upload-form";
 import { Card, PageTitle } from "@/components/portal/ui";
@@ -86,6 +88,7 @@ export default async function AdminStudy({ searchParams }: PageProps<"/admin/stu
                 const kind = studyKind(m);
                 const Icon = kind.icon;
                 const students = reach(m.batch);
+                const video = videoOf(m);
                 return (
                   <li key={m.id} className="flex gap-3 px-4 py-3.5">
                     <span className="flex size-10 shrink-0 items-center justify-center rounded-xl text-white" style={{ background: kind.color }}>
@@ -99,6 +102,7 @@ export default async function AdminStudy({ searchParams }: PageProps<"/admin/stu
                         <span className="font-medium text-ink-soft">{m.batch ? `Batch ${m.batch}` : "All students"}</span>
                       </p>
                       {m.description && <p className="mt-1.5 text-[13px] leading-relaxed whitespace-pre-line text-ink-soft">{m.description}</p>}
+                      {video && <YouTubeEmbed id={video.id} start={video.start} title={`Video: ${m.title}`} className="mt-2.5" />}
 
                       <div className="mt-2 -ml-2 flex flex-wrap items-center justify-between gap-2">
                         <span className={`${action} cursor-default`} title="Students who can see this">
@@ -112,7 +116,7 @@ export default async function AdminStudy({ searchParams }: PageProps<"/admin/stu
                             </a>
                           )}
                           <a
-                            href={m.file_path ? `/student/study/${m.id}/file` : m.link_url!}
+                            href={m.file_path ? `/student/study/${m.id}/file` : (m.link_url ?? youtubeWatchUrl(video?.id ?? ""))}
                             target="_blank"
                             rel="noreferrer"
                             className={`${action} hover:bg-mist hover:text-ink`}

@@ -8,9 +8,11 @@ import { courseStyle } from "@/lib/course-style";
 import { courseTitle, formatDate } from "@/lib/format";
 import { courses } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
+import { videoOf } from "@/lib/video";
 import { CourseIcon } from "@/components/portal/course-icon";
 import { AnnouncementForm } from "@/components/portal/announcement-form";
 import { AnnouncementImage } from "@/components/portal/announcement-image";
+import { YouTubeEmbed } from "@/components/portal/video-embed";
 import { ConfirmButton } from "@/components/portal/form";
 import { initials } from "@/components/portal/student-card";
 import { Card, PageTitle } from "@/components/portal/ui";
@@ -37,6 +39,7 @@ function PostCard({ a, now, reach }: { a: Post; now: number; reach: number }) {
   const style = courseStyle(a.course_slug);
   const name = a.author?.full_name || "Millennium Academy";
   const role = a.author ? (a.author.role === "admin" ? "Admin" : "Staff") : "Front office";
+  const video = videoOf(a);
 
   return (
     <li className="group px-4 pt-3 pb-2 transition hover:bg-mist/40">
@@ -79,6 +82,7 @@ function PostCard({ a, now, reach }: { a: Post; now: number; reach: number }) {
           <h3 className="mt-2 text-[14px] leading-snug font-semibold text-ink">{a.title}</h3>
           {a.body && <p className="mt-1 text-[13.5px] leading-relaxed whitespace-pre-line text-ink-soft">{a.body}</p>}
           <AnnouncementImage a={a} className="mt-2.5" />
+          {video && <YouTubeEmbed id={video.id} start={video.start} title={`Video: ${a.title}`} className="mt-2.5" />}
 
           {/* Action bar */}
           <div className="mt-2 -ml-2 flex items-center justify-between gap-2">

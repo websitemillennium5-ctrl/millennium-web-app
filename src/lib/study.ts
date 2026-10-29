@@ -19,8 +19,8 @@ const kinds = {
 } satisfies Record<string, StudyKind>;
 
 /** What a piece of study material is, from its file type or link, for its icon and label. */
-export function studyKind(m: Pick<StudyMaterial, "mime_type" | "file_name" | "link_url" | "file_path">): StudyKind {
-  if (!m.file_path) return /youtube\.com|youtu\.be|vimeo\.com/i.test(m.link_url ?? "") ? kinds.video : kinds.link;
+export function studyKind(m: Pick<StudyMaterial, "mime_type" | "file_name" | "link_url" | "file_path" | "video_url">): StudyKind {
+  if (!m.file_path) return m.video_url || /youtube\.com|youtu\.be|vimeo\.com/i.test(m.link_url ?? "") ? kinds.video : kinds.link;
   const mime = m.mime_type ?? "";
   const ext = (m.file_name ?? "").split(".").pop()?.toLowerCase() ?? "";
   if (mime === "application/pdf" || ext === "pdf") return kinds.pdf;

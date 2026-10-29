@@ -13,6 +13,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { localOnlyScrapers } from "@/lib/sync";
 import { STUDY_BUCKET, STUDY_MAX_BYTES } from "@/lib/study";
+import { youtubeId } from "@/lib/video";
 
 const text = (fd: FormData, key: string) => {
   const v = String(fd.get(key) ?? "").trim();
@@ -201,6 +202,9 @@ export async function createAnnouncement(_prev: FormState, fd: FormData): Promis
   const title = text(fd, "title");
   if (!title) return { error: "Add a title." };
 
+  const video = text(fd, "video_url");
+  if (video && !youtubeId(video)) return { error: "That doesn't look like a YouTube link. Paste the link from YouTube's Share button." };
+
   const incoming = text(fd, "image_path");
   const image = incoming ? await compressAnnouncementImage(incoming) : null;
   if (image && "error" in image) return { error: image.error };
@@ -214,6 +218,7 @@ export async function createAnnouncement(_prev: FormState, fd: FormData): Promis
     image_path: image?.path ?? null,
     image_width: image?.width ?? null,
     image_height: image?.height ?? null,
+    video_url: video,
     created_by: staff.id,
   });
   if (error) {
@@ -264,8 +269,10 @@ export async function createStudyMaterial(_prev: FormState, fd: FormData): Promi
   if (!title) return { error: "Add a title." };
   const filePath = text(fd, "file_path");
   const link = text(fd, "link_url");
-  if (!filePath && !link) return { error: "Attach a file or add a link." };
+  const video = text(fd, "video_url");
+  if (!filePath && !link && !video) return { error: "Attach a file, add a link or paste a YouTube video." };
   if (link && !/^https?:\/\//i.test(link)) return { error: "Links must start with http:// or https://" };
+  if (video && !youtubeId(video)) return { error: "That doesn't look like a YouTube link. Paste the link from YouTube's Share button." };
 
   const supabase = await createClient();
   const { error } = await supabase.from("study_materials").insert({
@@ -277,6 +284,7 @@ export async function createStudyMaterial(_prev: FormState, fd: FormData): Promi
     file_size: Number(fd.get("file_size")) || null,
     mime_type: text(fd, "mime_type"),
     link_url: link,
+    video_url: video,
     created_by: staff.id,
   });
   if (error) {
