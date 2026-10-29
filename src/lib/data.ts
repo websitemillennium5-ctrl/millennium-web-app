@@ -213,37 +213,55 @@ export async function getBatches() {
 }
 
 /** One page of jobs matching the filter panel, plus the total match count for pagination. */
+/** List cards show three clamped lines of a description, so only about this much of it needs to leave the database. */
+const LIST_DESCRIPTION_CHARS = 360;
+
+/** Cuts a description down to list length at a word boundary. Detail pages load the full text separately. */
+export function clipDescription(text: string | null) {
+  if (!text || text.length <= LIST_DESCRIPTION_CHARS) return text;
+  const cut = text.slice(0, LIST_DESCRIPTION_CHARS);
+  return `${cut.slice(0, Math.max(cut.lastIndexOf(" "), LIST_DESCRIPTION_CHARS - 40)).trimEnd()}…`;
+}
+
 export async function searchJobs(query: JobQuery, { includeInactive = false } = {}) {
   const supabase = await createClient();
   const from = (query.page - 1) * JOBS_PAGE_SIZE;
-  let request = supabase
-    .from("all_jobs")
-    .select("*", { count: "exact" })
-    .order("posted_at", { ascending: query.sort === "oldest", nullsFirst: false })
-    .order("scraped_at", { ascending: query.sort === "oldest" })
-    .range(from, from + JOBS_PAGE_SIZE - 1);
 
-  if (!includeInactive || query.status === "active") request = request.eq("is_active", true);
-  else if (query.status === "hidden") request = request.eq("is_active", false);
-  if (query.source.length) request = request.in("source", query.source);
-  if (query.role === "hospitality") {
-    // Hotel-group jobs are all hospitality roles, whatever the title says
-    request = request.or([...roles.hospitality.terms.map((t) => `title.ilike.%${t}%`), `source.in.(${hotelSources.join(",")})`].join(","));
-  } else if (query.role) {
-    request = request.or(roles[query.role].terms.map((t) => `title.ilike.%${t}%`).join(",")).not("source", "in", `(${hotelSources.join(",")})`);
-  }
-  if (query.posted) {
-    const since = new Date(Date.now() - Number(query.posted) * 86_400_000).toISOString().slice(0, 10);
-    request = request.gte("posted_at", since);
-  }
-  if (query.q) {
-    const s = query.q.replace(/[%,()]/g, " ");
-    request = request.or(`title.ilike.%${s}%,location.ilike.%${s}%,company.ilike.%${s}%`);
-  }
+  // The same filters feed two requests that run side by side: the page of rows, and the total for the pagination.
+  // PostgREST counting inside the row request costs more than both requests together across 23 unioned tables.
+  const filtered = (select: string, options?: { count: "exact"; head: boolean }) => {
+    let request = supabase.from("all_jobs").select(select, options);
+    if (!includeInactive || query.status === "active") request = request.eq("is_active", true);
+    else if (query.status === "hidden") request = request.eq("is_active", false);
+    if (query.source.length) request = request.in("source", query.source);
+    if (query.role === "hospitality") {
+      // Hotel-group jobs are all hospitality roles, whatever the title says
+      request = request.or([...roles.hospitality.terms.map((t) => `title.ilike.%${t}%`), `source.in.(${hotelSources.join(",")})`].join(","));
+    } else if (query.role) {
+      request = request.or(roles[query.role].terms.map((t) => `title.ilike.%${t}%`).join(",")).not("source", "in", `(${hotelSources.join(",")})`);
+    }
+    if (query.posted) {
+      const since = new Date(Date.now() - Number(query.posted) * 86_400_000).toISOString().slice(0, 10);
+      request = request.gte("posted_at", since);
+    }
+    if (query.q) {
+      const s = query.q.replace(/[%,()]/g, " ");
+      request = request.or(`title.ilike.%${s}%,location.ilike.%${s}%,company.ilike.%${s}%`);
+    }
+    return request;
+  };
 
-  const { data, count } = await request;
+  const [{ data }, { count }] = await Promise.all([
+    filtered("*")
+      .order("posted_at", { ascending: query.sort === "oldest", nullsFirst: false })
+      .order("scraped_at", { ascending: query.sort === "oldest" })
+      .range(from, from + JOBS_PAGE_SIZE - 1),
+    filtered("id", { count: "exact", head: true }),
+  ]);
   const total = count ?? 0;
-  return { jobs: (data ?? []) as Job[], total, pageCount: Math.max(1, Math.ceil(total / JOBS_PAGE_SIZE)) };
+  // the dynamic select string defeats PostgREST's column typing, so the rows are cast like everywhere else in this file
+  const jobs = ((data ?? []) as unknown as Job[]).map((job) => ({ ...job, description: clipDescription(job.description) }));
+  return { jobs, total, pageCount: Math.max(1, Math.ceil(total / JOBS_PAGE_SIZE)) };
 }
 
 /** Upcoming hiring events from every source table (the `all_hiring_events` view hides past ones), soonest first; undated drives last. */
@@ -262,7 +280,7 @@ export async function getEvents({ includeInactive = false, limit = 300, brand = 
     query = query.or(`title.ilike.%${s}%,city.ilike.%${s}%,role.ilike.%${s}%,venue.ilike.%${s}%`);
   }
   const { data } = await query;
-  return (data ?? []) as HiringEvent[];
+  return ((data ?? []) as HiringEvent[]).map((event) => ({ ...event, description: clipDescription(event.description) }));
 }
 
 /** One job for the job detail page. RLS hides inactive jobs from students. */

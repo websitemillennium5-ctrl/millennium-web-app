@@ -12,6 +12,8 @@ export type JobQuery = {
 };
 
 export const JOBS_PAGE_SIZE = 20;
+/** How many hiring events the jobs page shows above the openings before linking to the full events list. */
+export const EVENTS_PREVIEW = 6;
 
 const one = (v: string | string[] | undefined) => (typeof v === "string" ? v.trim() : "");
 

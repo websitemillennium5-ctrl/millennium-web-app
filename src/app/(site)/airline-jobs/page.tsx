@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { getEvents, searchJobs } from "@/lib/data";
 import { eventMatchesRole } from "@/lib/airlines";
 import { eventMatchesSources, isIndianSource } from "@/lib/job-sources";
-import { JOBS_PAGE_SIZE, jobQueryHref, parseJobQuery } from "@/lib/job-query";
+import { EVENTS_PREVIEW, JOBS_PAGE_SIZE, jobQueryHref, parseJobQuery } from "@/lib/job-query";
 import { CtaBand } from "@/components/ui";
 import { EventList } from "@/components/portal/event-list";
 import { JobFilters, JobFiltersSheet, JobFiltersSidebar, JobNavProvider, JobResults, JobResultsBar } from "@/components/portal/job-filters";
@@ -22,9 +24,10 @@ export default async function AirlineJobsPage({ searchParams }: PageProps<"/airl
   const query = parseJobQuery(await searchParams);
   const [{ jobs, total, pageCount }, allEvents] = await Promise.all([searchJobs(query), getEvents({ search: query.q })]);
   const matchingEvents = allEvents.filter((e) => eventMatchesSources(e.source, query.source) && eventMatchesRole(e, query.role));
-  // events are listed on the first page only, but the mobile sheet's button counts them on every page
-  const events = query.page === 1 ? matchingEvents : [];
-  events.sort((a, b) => Number(isIndianSource(b.source)) - Number(isIndianSource(a.source)));
+  // Only the first few events are listed (Indian airlines first), on the first page only, with a link to the full
+  // list; the mobile sheet's button counts them on every page.
+  matchingEvents.sort((a, b) => Number(isIndianSource(b.source)) - Number(isIndianSource(a.source)));
+  const events = query.page === 1 ? matchingEvents.slice(0, EVENTS_PREVIEW) : [];
 
   return (
     <>
@@ -40,11 +43,18 @@ export default async function AirlineJobsPage({ searchParams }: PageProps<"/airl
               <JobFiltersSidebar basePath="/airline-jobs" query={query} />
             </div>
             <div className="min-w-0">
-              <JobResultsBar basePath="/airline-jobs" query={query} total={total} eventCount={events.length} />
+              <JobResultsBar basePath="/airline-jobs" query={query} total={total} eventCount={query.page === 1 ? matchingEvents.length : 0} />
               <JobResults>
                 {events.length > 0 && (
                   <section className="mb-8">
-                    <h2 className="mb-3 text-sm font-semibold text-ink">Upcoming hiring events</h2>
+                    <div className="mb-3 flex items-baseline justify-between gap-3">
+                      <h2 className="text-sm font-semibold text-ink">Upcoming hiring events</h2>
+                      {matchingEvents.length > events.length && (
+                        <Link href={jobQueryHref("/airline-jobs/events", query)} className="inline-flex items-center gap-0.5 text-xs font-medium text-[#a7222d] hover:underline">
+                          All {matchingEvents.length} events <ChevronRight className="size-3.5" />
+                        </Link>
+                      )}
+                    </div>
                     <EventList events={events} basePath="/airline-jobs" gated />
                   </section>
                 )}
