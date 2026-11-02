@@ -1,14 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, Clock, Headset, Search, X } from "lucide-react";
 import { listChats } from "@/app/admin/actions";
 import { chatHref, type ChatQuery, type ChatView } from "@/lib/chat-query";
 import { chatUnread, visitorOnline } from "@/lib/chats";
 import type { ChatSession, ChatSummary } from "@/lib/data";
 import { formatTime, istDay } from "@/lib/format";
+import { useScrollLock } from "@/lib/scroll-lock";
 import { Avatar, ChatPanel } from "@/components/portal/chat-panel";
+
+/** Below the desktop breakpoint the list and the transcript take turns, and the transcript fills the screen. */
+function useIsPhone() {
+  const [phone, setPhone] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1023px)");
+    const update = () => setPhone(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+  return phone;
+}
 
 const views: { value: ChatView; label: string }[] = [
   { value: "", label: "All" },
@@ -92,6 +106,36 @@ export function ChatInbox({ initial, query, selected, staffName }: { initial: Ch
   const opened = Boolean(selectedId);
   const current = sessions.find((s) => s.id === selectedId) ?? null;
   const complete = selected?.id === selectedId;
+
+  // Phones: the open conversation covers the whole screen, the page behind it stays put, and the panel
+  // shrinks to the visible area while the on-screen keyboard is up so the reply box never hides under it
+  const phone = useIsPhone();
+  const panel = useRef<HTMLElement>(null);
+  useScrollLock(phone && opened);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    const el = panel.current;
+    if (!phone || !opened || !vv || !el) return;
+    const fit = () => {
+      const keyboard = window.innerHeight - vv.height - vv.offsetTop;
+      if (keyboard < 100) {
+        el.style.top = "";
+        el.style.height = "";
+        return;
+      }
+      el.style.top = `${vv.offsetTop}px`;
+      el.style.height = `${vv.height}px`;
+    };
+    fit();
+    vv.addEventListener("resize", fit);
+    vv.addEventListener("scroll", fit);
+    return () => {
+      vv.removeEventListener("resize", fit);
+      vv.removeEventListener("scroll", fit);
+      el.style.top = "";
+      el.style.height = "";
+    };
+  }, [phone, opened]);
 
   return (
     <div className="grid overflow-hidden rounded-2xl border border-line bg-white lg:h-[calc(100dvh-12.5rem)] lg:min-h-[30rem] lg:grid-cols-[21rem_1fr]">
@@ -182,7 +226,7 @@ export function ChatInbox({ initial, query, selected, staffName }: { initial: Ch
       </aside>
 
       {/* ── Transcript ── */}
-      <section className={`min-h-0 flex-col bg-canvas lg:flex ${opened ? "flex" : "hidden"}`}>
+      <section ref={panel} className={`min-h-0 flex-col bg-canvas lg:static lg:z-auto lg:flex lg:h-auto ${opened ? "fixed inset-0 z-[75] flex h-dvh" : "hidden"}`}>
         {current ? (
           <ChatPanel
             key={current.id}

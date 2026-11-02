@@ -180,13 +180,15 @@ export function PlacementsPopup() {
  */
 export function PlacementsDock() {
   const pathname = usePathname();
-  const hidden = useScrollingDown();
+  const { down: hidden, overHero } = useScrollingDown();
   if (pathname.startsWith("/airline-jobs")) return null;
   return (
     <div
-      className={`fixed inset-x-5 bottom-5 z-[70] flex h-14 items-center gap-2 rounded-full border border-white/60 bg-white/80 p-1.5 text-ink shadow-[0_12px_32px_-12px_rgba(11,18,32,0.35)] ring-1 ring-ink/[0.04] backdrop-blur-2xl backdrop-saturate-[1.8] transition-all duration-300 lg:hidden ${
-        hidden ? "pointer-events-none translate-y-24 opacity-0" : ""
-      }`}
+      // Over the hero's 3D scene the frosted glass is dropped: blurring a full-screen canvas every frame is what
+      // makes phones paint blank tiles on a fast scroll
+      className={`fixed inset-x-5 bottom-5 z-[70] flex h-14 items-center gap-2 rounded-full border border-white/60 p-1.5 text-ink shadow-[0_12px_32px_-12px_rgba(11,18,32,0.35)] ring-1 ring-ink/[0.04] transition-all duration-300 lg:hidden ${
+        overHero ? "bg-white/95" : "bg-white/80 backdrop-blur-2xl backdrop-saturate-[1.8]"
+      } ${hidden ? "pointer-events-none translate-y-24 opacity-0" : ""}`}
     >
       <Link href="/placements" className="flex min-w-0 flex-1 items-center gap-2 pl-1">
         <span className="flex shrink-0 -space-x-2">
@@ -222,22 +224,29 @@ export function PlacementsDock() {
  */
 function useScrollingDown() {
   const [down, setDown] = useState(false);
+  const [overHero, setOverHero] = useState(false);
   useEffect(() => {
     let last = window.scrollY;
     const heroStillPlaying = () => {
       const hero = document.querySelector("[data-hero-story]");
       return Boolean(hero) && hero!.getBoundingClientRect().bottom > window.innerHeight;
     };
+    const first = requestAnimationFrame(() => setOverHero(heroStillPlaying()));
     const onScroll = () => {
       const y = window.scrollY;
       const delta = y - last;
+      const hero = heroStillPlaying();
+      setOverHero(hero);
       // Ignore tiny jitters and always show near the top of the page
       if (Math.abs(delta) < 6) return;
-      setDown(delta > 0 && y > 80 && !heroStillPlaying());
+      setDown(delta > 0 && y > 80 && !hero);
       last = y;
     };
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      cancelAnimationFrame(first);
+      window.removeEventListener("scroll", onScroll);
+    };
   }, []);
-  return down;
+  return { down, overHero };
 }

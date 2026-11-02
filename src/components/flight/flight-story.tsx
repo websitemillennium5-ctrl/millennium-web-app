@@ -7,6 +7,7 @@ import { CounsellingButton } from "@/components/counselling";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, ChevronsDown } from "lucide-react";
 import { useLenis } from "lenis/react";
+import { useSceneMount } from "./scene-mount";
 import { onPageScroll } from "@/lib/page-scroll";
 import { useCoarse } from "./device";
 
@@ -102,6 +103,7 @@ function Em({ children }: { children: React.ReactNode }) {
 
 export function FlightStory() {
   const section = useRef<HTMLElement>(null);
+  const stage = useRef<HTMLDivElement>(null);
   const lenis = useLenis();
   const dawn = useRef<HTMLDivElement>(null);
   const dusk = useRef<HTMLDivElement>(null);
@@ -112,9 +114,8 @@ export function FlightStory() {
   const [active, setActive] = useState(0);
   const lite = useCoarse();
   const [inView, setInView] = useState(true);
-  // WebGL context dropped by the browser while off screen: rebuild the canvas when it's next in view
-  const [gl, setGl] = useState({ key: 0, lost: false });
-  if (gl.lost && inView) setGl({ key: gl.key + 1, lost: false });
+  // Phones keep the canvas for a while after it scrolls away and rebuild a dropped WebGL context with care
+  const scene = useSceneMount(lite, inView);
 
   useEffect(() => {
     const el = section.current;
@@ -127,7 +128,9 @@ export function FlightStory() {
 
     const update = () => {
       const rect = el.getBoundingClientRect();
-      const total = rect.height - window.innerHeight;
+      // The pinned run is the section minus the stage, not minus window.innerHeight: on phones that number
+      // changes as the browser's toolbars collapse, which would make the story jump mid-scroll.
+      const total = rect.height - (stage.current?.offsetHeight ?? window.innerHeight);
       const p = Math.min(1, Math.max(0, -rect.top / (total || 1)));
       progress.current = p;
       if (dawn.current) dawn.current.style.opacity = String(1 - smooth(0.1, 0.35, p));
@@ -149,7 +152,8 @@ export function FlightStory() {
     const offScroll = onPageScroll(lenis, update);
     window.addEventListener("resize", update);
 
-    const io = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { rootMargin: "100px" });
+    // Counts as in view well before it is, so the canvas is ready by the time it scrolls back on screen
+    const io = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { rootMargin: "60% 0px" });
     io.observe(el);
 
     return () => {
@@ -162,7 +166,7 @@ export function FlightStory() {
   const scrollToChapter = (i: number) => {
     const el = section.current;
     if (!el) return;
-    const total = el.offsetHeight - window.innerHeight;
+    const total = el.offsetHeight - (stage.current?.offsetHeight ?? window.innerHeight);
     const target = el.offsetTop + total * (chapters[i].start + (i === 0 ? 0 : 0.04));
     if (lenis) lenis.scrollTo(target, { duration: 1.6 });
     else window.scrollTo({ top: target, behavior: "smooth" });
@@ -172,7 +176,11 @@ export function FlightStory() {
 
   return (
     <section ref={section} data-hero-story className="relative h-[620vh] bg-canvas" aria-label="Your journey with Millennium">
-      <div className="sticky top-0 h-svh overflow-hidden">
+      {/* The stage is the *large* viewport (phone browser toolbars collapsed), so the sky and scene already fill the
+          screen once the toolbars slide away on scroll instead of leaving a strip at the bottom; the chapter text
+          and scroll cue stay within the *small* viewport so they are never hidden under the toolbars at the top of
+          the page. */}
+      <div ref={stage} className="sticky top-0 h-lvh overflow-hidden">
         {/* Sky layers: day base, dawn on top at the start, dusk at the end */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#7fb2ec] via-[#bcd8f5] to-[#eef5fd]" />
         <div ref={dawn} className="absolute inset-0 bg-gradient-to-b from-[#f2eee4] via-[#efe7d6] to-[#e4d3b4]" />
@@ -197,15 +205,13 @@ export function FlightStory() {
         </div>
 
         {/* 3D scene */}
-        {/* Phones drop the canvas entirely while it's off screen, freeing its GPU memory for the rest of the page */}
+        {/* Phones drop the canvas once it has been off screen for a while, freeing its GPU memory for the rest of the page */}
         <div className="absolute inset-0">
-          {(inView || !lite) && (
-            <PlaneScene progress={progress} active={inView} key={gl.key} onContextLost={() => setGl((g) => ({ ...g, lost: true }))} />
-          )}
+          {scene.show && <PlaneScene progress={progress} active={inView} key={scene.key} onContextLost={scene.onContextLost} />}
         </div>
 
         {/* Story chapters */}
-        <div className="pointer-events-none relative container-x flex h-full items-end pt-16 pb-24 lg:items-center lg:pt-20 lg:pb-0">
+        <div className="pointer-events-none relative container-x flex h-svh items-end pt-16 pb-24 lg:h-full lg:items-center lg:pt-20 lg:pb-0">
           <div className="grid w-full max-w-xl">
             {chapters.map((c, i) => {
               const state = i === active ? "on" : i < active ? "past" : "next";
@@ -295,7 +301,7 @@ export function FlightStory() {
 
         {/* Scroll cue */}
         <div
-          className={`absolute bottom-6 left-1/2 flex -translate-x-1/2 flex-col items-center gap-1 text-xs font-medium text-ink-soft/70 transition-opacity duration-500 ${
+          className={`absolute top-[calc(100svh-3.25rem)] left-1/2 flex -translate-x-1/2 flex-col items-center gap-1 text-xs font-medium text-ink-soft/70 transition-opacity duration-500 lg:top-auto lg:bottom-6 ${
             active === 0 ? "opacity-100" : "opacity-0"
           }`}
         >

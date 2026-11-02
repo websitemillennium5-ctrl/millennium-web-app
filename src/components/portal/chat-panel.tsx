@@ -235,15 +235,16 @@ export function ChatPanel({
             {session.page && session.page !== "/" ? <span className="before:mx-1.5 before:content-['·']">opened on {session.page}</span> : null}
           </p>
         </div>
-        <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto">
+        {/* Phones: one scrolling row of actions with icon-only contact buttons; wider screens wrap them beside the name */}
+        <div className="scrollbar-none -mx-3 flex w-[calc(100%+1.5rem)] items-center gap-1.5 overflow-x-auto px-3 sm:mx-0 sm:w-auto sm:flex-wrap sm:overflow-visible sm:px-0">
           {session.phone && (
-            <a href={`tel:${session.phone}`} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-line bg-white px-3 text-xs font-medium text-ink-soft transition hover:border-ink/25 hover:bg-mist hover:text-ink">
-              <Phone className="size-3.5" /> {session.phone}
+            <a href={`tel:${session.phone}`} aria-label={`Call ${session.phone}`} title={session.phone} className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-line bg-white px-3 text-xs font-medium text-ink-soft transition hover:border-ink/25 hover:bg-mist hover:text-ink">
+              <Phone className="size-3.5" /> <span className="hidden sm:inline">{session.phone}</span>
             </a>
           )}
           {whatsapp && (
-            <a href={whatsapp} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center gap-1.5 rounded-full border border-line bg-white px-3 text-xs font-medium text-ink-soft transition hover:border-ink/25 hover:bg-mist hover:text-ink">
-              <MessageCircle className="size-3.5" /> WhatsApp
+            <a href={whatsapp} target="_blank" rel="noreferrer" aria-label="Message on WhatsApp" title="WhatsApp" className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-line bg-white px-3 text-xs font-medium text-ink-soft transition hover:border-ink/25 hover:bg-mist hover:text-ink">
+              <MessageCircle className="size-3.5" /> <span className="hidden sm:inline">WhatsApp</span>
             </a>
           )}
           {session.lead_id && session.phone && (
@@ -296,7 +297,7 @@ export function ChatPanel({
         </div>
       </header>
 
-      <div ref={list} className="min-h-0 flex-1 bg-[#ece6dc] bg-[url(/images/chat-wallpaper.svg)] bg-[size:320px_320px] px-4 py-5 admin-dark:bg-[#1b1c20] lg:overflow-y-auto">
+      <div ref={list} className="min-h-0 flex-1 overflow-y-auto bg-[#ece6dc] bg-[url(/images/chat-wallpaper.svg)] bg-[size:320px_320px] px-4 py-5 admin-dark:bg-[#1b1c20]">
         <div className="mx-auto flex max-w-2xl flex-col gap-1">
           <span className="mb-3 self-center rounded-full border border-line bg-white px-3 py-1 text-[11px] font-medium text-muted shadow-[0_1px_2px_rgba(11,18,32,0.05)]">
             {dayChip(session.started_at)}
@@ -381,7 +382,7 @@ export function ChatPanel({
         </div>
       </div>
 
-      <footer className="border-t border-line bg-white p-3">
+      <footer className="border-t border-line bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:pb-3">
         {mode === "ended" ? (
           <p className="px-1 text-center text-xs text-muted">This chat has ended.</p>
         ) : (

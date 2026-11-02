@@ -8,6 +8,7 @@ import { useLenis } from "lenis/react";
 import { onPageScroll } from "@/lib/page-scroll";
 import { useCoarse } from "./device";
 import { NightSky } from "./night-sky";
+import { useSceneMount } from "./scene-mount";
 
 // once the scene is on screen the landing plays by itself, in real time, over this long
 const LANDING_MS = 6000;
@@ -33,11 +34,10 @@ export function FooterLanding() {
   const landed = useRef<(() => void) | null>(null);
   const catchUp = useRef(CATCH_UP);
   const [inView, setInView] = useState(false);
-  // WebGL context dropped by the browser while off screen: rebuild the canvas when it's next in view
-  const [gl, setGl] = useState({ key: 0, lost: false });
-  if (gl.lost && inView) setGl({ key: gl.key + 1, lost: false });
   const lenis = useLenis();
   const lite = useCoarse();
+  // Phones keep the canvas for a while after it scrolls away and rebuild a dropped WebGL context with care
+  const scene = useSceneMount(lite, inView);
 
   useEffect(() => {
     const el = band.current;
@@ -75,7 +75,7 @@ export function FooterLanding() {
     window.addEventListener("resize", update);
     const io = new IntersectionObserver(
       ([entry]) => setInView(entry.isIntersecting),
-      { rootMargin: "200px" },
+      { rootMargin: "60% 0px" },
     );
     io.observe(el);
     return () => {
@@ -91,11 +91,9 @@ export function FooterLanding() {
       <div className="relative isolate h-svh overflow-hidden bg-ink">
         <NightSky />
 
-        {/* Phones only mount the canvas near the viewport, so it never holds GPU memory alongside the hero scene */}
+        {/* Phones only keep the canvas near the viewport, so it never holds GPU memory alongside the hero scene for long */}
         <div aria-hidden className="absolute inset-0">
-          {(inView || !lite) && (
-            <LandingScene targetRef={target} landedRef={landed} catchUpRef={catchUp} active={inView} key={gl.key} onContextLost={() => setGl((g) => ({ ...g, lost: true }))} />
-          )}
+          {scene.show && <LandingScene targetRef={target} landedRef={landed} catchUpRef={catchUp} active={inView} key={scene.key} onContextLost={scene.onContextLost} />}
         </div>
         {/* runway fades into the footer below */}
         <div

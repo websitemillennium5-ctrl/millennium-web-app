@@ -34,7 +34,7 @@ export default async function AdminChats({ searchParams }: PageProps<"/admin/cha
         title="Chats"
         text="Every conversation visitors have with the website chat, live. Take one over to reply yourself."
         action={
-          <dl className="flex flex-wrap gap-1.5 text-xs">
+          <dl className="scrollbar-none flex w-full gap-1.5 overflow-x-auto text-xs sm:w-auto sm:flex-wrap sm:overflow-visible">
             <Figure label={all.length === 1 ? "conversation" : "conversations"} value={all.length} hint={`${week} this week`} />
             <Figure label={enquired === 1 ? "enquiry" : "enquiries"} value={enquired} tone="good" />
             <Figure label="completed" value={rate === null ? "—" : `${Math.round(rate * 100)}%`} />
