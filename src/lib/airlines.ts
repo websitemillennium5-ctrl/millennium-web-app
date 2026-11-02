@@ -2,7 +2,7 @@
  * Brand styling for job cards: logo (from public/images/partners), brand colour and IATA code for the monogram
  * fallback. Matched by scraper source key first, then by company name for hand-added jobs.
  */
-import { isHotelSource } from "@/lib/job-sources";
+import { isHotelSource, isTravelSource } from "@/lib/job-sources";
 
 export type AirlineBrand = { name: string; color: string; code: string; logo?: string };
 
@@ -42,6 +42,39 @@ const brands: (AirlineBrand & { sources?: string[]; match: RegExp })[] = [
   { name: "Fortune Hotels", color: "#7b1b2b", code: "FH", sources: ["fortune"], match: /fortune (?:hotels|park|select|resort)/i },
   { name: "Wyndham", color: "#0e3b5c", code: "WY", sources: ["wyndham"], match: /wyndham|ramada|days inn|howard johnson/i },
   { name: "NILE Hospitality", color: "#0b2545", code: "NL", sources: ["nile"], match: /\bnile\b/i },
+  { name: "Sterling Holiday Resorts", color: "#0f6b4f", code: "SH", sources: ["sterling"], match: /sterling (?:holiday|resort)/i },
+  { name: "Zostel", color: "#f15a24", code: "ZO", sources: ["zostel"], match: /zostel/i },
+  // Travel & tourism
+  { name: "MakeMyTrip", color: "#e73c33", code: "MMT", sources: ["makemytrip"], match: /makemytrip|goibibo|redbus/i },
+  { name: "EaseMyTrip", color: "#2196f3", code: "EMT", logo: "easemytrip.png", sources: ["easemytrip"], match: /easemytrip/i },
+  { name: "ixigo", color: "#ec5b24", code: "IXI", sources: ["ixigo"], match: /ixigo|abhibus|confirmtkt/i },
+  { name: "Veena World", color: "#f05a28", code: "VW", sources: ["veena_world"], match: /veena world/i },
+  { name: "Thrillophilia", color: "#ff6b1a", code: "TH", sources: ["thrillophilia"], match: /thrillophilia/i },
+  { name: "Expedia Group", color: "#191e3b", code: "EG", sources: ["expedia"], match: /expedia|hotels\.com|\bvrbo\b/i },
+  { name: "Booking.com", color: "#003580", code: "BK", sources: ["booking"], match: /booking\.com|booking holdings/i },
+  { name: "Agoda", color: "#4b2f8f", code: "AG", sources: ["agoda"], match: /\bagoda\b/i },
+  { name: "Amadeus", color: "#005eb8", code: "AMA", sources: ["amadeus"], match: /amadeus/i },
+  { name: "Sabre", color: "#e11b22", code: "SAB", sources: ["sabre"], match: /\bsabre\b/i },
+  { name: "Airbnb", color: "#ff5a5f", code: "AB", sources: ["airbnb"], match: /airbnb/i },
+  { name: "Headout", color: "#8000ff", code: "HO", sources: ["headout"], match: /headout/i },
+  { name: "Pickyourtrail", color: "#f2653a", code: "PYT", sources: ["pickyourtrail"], match: /pickyourtrail/i },
+  { name: "TravelTriangle", color: "#f26522", code: "TT", sources: ["travel_triangle"], match: /travel ?triangle|holiday triangle/i },
+  { name: "TripJack", color: "#0f4c81", code: "TJ", sources: ["tripjack"], match: /tripjack/i },
+  { name: "Savaari Car Rentals", color: "#1a73e8", code: "SV", sources: ["savaari"], match: /savaari/i },
+  { name: "American Express Global Business Travel", color: "#006fcf", code: "GBT", sources: ["amex_gbt"], match: /amex gbt|american express global business travel|\bcwt\b|carlson wagonlit/i },
+  { name: "BCD Travel", color: "#e4002b", code: "BCD", sources: ["bcd_travel"], match: /bcd (?:travel|meetings)/i },
+  { name: "Navan", color: "#3b2bff", code: "NV", sources: ["navan"], match: /\bnavan\b|tripactions/i },
+  // Travel companies with no scrapable job list: a brand key so hand-added jobs still find their recruiter emails
+  { name: "Thomas Cook India", color: "#1d3c6e", code: "TC", sources: ["thomas_cook"], match: /thomas cook/i },
+  { name: "SOTC Travel", color: "#e30613", code: "SO", sources: ["sotc"], match: /\bsotc\b/i },
+  { name: "Kesari Tours", color: "#d62027", code: "KT", sources: ["kesari"], match: /\bkesari\b/i },
+  { name: "Akbar Travels", color: "#0b5aa6", code: "AT", sources: ["akbar_travels"], match: /akbar travels/i },
+  { name: "Club Mahindra", color: "#e31b23", code: "CM", sources: ["club_mahindra"], match: /club mahindra|mahindra holidays/i },
+  { name: "Cordelia Cruises", color: "#0b3d91", code: "CC", sources: ["cordelia"], match: /cordelia/i },
+  { name: "TUI", color: "#d40e14", code: "TUI", sources: ["tui"], match: /\btui\b/i },
+  { name: "Tripoto", color: "#2d9cdb", code: "TP", sources: ["tripoto"], match: /tripoto/i },
+  { name: "BLS International", color: "#0b4f9c", code: "BLS", sources: ["bls_international"], match: /bls international/i },
+  { name: "Travel Food Services", color: "#c8102e", code: "TFS", sources: ["travel_food_services"], match: /travel food services/i },
 ];
 
 /**
@@ -91,14 +124,25 @@ export const roles = {
     iconClass: "text-amber-500",
     terms: ["hospitality", "hotel", "f&b", "food", "chef", "housekeeping"],
   },
+  travel: {
+    label: "Travel & tourism",
+    className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    iconClass: "text-emerald-500",
+    terms: ["travel", "tour", "holiday", "ticketing", "visa", "cruise", "itinerary", "destination"],
+  },
 } as const;
 
 export type RoleKey = keyof typeof roles;
 
 export function roleCategory(title: string, source: string) {
   const text = `${title} ${source.replace(/_/g, " ")}`.toLowerCase();
-  // Every hotel-group job is a hospitality role, even when its title sounds like airport work ("Security Officer").
-  const key = isHotelSource(source) ? "hospitality" : (Object.keys(roles) as RoleKey[]).find((k) => roles[k].terms.some((t) => text.includes(t)));
+  // Every hotel-group job is a hospitality role and every travel-company job a travel role, even when the title sounds
+  // like airport work ("Security Officer") or hotel work ("Hotel Desk Executive").
+  const key = isHotelSource(source)
+    ? "hospitality"
+    : isTravelSource(source)
+      ? "travel"
+      : (Object.keys(roles) as RoleKey[]).find((k) => roles[k].terms.some((t) => text.includes(t)));
   return key ? { key, ...roles[key] } : null;
 }
 

@@ -1,4 +1,4 @@
-# Worker: refreshes every airline's and hotel group's jobs_* and events_* table in Supabase once a day via scripts/scrapers/sync-all.mjs.
+# Worker: refreshes every airline's, hotel group's and travel company's jobs_* and events_* table in Supabase once a day via scripts/scrapers/sync-all.mjs.
 # Needs repo secrets NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY. Run it by hand from the Actions tab any time.
 name: "Sync job listings"
 

@@ -26,12 +26,39 @@ export const jobSources = {
   fortune: "Fortune Hotels",
   wyndham: "Wyndham",
   nile: "NILE Hospitality",
+  sterling: "Sterling Holiday Resorts",
+  zostel: "Zostel",
+  // Travel & tourism companies (scripts/scrapers/<key>.mjs, tables from supabase/migrations/0028_travel_jobs.sql and 0030_more_travel_jobs.sql)
+  makemytrip: "MakeMyTrip",
+  easemytrip: "EaseMyTrip",
+  ixigo: "ixigo",
+  veena_world: "Veena World",
+  thrillophilia: "Thrillophilia",
+  expedia: "Expedia Group",
+  booking: "Booking.com",
+  agoda: "Agoda",
+  amadeus: "Amadeus",
+  sabre: "Sabre",
+  airbnb: "Airbnb",
+  headout: "Headout",
+  pickyourtrail: "Pickyourtrail",
+  travel_triangle: "TravelTriangle",
+  tripjack: "TripJack",
+  savaari: "Savaari Car Rentals",
+  amex_gbt: "American Express Global Business Travel",
+  bcd_travel: "BCD Travel",
+  navan: "Navan",
 } as const;
 
-/** Hotel-group sources: listed after the airlines in the filter chips and treated as hospitality roles. */
-export const hotelSources: string[] = ["marriott", "radisson", "accor", "hilton", "hyatt", "ihcl", "lemon_tree", "itc", "fortune", "wyndham", "nile"];
+/** Hotel and resort sources: listed after the airlines in the filter chips and treated as hospitality roles. */
+export const hotelSources: string[] = ["marriott", "radisson", "accor", "hilton", "hyatt", "ihcl", "lemon_tree", "itc", "fortune", "wyndham", "nile", "sterling", "zostel"];
 
 export const isHotelSource = (source: string) => hotelSources.includes(source);
+
+/** Travel & tourism sources (OTAs, tour operators, cruise, visa services): after the hotels in the chips, treated as travel roles. */
+export const travelSources: string[] = ["makemytrip", "easemytrip", "ixigo", "veena_world", "thrillophilia", "expedia", "booking", "agoda", "amadeus", "sabre", "airbnb", "headout", "pickyourtrail", "travel_triangle", "tripjack", "savaari", "amex_gbt", "bcd_travel", "navan"];
+
+export const isTravelSource = (source: string) => travelSources.includes(source);
 
 export type JobSource = keyof typeof jobSources;
 
@@ -56,9 +83,10 @@ export const indianSources = ["air_india", "indigo", "spicejet", "akasa", "star_
 
 export const isIndianSource = (source: string) => indianSources.some((key) => eventMatchesSource(source, key));
 
-const rank = (key: string) => (indianSources.includes(key) ? indianSources.indexOf(key) : isHotelSource(key) ? indianSources.length + 1 : indianSources.length);
+const rank = (key: string) =>
+  indianSources.includes(key) ? indianSources.indexOf(key) : isTravelSource(key) ? indianSources.length + 2 : isHotelSource(key) ? indianSources.length + 1 : indianSources.length;
 
-/** Employer filter chips: Indian airlines first (in indianSources order), other airlines, hotel groups, then hand-added jobs. */
+/** Employer filter chips: Indian airlines first (in indianSources order), other airlines, hotel groups, travel companies, then hand-added jobs. */
 export const employerFilters: [string, string][] = [
   ...([...Object.entries(jobSources), ...Object.entries(eventOnlySources)] as [string, string][]).sort((a, b) => rank(a[0]) - rank(b[0])),
   ["manual", "Placement team"],

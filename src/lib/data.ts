@@ -1,5 +1,5 @@
 import { istDay } from "@/lib/format";
-import { roles } from "@/lib/airlines";
+import { roles, type RoleKey } from "@/lib/airlines";
 import type { Profile } from "@/lib/auth";
 import type { BirthdayStudent } from "@/lib/birthdays";
 import type { ChatMessage, ChatMode } from "@/lib/chats";
@@ -7,7 +7,7 @@ import type { StudentChange } from "@/lib/student-changes";
 import type { LeadStatus } from "@/lib/leads";
 import { JOBS_PAGE_SIZE, type JobQuery } from "@/lib/job-query";
 import { groupRecruiters, type RecruiterEmail } from "@/lib/recruiters";
-import { hotelSources } from "@/lib/job-sources";
+import { hotelSources, travelSources } from "@/lib/job-sources";
 import { STUDENTS_PAGE_SIZE, type StudentQuery } from "@/lib/student-query";
 import { createClient } from "@/lib/supabase/server";
 
@@ -285,22 +285,28 @@ export function clipDescription(text: string | null) {
   return `${cut.slice(0, Math.max(cut.lastIndexOf(" "), LIST_DESCRIPTION_CHARS - 40)).trimEnd()}…`;
 }
 
+/** Employers whose every job belongs to one role family, whatever the title says. */
+const roleSources: Partial<Record<RoleKey, string[]>> = { hospitality: hotelSources, travel: travelSources };
+
 export async function searchJobs(query: JobQuery, { includeInactive = false } = {}) {
   const supabase = await createClient();
   const from = (query.page - 1) * JOBS_PAGE_SIZE;
 
   // The same filters feed two requests that run side by side: the page of rows, and the total for the pagination.
-  // PostgREST counting inside the row request costs more than both requests together across 23 unioned tables.
+  // PostgREST counting inside the row request costs more than both requests together across 44 unioned tables.
   const filtered = (select: string, options?: { count: "exact"; head: boolean }) => {
     let request = supabase.from("all_jobs").select(select, options);
     if (!includeInactive || query.status === "active") request = request.eq("is_active", true);
     else if (query.status === "hidden") request = request.eq("is_active", false);
     if (query.source.length) request = request.in("source", query.source);
-    if (query.role === "hospitality") {
-      // Hotel-group jobs are all hospitality roles, whatever the title says
-      request = request.or([...roles.hospitality.terms.map((t) => `title.ilike.%${t}%`), `source.in.(${hotelSources.join(",")})`].join(","));
-    } else if (query.role) {
-      request = request.or(roles[query.role].terms.map((t) => `title.ilike.%${t}%`).join(",")).not("source", "in", `(${hotelSources.join(",")})`);
+    if (query.role) {
+      // Hotel-group jobs are all hospitality roles and travel-company jobs all travel roles, whatever the title says;
+      // the other role filters match on the title alone and leave those employers out.
+      const own = roleSources[query.role] ?? [];
+      const others = Object.entries(roleSources).flatMap(([role, sources]) => (role === query.role ? [] : sources));
+      const terms = roles[query.role].terms.map((t) => `title.ilike.%${t}%`);
+      request = request.or([...terms, ...(own.length ? [`source.in.(${own.join(",")})`] : [])].join(","));
+      if (others.length) request = request.not("source", "in", `(${others.join(",")})`);
     }
     if (query.posted) {
       const since = istDay(Date.now() - Number(query.posted) * 86_400_000);

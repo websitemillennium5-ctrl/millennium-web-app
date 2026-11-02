@@ -16,7 +16,7 @@ import { ScrollReset } from "@/components/portal/scroll-reset";
 export const metadata: Metadata = {
   title: "Airline Jobs",
   description:
-    "Free, up-to-date cabin crew, ground staff, airport and hotel job openings plus walk-in interviews from IndiGo, Air India, Akasa Air, Emirates, Qatar Airways, Etihad, Marriott, Hilton, Taj and more.",
+    "Free, up-to-date cabin crew, ground staff, airport, hotel and travel job openings plus walk-in interviews from IndiGo, Air India, Akasa Air, Emirates, Qatar Airways, Etihad, Marriott, Hilton, Taj, MakeMyTrip and more.",
 };
 
 // Public version of the student jobs page: same listings (active ones only, via the anon RLS policy), no login.
