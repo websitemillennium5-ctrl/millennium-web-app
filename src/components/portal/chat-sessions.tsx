@@ -43,6 +43,18 @@ const matches = (s: ChatSummary, query: ChatQuery) => {
 export function ChatInbox({ initial, query, selected, staffName }: { initial: ChatSummary[]; query: ChatQuery; selected: ChatSession | null; staffName: string }) {
   const [sessions, setSessions] = useState(initial);
   const [now, setNow] = useState(() => Date.now());
+  // Which thread is open. Picking one swaps the panel at once and rewrites the URL, with no page load;
+  // the full transcript from the server is only used for the thread the page was opened on
+  const [selectedId, setSelectedId] = useState(query.chat);
+  const select = (id: string) => {
+    setSelectedId(id);
+    window.history.pushState(null, "", chatHref(query, { chat: id }));
+  };
+  useEffect(() => {
+    const onPop = () => setSelectedId(new URLSearchParams(window.location.search).get("chat") ?? "");
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
 
   const anyOnline = sessions.some((s) => visitorOnline(s, now));
   const pollMs = anyOnline ? LIST_POLL_MS.live : LIST_POLL_MS.idle;
@@ -69,7 +81,7 @@ export function ChatInbox({ initial, query, selected, staffName }: { initial: Ch
   }, [pollMs]);
 
   // The thread being read never counts as unread, even before the server has recorded the read
-  const unread = (s: ChatSummary) => s.id !== selected?.id && chatUnread(s);
+  const unread = (s: ChatSummary) => s.id !== selectedId && chatUnread(s);
   const searched = sessions.filter((s) => matches(s, { ...query, view: "" }));
   const counts: Record<ChatView, number> = {
     "": searched.filter(unread).length,
@@ -77,7 +89,9 @@ export function ChatInbox({ initial, query, selected, staffName }: { initial: Ch
     left: searched.filter((s) => !s.lead_id && unread(s)).length,
   };
   const shown = searched.filter((s) => matches(s, query));
-  const opened = Boolean(query.chat);
+  const opened = Boolean(selectedId);
+  const current = sessions.find((s) => s.id === selectedId) ?? null;
+  const complete = selected?.id === selectedId;
 
   return (
     <div className="grid overflow-hidden rounded-2xl border border-line bg-white lg:h-[calc(100dvh-12.5rem)] lg:min-h-[30rem] lg:grid-cols-[21rem_1fr]">
@@ -117,10 +131,10 @@ export function ChatInbox({ initial, query, selected, staffName }: { initial: Ch
           </div>
         </div>
 
-        <ul className="min-h-0 flex-1 divide-y divide-line lg:overflow-y-auto">
+        <ul className="scrollbar-none min-h-0 flex-1 divide-y divide-line lg:overflow-y-auto">
           {shown.length === 0 && <li className="px-4 py-10 text-center text-sm text-muted">No chats match.</li>}
           {shown.map((s) => {
-            const active = s.id === selected?.id;
+            const active = s.id === selectedId;
             const isNew = unread(s);
             const online = visitorOnline(s, now);
             const preview = lastLine(s.chat_messages);
@@ -129,10 +143,14 @@ export function ChatInbox({ initial, query, selected, staffName }: { initial: Ch
                 <Link
                   href={chatHref(query, { chat: s.id })}
                   scroll={false}
+                  onClick={(e) => {
+                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                    e.preventDefault();
+                    select(s.id);
+                  }}
                   aria-current={active ? "true" : undefined}
                   className={`relative flex items-start gap-3 px-3.5 py-3 transition ${active ? "bg-mist/70" : "hover:bg-mist/40"}`}
                 >
-                  {active && <span className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-ink" aria-hidden />}
                   <span className="relative">
                     <Avatar name={s.name} />
                     {online && <span className="absolute right-0 bottom-0 size-2.5 rounded-full bg-good ring-2 ring-white" aria-label="Online" />}
@@ -165,8 +183,18 @@ export function ChatInbox({ initial, query, selected, staffName }: { initial: Ch
 
       {/* ── Transcript ── */}
       <section className={`min-h-0 flex-col bg-canvas lg:flex ${opened ? "flex" : "hidden"}`}>
-        {selected ? (
-          <ChatPanel key={selected.id} session={selected} staffName={staffName} backHref={chatHref(query, { chat: "" })} />
+        {current ? (
+          <ChatPanel
+            key={current.id}
+            session={complete && selected ? selected : current}
+            complete={complete}
+            staffName={staffName}
+            onBack={() => select("")}
+            onDeleted={() => {
+              setSessions((list) => list.filter((s) => s.id !== current.id));
+              select("");
+            }}
+          />
         ) : (
           <p className="m-auto p-10 text-center text-sm text-muted">Pick a conversation to read it, or take it over and reply.</p>
         )}

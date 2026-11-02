@@ -1,6 +1,7 @@
 "use server";
 
-import type { ChatMode } from "@/lib/chats";
+import { cookies } from "next/headers";
+import { CHAT_COOKIE, type ChatMode } from "@/lib/chats";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /** What the visitor's browser sends: its own and the bot's bubbles, in order. */
@@ -8,13 +9,25 @@ export type OutgoingMessage = { from: "bot" | "you"; text: string; at: string };
 export type ChatSync = { id: string; page: string; name: string; phone: string; leadId: string | null; messages: OutgoingMessage[] };
 /** What comes back from the academy: a staff reply or a system note (joined, left, ended). */
 export type IncomingMessage = { id: number; from: "staff" | "system"; text: string; by: string | null; at: string };
-export type ChatPoll = { mode: ChatMode; by: string | null; messages: IncomingMessage[] };
+export type ChatPoll = { mode: ChatMode; by: string | null; typing: boolean; messages: IncomingMessage[] };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const clean = (value: string, max: number) => value.trim().slice(0, max) || null;
 const stamp = (at: string) => (Number.isNaN(Date.parse(at)) ? new Date().toISOString() : at);
 /** A taken-over chat nobody at the academy has had open for this long goes back to the assistant. */
 const STAFF_IDLE_MS = 90_000;
+
+/** The chat cookie lives for the longest life browsers honour. */
+const CHAT_COOKIE_MAX_AGE = 400 * 24 * 60 * 60;
+
+/** Points the cookie at this conversation. Setting a cookie makes Next re-render the page, so only when it changes. */
+async function rememberChat(id: string) {
+  try {
+    const jar = await cookies();
+    if (jar.get(CHAT_COOKIE)?.value === id) return;
+    jar.set({ name: CHAT_COOKIE, value: id, maxAge: CHAT_COOKIE_MAX_AGE, path: "/", sameSite: "lax", secure: process.env.NODE_ENV === "production" });
+  } catch {}
+}
 
 /**
  * Website chat: saves the bubbles added since the last call (and the visitor's details so far) so staff can read,
@@ -44,6 +57,45 @@ export async function postChatMessages(input: ChatSync): Promise<void> {
   if (sessionError) return console.error("Saving chat session failed:", sessionError.message);
   const { error } = await db.from("chat_messages").insert(rows);
   if (error) console.error("Saving chat messages failed:", error.message);
+  await rememberChat(input.id);
+}
+
+export type ResumedMessage = { id: number; from: "bot" | "you" | "staff" | "system"; text: string; by: string | null; at: string };
+export type ResumedChat = { id: string; name: string | null; phone: string | null; mode: ChatMode; by: string | null; leadId: string | null; messages: ResumedMessage[] };
+
+/**
+ * Website chat: the conversation this browser's cookie points at, in full, so the widget can carry on after the
+ * browser's own copy has gone (cleared site data, a storage limit, a browser that evicted it).
+ */
+export async function resumeChat(): Promise<ResumedChat | null> {
+  const id = (await cookies()).get(CHAT_COOKIE)?.value;
+  if (!id || !UUID.test(id)) return null;
+  const db = createAdminClient();
+  const { data } = await db
+    .from("chat_sessions")
+    .select("id, name, phone, mode, taken_by_name, lead_id, chat_messages(id, sender, text, staff_name, created_at)")
+    .eq("id", id)
+    .order("id", { referencedTable: "chat_messages", ascending: true })
+    .maybeSingle();
+  if (!data) return null;
+  const from = { bot: "bot", visitor: "you", staff: "staff", system: "system" } as const;
+  const rows = data.chat_messages as { id: number; sender: keyof typeof from; text: string; staff_name: string | null; created_at: string }[];
+  return {
+    id: data.id,
+    name: data.name,
+    phone: data.phone,
+    mode: data.mode as ChatMode,
+    by: data.taken_by_name,
+    leadId: data.lead_id,
+    messages: rows.map((m) => ({ id: m.id, from: from[m.sender] ?? "bot", text: m.text, by: m.staff_name, at: m.created_at })),
+  };
+}
+
+/** Website chat: the visitor started over, so stop pointing this browser at the old conversation. */
+export async function forgetChat(): Promise<void> {
+  try {
+    (await cookies()).delete(CHAT_COOKIE);
+  } catch {}
 }
 
 /**
@@ -58,9 +110,11 @@ export async function pollChat(id: string, afterId: number): Promise<ChatPoll | 
     .from("chat_sessions")
     .update({ visitor_seen_at: new Date(now).toISOString() })
     .eq("id", id)
-    .select("mode, taken_by_name, staff_seen_at")
+    .select("mode, taken_by_name, staff_seen_at, staff_typing_at")
     .maybeSingle();
   if (!session) return null;
+  // The admin panel stamps this while a reply is being typed; treat it as live for a few seconds
+  const typing = session.mode === "staff" && Boolean(session.staff_typing_at) && now - Date.parse(session.staff_typing_at) < 5000;
 
   let mode = session.mode as ChatMode;
   let by = session.taken_by_name ?? null;
@@ -90,6 +144,7 @@ export async function pollChat(id: string, afterId: number): Promise<ChatPoll | 
   return {
     mode,
     by,
+    typing: mode === "staff" && typing,
     messages: (rows ?? []).map((m) => ({ id: m.id, from: m.sender as "staff" | "system", text: m.text, by: m.staff_name, at: m.created_at })),
   };
 }

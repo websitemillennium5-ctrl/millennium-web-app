@@ -10,3 +10,9 @@ export const ONLINE_WINDOW_MS = 20_000;
 export const visitorOnline = (s: { visitor_seen_at: string; mode: ChatMode }, now: number) => s.mode !== "ended" && now - Date.parse(s.visitor_seen_at) < ONLINE_WINDOW_MS;
 
 export const firstName = (name: string) => name.trim().split(/\s+/)[0];
+
+/**
+ * Cookie naming the visitor's conversation. Set by the server (so Safari doesn't cap it at a week like
+ * script-set cookies) and readable by the page, which only asks the server to restore a chat when it is present.
+ */
+export const CHAT_COOKIE = "millennium_chat";

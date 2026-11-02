@@ -4,11 +4,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Phone, Send, X } from "lucide-react";
-import { pollChat, postChatMessages } from "@/app/actions/chat";
-import type { ChatMode } from "@/lib/chats";
+import { Phone, RotateCcw, Send, X } from "lucide-react";
+import { forgetChat, pollChat, postChatMessages, resumeChat } from "@/app/actions/chat";
+import { CHAT_COOKIE, type ChatMode } from "@/lib/chats";
 import { sendEnquiry } from "@/app/actions/enquiry";
 import { WhatsAppIcon } from "@/components/icons";
+import { useScrollLock } from "@/lib/scroll-lock";
 import { courses, site, telHref, whatsappHref } from "@/lib/site";
 
 const OPEN_EVENT = "millennium:open-chat";
@@ -166,9 +167,13 @@ const emptyAnswers: Answers = {
 };
 const firstName = (name: string) => name.split(/\s+/)[0];
 
-/** The conversation is kept in the browser so a reload or a later visit (within a day) carries on where it left off. */
+/**
+ * The conversation is kept in the browser so a reload or a later visit carries on where it left off: for as long
+ * as the browser keeps the data (the TTL only drops something truly ancient), with the server-side copy as a
+ * fallback via the chat cookie if the browser's storage is cleared.
+ */
 const STORE_KEY = "millennium:chat";
-const STORE_TTL = 24 * 60 * 60 * 1000;
+const STORE_TTL = 400 * 24 * 60 * 60 * 1000;
 type Stored = {
   id: string;
   messages: Msg[];
@@ -187,11 +192,7 @@ function loadStored(): Stored | null {
     const raw = localStorage.getItem(STORE_KEY);
     if (!raw) return null;
     const data = JSON.parse(raw) as Stored;
-    if (
-      !data.id ||
-      Date.now() - data.savedAt > STORE_TTL ||
-      data.mode === "ended"
-    ) {
+    if (!data.id || Date.now() - data.savedAt > STORE_TTL) {
       localStorage.removeItem(STORE_KEY);
       return null;
     }
@@ -241,11 +242,15 @@ export function ContactChat() {
   // A conversation saved by an earlier page load (null on the server and on a first visit)
   const [stored] = useState(loadStored);
   const [open, setOpen] = useState(false);
+  // The page behind the chat stays put while it is open
+  useScrollLock(open);
   const [messages, setMessages] = useState<Msg[]>(
     () => stored?.messages.map((m) => ({ ...m, synced: true })) ?? [],
   );
   const [step, setStep] = useState<Step>(stored?.step ?? "intent");
   const [typing, setTyping] = useState(false);
+  // The staff member who took over is typing a reply (from the poll)
+  const [staffTyping, setStaffTyping] = useState(false);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Answers>(
@@ -354,6 +359,40 @@ export function ContactChat() {
 
   // Greet on first open (a restored conversation was greeted already)
   const greeted = useRef(Boolean(stored));
+
+  // Nothing in this browser's storage but the chat cookie says there was a conversation: bring it back from the
+  // server, unless the visitor has already started a new one in the meantime
+  useEffect(() => {
+    if (stored || !document.cookie.split("; ").some((c) => c.startsWith(`${CHAT_COOKIE}=`))) return;
+    let gone = false;
+    resumeChat()
+      .then((chat) => {
+        if (!chat || gone || !chat.messages.length || session.current) return;
+        const restored: Msg[] = chat.messages.map((m, i) => ({
+          id: i + 1,
+          remoteId: m.from === "staff" || m.from === "system" ? m.id : undefined,
+          from: m.from,
+          text: m.text,
+          at: m.at,
+          by: m.by ?? undefined,
+          synced: true,
+        }));
+        session.current = chat.id;
+        leadId.current = chat.leadId;
+        remoteCursor.current = Math.max(0, ...chat.messages.filter((m) => m.from === "staff" || m.from === "system").map((m) => m.id));
+        nextId.current = restored.length + 1;
+        greeted.current = true;
+        setMessages(restored);
+        setAnswers((a) => ({ ...a, name: chat.name ?? "", phone: chat.phone ?? "" }));
+        setMode(chat.mode);
+        setAgent(chat.by);
+        setStep(chat.leadId || chat.mode === "ended" ? "done" : "intent");
+      })
+      .catch(() => {});
+    return () => {
+      gone = true;
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!open || greeted.current) return;
     greeted.current = true;
@@ -459,6 +498,7 @@ export function ContactChat() {
         chime();
       }
       setAgent(res.by);
+      setStaffTyping(res.typing);
       if (res.mode !== mode) {
         setMode(res.mode);
         // Staff handed the chat back: the assistant picks up where it left off. Staff ended it: wrap up.
@@ -474,7 +514,7 @@ export function ContactChat() {
     // Every few seconds while the window is open; much less often once it is minimised (a staff reply still pops it open)
     const timer = window.setInterval(
       tick,
-      open ? (mode === "staff" ? 2000 : 3000) : 12_000,
+      open ? (mode === "staff" ? 1500 : 3000) : 12_000,
     );
     return () => {
       stopped = true;
@@ -664,6 +704,7 @@ export function ContactChat() {
 
   function restart() {
     storeChat(null);
+    forgetChat().catch(() => {});
     session.current = crypto.randomUUID();
     leadId.current = null;
     remoteCursor.current = 0;
@@ -713,9 +754,9 @@ export function ContactChat() {
         className="fixed inset-x-3 bottom-3 z-[90] flex h-[min(34rem,85dvh)] animate-pop-in flex-col overflow-hidden rounded-3xl bg-white text-ink shadow-[0_32px_80px_-24px_rgba(11,18,32,0.5)] ring-1 ring-ink/10 lg:inset-x-auto lg:right-5 lg:bottom-5 lg:w-[23rem]"
       >
         <header className="flex items-center gap-3 bg-ink px-4 py-3.5 text-white">
-          <span className="relative size-10 shrink-0 overflow-hidden rounded-full bg-brand ring-2 ring-white/20">
+          <span className="relative size-10 shrink-0 overflow-hidden rounded-full bg-[#f7e1d2] ring-2 ring-white/20">
             <Image
-              src="/images/chat-avatar.jpg"
+              src="/images/chat-avatar.svg"
               alt=""
               fill
               sizes="40px"
@@ -724,24 +765,39 @@ export function ContactChat() {
           </span>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">
-              {live && agent ? agent : `${site.shortName} Admissions`}
+              {live && agent ? agent : site.shortName}
             </p>
             <p
               className="flex items-center gap-1.5 text-xs text-white/70"
               aria-live="polite"
             >
               <span
-                className={`size-1.5 rounded-full ${mode === "ended" ? "bg-white/40" : "bg-green-400"} ${typing ? "animate-pulse" : ""}`}
+                className={`size-1.5 rounded-full ${mode === "ended" ? "bg-white/40" : "bg-green-400"} ${typing || staffTyping ? "animate-pulse" : ""}`}
               />
               {mode === "ended"
                 ? "Chat ended"
                 : live
-                  ? "Admissions executive · Online"
+                  ? staffTyping
+                    ? `${agent ? firstName(agent) : "Executive"} is typing…`
+                    : "Admissions executive · Online"
                   : typing
                     ? "Typing…"
                     : "Online"}
             </p>
           </div>
+          {messages.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm("Start a new chat? This conversation will be cleared.")) restart();
+              }}
+              aria-label="Start over"
+              title="Start over"
+              className="flex size-9 items-center justify-center rounded-full text-white/80 transition hover:bg-white/15 hover:text-white"
+            >
+              <RotateCcw className="size-4" />
+            </button>
+          )}
           <a
             href={telHref(site.phones[0])}
             aria-label={`Call us on ${site.phones[0]}`}
@@ -795,9 +851,9 @@ export function ContactChat() {
               </div>
             ),
           )}
-          {typing && (
+          {(typing || (live && staffTyping)) && (
             <p
-              className="flex items-center gap-1 self-start rounded-2xl rounded-bl-md bg-white px-3.5 py-3 ring-1 ring-ink/5"
+              className={`flex items-center gap-1 self-start rounded-2xl rounded-bl-md px-3.5 py-3 ring-1 ring-ink/5 ${live ? "bg-brand/10" : "bg-white"}`}
               aria-label="Typing"
             >
               {[0, 150, 300].map((delay) => (
@@ -875,29 +931,10 @@ export function ContactChat() {
                   ref={input}
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
-                  type={
-                    step === "phone"
-                      ? "tel"
-                      : step === "email"
-                        ? "email"
-                        : "text"
-                  }
-                  inputMode={
-                    step === "phone"
-                      ? "tel"
-                      : step === "email"
-                        ? "email"
-                        : "text"
-                  }
-                  autoComplete={
-                    step === "name"
-                      ? "name"
-                      : step === "phone"
-                        ? "tel"
-                        : step === "email"
-                          ? "email"
-                          : "off"
-                  }
+                  // The keyboard follows the assistant's question; while a staff member has the chat it's a normal text box
+                  type={!live && step === "phone" ? "tel" : !live && step === "email" ? "email" : "text"}
+                  inputMode={!live && step === "phone" ? "tel" : !live && step === "email" ? "email" : "text"}
+                  autoComplete={live ? "off" : step === "name" ? "name" : step === "phone" ? "tel" : step === "email" ? "email" : "off"}
                   placeholder={
                     live
                       ? `Message ${agent ? firstName(agent) : "us"}…`

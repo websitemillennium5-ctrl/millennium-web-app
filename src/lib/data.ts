@@ -116,14 +116,15 @@ export type ChatSession = {
 };
 
 /** One row of the admin Chats list: the session plus its last couple of messages for the preview line. */
-export type ChatSummary = Omit<ChatSession, "chat_messages"> & { chat_messages: Pick<ChatMessage, "sender" | "text">[] };
+/** Same shape as a session, but `chat_messages` holds only the last three, newest first. */
+export type ChatSummary = ChatSession;
 
 /** Website chat conversations for the admin list, newest activity first. RLS limits this to staff. */
 export async function getChatSummaries() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("chat_sessions")
-    .select("*, chat_messages(sender, text)")
+    .select("*, chat_messages(id, sender, text, staff_name, created_at)")
     .order("updated_at", { ascending: false })
     .order("id", { referencedTable: "chat_messages", ascending: false })
     .limit(3, { referencedTable: "chat_messages" })

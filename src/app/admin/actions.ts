@@ -482,6 +482,13 @@ export async function takeOverChat(id: string) {
 }
 
 /** Sends a reply to the visitor. Taking the chat over first if the assistant was still running it. */
+/** Called by the admin panel while a reply is being typed (and once more, off, when the box empties). */
+export async function setChatTyping(id: string, typing: boolean) {
+  await requireStaff();
+  const supabase = await createClient();
+  await supabase.from("chat_sessions").update({ staff_typing_at: typing ? new Date().toISOString() : null }).eq("id", id);
+}
+
 export async function replyToChat(id: string, text: string) {
   const profile = await requireStaff();
   const body = chatText(text);

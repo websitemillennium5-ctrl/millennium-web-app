@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { ArrowLeft, ArrowUpRight, Bot, CheckCircle2, Clock, Headset, LogOut, MessageCircle, Phone, Send, Square, Trash2, UserRound } from "lucide-react";
-import { deleteChat, getChatUpdates, releaseChat, replyToChat, takeOverChat } from "@/app/admin/actions";
+import { ArrowLeft, ArrowUpRight, Bot, CheckCircle2, Clock, Headset, Loader2, LogOut, MessageCircle, Phone, Send, Square, Trash2, UserRound } from "lucide-react";
+import { deleteChat, getChatUpdates, releaseChat, replyToChat, setChatTyping, takeOverChat } from "@/app/admin/actions";
 import { firstName, visitorOnline, type ChatMessage, type ChatMode } from "@/lib/chats";
 import type { ChatSession } from "@/lib/data";
 import { formatDateTime, formatTime, istDay } from "@/lib/format";
@@ -36,7 +35,7 @@ function Status({ tone, children }: { tone: "live" | "good" | "quiet"; children:
     quiet: "bg-mist text-muted",
   }[tone];
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium whitespace-nowrap ${styles}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-px text-[10px] font-medium whitespace-nowrap ${styles}`}>
       <span className="relative flex size-1.5">
         {tone === "live" && <span className="absolute inset-0 animate-ping rounded-full bg-current opacity-60" />}
         <span className="relative size-1.5 rounded-full bg-current" />
@@ -64,9 +63,27 @@ function Action({ onClick, disabled, tone = "default", label, children }: { onCl
  * One conversation, live: polls for new messages every few seconds, and lets the staff member take the chat
  * over from the assistant, reply to the visitor, hand it back or end it.
  */
-export function ChatPanel({ session, staffName, backHref }: { session: ChatSession; staffName: string; backHref: string }) {
-  const router = useRouter();
-  const [messages, setMessages] = useState<ChatMessage[]>(session.chat_messages);
+/** Transcripts already fetched this visit, so switching back to a chat is instant. */
+const transcripts = new Map<string, ChatMessage[]>();
+
+export function ChatPanel({
+  session,
+  complete,
+  staffName,
+  onBack,
+  onDeleted,
+}: {
+  session: ChatSession;
+  /** false when `session` came from the list and carries only its last few messages */
+  complete: boolean;
+  staffName: string;
+  onBack: () => void;
+  onDeleted: () => void;
+}) {
+  const [messages, setMessages] = useState<ChatMessage[]>(
+    () => transcripts.get(session.id) ?? (complete ? session.chat_messages : [...session.chat_messages].sort((a, b) => a.id - b.id)),
+  );
+  const [loaded, setLoaded] = useState(complete || transcripts.has(session.id));
   const [mode, setMode] = useState<ChatMode>(session.mode);
   const [takenBy, setTakenBy] = useState(session.taken_by_name);
   const [seenAt, setSeenAt] = useState(session.visitor_seen_at);
@@ -90,6 +107,31 @@ export function ChatPanel({ session, staffName, backHref }: { session: ChatSessi
       const confirmed = fresh.filter((x) => x.sender === "staff").map((x) => x.text);
       return [...m.filter((y) => !(y.id < 0 && confirmed.includes(y.text))), ...fresh];
     });
+
+  // Opened from the list: show its last few messages at once and fetch the whole transcript behind them
+  useEffect(() => {
+    if (loaded) return;
+    let stopped = false;
+    getChatUpdates(session.id, 0)
+      .then((res) => {
+        if (!res || stopped) return;
+        setMessages((m) => {
+          const top = Math.max(0, ...res.messages.map((x) => x.id));
+          return [...res.messages, ...m.filter((x) => x.id > top)];
+        });
+        setMode(res.mode);
+        setTakenBy(res.takenByName);
+        setSeenAt(res.visitorSeenAt);
+        setLoaded(true);
+      })
+      .catch(() => {});
+    return () => {
+      stopped = true;
+    };
+  }, [loaded, session.id]);
+  useEffect(() => {
+    if (loaded) transcripts.set(session.id, messages);
+  }, [loaded, session.id, messages]);
 
   // Pull anything new from the server
   const pollMs = mode === "ended" ? POLL_MS.ended : !online ? POLL_MS.away : mode === "staff" ? POLL_MS.chatting : POLL_MS.live;
@@ -131,10 +173,26 @@ export function ChatPanel({ session, staffName, backHref }: { session: ChatSessi
     await work();
     await refresh();
   });
+  // Let the visitor see "typing…": stamp the session while the draft has text (at most every 2 s), clear it when empty
+  const typingStamp = useRef(0);
+  useEffect(() => {
+    if (mode !== "staff") return;
+    const now = Date.now();
+    if (draft.trim()) {
+      if (now - typingStamp.current < 2000) return;
+      typingStamp.current = now;
+      setChatTyping(session.id, true).catch(() => {});
+    } else if (typingStamp.current) {
+      typingStamp.current = 0;
+      setChatTyping(session.id, false).catch(() => {});
+    }
+  }, [draft, mode, session.id]);
+
   const send = () => {
     const text = draft.trim();
     if (!text) return;
     setDraft("");
+    typingStamp.current = 0;
     // Show it at once; the server's copy takes its place when the next fetch brings it back
     setMessages((m) => [...m, { id: -Date.now(), sender: "staff", text, staff_name: staffName, created_at: new Date().toISOString() }]);
     run(() => replyToChat(session.id, text));
@@ -148,17 +206,17 @@ export function ChatPanel({ session, staffName, backHref }: { session: ChatSessi
 
   return (
     <>
-      <header className="flex flex-wrap items-center gap-3 border-b border-line bg-white px-4 py-3">
-        <Link href={backHref} scroll={false} aria-label="Back to chats" className="-ml-1 rounded-full p-1.5 text-muted hover:bg-mist hover:text-ink lg:hidden">
+      <header className="flex flex-wrap items-center gap-2.5 border-b border-line bg-white px-3 py-2">
+        <button type="button" onClick={onBack} aria-label="Back to chats" className="-ml-1 rounded-full p-1.5 text-muted hover:bg-mist hover:text-ink lg:hidden">
           <ArrowLeft className="size-4" />
-        </Link>
+        </button>
         <span className="relative">
-          <Avatar name={session.name} className="size-10 text-sm" />
-          {online && <span className="absolute right-0 bottom-0 size-2.5 rounded-full bg-good ring-2 ring-white" aria-label="Online" />}
+          <Avatar name={session.name} className="size-8 text-[11px]" />
+          {online && <span className="absolute right-0 bottom-0 size-2 rounded-full bg-good ring-2 ring-white" aria-label="Online" />}
         </span>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-            <h2 className="truncate text-[15px] leading-tight font-semibold tracking-tight text-ink">{session.name ?? "Anonymous visitor"}</h2>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <h2 className="truncate text-[13px] leading-tight font-semibold tracking-tight text-ink">{session.name ?? "Anonymous visitor"}</h2>
             {mode === "staff" ? (
               <Status tone="live">Live with {mine ? "you" : takenBy ? firstName(takenBy) : "staff"}</Status>
             ) : mode === "ended" ? (
@@ -171,7 +229,7 @@ export function ChatPanel({ session, staffName, backHref }: { session: ChatSessi
               <Status tone="quiet">Left mid-chat</Status>
             )}
           </div>
-          <p className="mt-1 truncate text-[12px] text-muted">
+          <p className="mt-0.5 truncate text-[11px] text-muted">
             {online ? "Chatting now" : `Started ${formatDateTime(session.started_at)}`}
             {minutes ? <span className="before:mx-1.5 before:content-['·']">{minutes} min</span> : null}
             {session.page && session.page !== "/" ? <span className="before:mx-1.5 before:content-['·']">opened on {session.page}</span> : null}
@@ -228,8 +286,8 @@ export function ChatPanel({ session, staffName, backHref }: { session: ChatSessi
               if (!window.confirm(`Delete the chat with ${who} and all its messages? This cannot be undone.`)) return;
               startTransition(async () => {
                 await deleteChat(session.id);
-                router.push(backHref);
-                router.refresh();
+                transcripts.delete(session.id);
+                onDeleted();
               });
             }}
           >
@@ -243,6 +301,11 @@ export function ChatPanel({ session, staffName, backHref }: { session: ChatSessi
           <span className="mb-3 self-center rounded-full border border-line bg-white px-3 py-1 text-[11px] font-medium text-muted shadow-[0_1px_2px_rgba(11,18,32,0.05)]">
             {dayChip(session.started_at)}
           </span>
+          {!loaded && (
+            <span className="mb-3 inline-flex items-center gap-2 self-center text-[11px] text-muted">
+              <Loader2 className="size-3 animate-spin" /> Loading earlier messages…
+            </span>
+          )}
           {messages.map((m, i) => {
             if (m.sender === "system") {
               return (

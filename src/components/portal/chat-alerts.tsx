@@ -8,9 +8,10 @@ import { visitorOnline } from "@/lib/chats";
 
 /**
  * How often the portal asks for unattended chats and replies: a little slower when the tab is in the
- * background, faster while this staff member is in the middle of a live conversation.
+ * background, faster while this staff member is in the middle of a live conversation, and fastest while an
+ * alarm is ringing so it stops here within seconds once a colleague takes the chat over.
  */
-const POLL_MS = { visible: 10_000, hidden: 30_000, liveVisible: 5_000, liveHidden: 15_000 };
+const POLL_MS = { visible: 10_000, hidden: 30_000, liveVisible: 5_000, liveHidden: 15_000, ringing: 3_000, ringingHidden: 5_000 };
 /** Chats this staff member chose to ignore, remembered per browser so the alert doesn't come back after a reload. */
 const IGNORED_KEY = "chat-alerts-ignored";
 
@@ -227,7 +228,18 @@ export function ChatAlerts() {
         live.current = res.taken.length > 0;
       }
       const hidden = document.visibilityState === "hidden";
-      timer = window.setTimeout(tick, live.current ? (hidden ? POLL_MS.liveHidden : POLL_MS.liveVisible) : hidden ? POLL_MS.hidden : POLL_MS.visible);
+      const wait = showing.current.length
+        ? hidden
+          ? POLL_MS.ringingHidden
+          : POLL_MS.ringing
+        : live.current
+          ? hidden
+            ? POLL_MS.liveHidden
+            : POLL_MS.liveVisible
+          : hidden
+            ? POLL_MS.hidden
+            : POLL_MS.visible;
+      timer = window.setTimeout(tick, wait);
     };
     const onVisible = () => document.visibilityState === "visible" && tick();
     document.addEventListener("visibilitychange", onVisible);
