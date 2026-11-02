@@ -7,6 +7,7 @@ import { AccountMenu } from "@/components/portal/account-menu";
 import { Breadcrumbs, PortalNav, StudentDock } from "@/components/portal/nav";
 import { ThemeToggle } from "@/components/portal/theme-toggle";
 import type { Profile } from "@/lib/auth";
+import { allowedPages } from "@/lib/portal-pages";
 import { site, telHref } from "@/lib/site";
 
 function IconButton({ href, label, children }: { href: string; label: string; children: React.ReactNode }) {
@@ -109,7 +110,7 @@ export async function PortalShell({ portal, profile, children }: { portal: "stud
         </div>
 
         <div className="px-3 py-3 lg:mt-7 lg:flex-1 lg:px-0 lg:py-0">
-          <PortalNav portal={portal} isAdmin={profile.role === "admin"} />
+          <PortalNav portal={portal} isAdmin={profile.role === "admin"} pages={allowedPages(profile).map((p) => p.key)} />
         </div>
 
         <div className="hidden lg:block">

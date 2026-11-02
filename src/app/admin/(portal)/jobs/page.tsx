@@ -1,4 +1,4 @@
-import { requireStaff } from "@/lib/auth";
+import { requirePage } from "@/lib/auth";
 import { getEvents, searchJobs } from "@/lib/data";
 import { eventMatchesRole } from "@/lib/airlines";
 import { eventMatchesSources, isIndianSource } from "@/lib/job-sources";
@@ -12,7 +12,7 @@ import { ScrollReset } from "@/components/portal/scroll-reset";
 import { PageTitle } from "@/components/portal/ui";
 
 export default async function AdminJobs({ searchParams }: PageProps<"/admin/jobs">) {
-  await requireStaff();
+  await requirePage("jobs");
   const query = parseJobQuery(await searchParams);
   const [{ jobs, total, pageCount }, allEvents] = await Promise.all([
     searchJobs(query, { includeInactive: true }),

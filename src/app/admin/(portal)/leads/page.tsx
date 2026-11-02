@@ -1,4 +1,4 @@
-import { requireStaff } from "@/lib/auth";
+import { requirePage } from "@/lib/auth";
 import { getLeads } from "@/lib/data";
 import { leadStats, leadStatuses, parseLeadQuery, type LeadStatus } from "@/lib/leads";
 import { LeadFilters } from "@/components/portal/lead-filters";
@@ -9,7 +9,7 @@ import { Empty, PageTitle, Stat } from "@/components/portal/ui";
 const requestTime = () => Date.now();
 
 export default async function AdminLeads({ searchParams }: PageProps<"/admin/leads">) {
-  await requireStaff();
+  await requirePage("leads");
   const query = parseLeadQuery(await searchParams);
   const all = await getLeads();
 

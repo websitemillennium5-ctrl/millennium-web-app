@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CircleAlert, CircleCheck, Plus, SearchX, UserPlus, Users } from "lucide-react";
-import { requireStaff } from "@/lib/auth";
+import { requirePage } from "@/lib/auth";
 import { getBatches, getStudentSummary, searchStudents } from "@/lib/data";
 import { formatINR } from "@/lib/format";
 import { STUDENTS_PAGE_SIZE, parseStudentQuery, studentQueryHref, type StudentQuery } from "@/lib/student-query";
@@ -49,7 +49,7 @@ function SummaryTile({
 }
 
 export default async function StudentsList({ searchParams }: PageProps<"/admin/students">) {
-  await requireStaff();
+  await requirePage("students");
   const query = parseStudentQuery(await searchParams);
   const [{ students, total, pageCount }, batches, summary] = await Promise.all([searchStudents(query), getBatches(), getStudentSummary()]);
   const toggle = (changes: Partial<StudentQuery>, on: boolean) =>

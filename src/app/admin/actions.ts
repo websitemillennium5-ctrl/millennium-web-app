@@ -6,14 +6,16 @@ import { redirect } from "next/navigation";
 import sharp from "sharp";
 import type { FormState } from "@/app/actions/auth";
 import { ANNOUNCEMENT_IMAGE_BUCKET, ANNOUNCEMENT_IMAGE_MAX_BYTES, ANNOUNCEMENT_IMAGE_MAX_EDGE, ANNOUNCEMENT_IMAGE_TYPES } from "@/lib/announcements";
-import { requireStaff } from "@/lib/auth";
+import { requirePage, requireStaff } from "@/lib/auth";
 import { ONLINE_WINDOW_MS, type ChatMessage, type ChatMode, type ChatSender } from "@/lib/chats";
-import { getChatSummaries, type ChatSummary } from "@/lib/data";
+import { getChatSummaries, type ChatSummary, type Lead } from "@/lib/data";
 import { leadStatuses } from "@/lib/leads";
+import { normalisePages } from "@/lib/portal-pages";
 import { eventTable, jobTable } from "@/lib/job-sources";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { site } from "@/lib/site";
+import { diffFields, type ChangeAction, type FieldChange } from "@/lib/student-changes";
 import { localOnlyScrapers } from "@/lib/sync";
 import { STUDY_BUCKET, STUDY_MAX_BYTES } from "@/lib/study";
 import { youtubeId } from "@/lib/video";
@@ -59,8 +61,17 @@ const friendly = (message: string) =>
 
 // ───────── Students ─────────
 
+/** One line in the audit trail (src/lib/student-changes.ts). Never throws: a failed log must not undo the edit itself. */
+async function logChange(staff: { id: string; full_name: string }, student: { id: string | null; name: string }, action: ChangeAction, changes: FieldChange[] = []) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("student_changes")
+    .insert({ student_id: student.id, student_name: student.name, staff_id: staff.id, staff_name: staff.full_name, action, changes });
+  if (error) console.error("Logging student change failed:", error.message);
+}
+
 export async function createStudent(_prev: FormState, fd: FormData): Promise<FormState> {
-  await requireStaff();
+  const staff = await requirePage("students");
   const email = text(fd, "email")?.toLowerCase();
   const fields = studentFields(fd);
   if (!email || !fields.full_name) return { error: "Name and email are required." };
@@ -85,19 +96,26 @@ export async function createStudent(_prev: FormState, fd: FormData): Promise<For
     return { error: friendly(profileError.message) };
   }
 
+  await logChange(staff, { id: data.user.id, name: fields.full_name }, "created", diffFields({}, { ...fields, email }));
   revalidatePath("/admin/students");
   return { ok: `Account created for ${fields.full_name}. Login: ${fields.roll_no ?? email} · Password: ${password}` };
 }
 
 export async function updateStudent(id: string, _prev: FormState, fd: FormData): Promise<FormState> {
-  await requireStaff();
+  const staff = await requirePage("students");
   const fields = studentFields(fd);
   if (!fields.full_name) return { error: "Name is required." };
   if (Number.isNaN(fields.fee_total)) return { error: "Enter a valid course fee." };
 
   const supabase = await createClient();
+  // What the row looked like before, so the trail can say exactly which fields changed
+  const { data: before } = await supabase.from("profiles").select("*").eq("id", id).eq("role", "student").maybeSingle();
+  if (!before) return { error: "Student not found." };
   const { error } = await supabase.from("profiles").update(fields).eq("id", id).eq("role", "student");
   if (error) return { error: friendly(error.message) };
+
+  const changes = diffFields(before, fields);
+  if (changes.length) await logChange(staff, { id, name: fields.full_name }, "updated", changes);
 
   revalidatePath(`/admin/students/${id}`);
   revalidatePath("/admin/students");
@@ -105,22 +123,25 @@ export async function updateStudent(id: string, _prev: FormState, fd: FormData):
 }
 
 export async function resetPassword(id: string): Promise<FormState & { password?: string }> {
-  await requireStaff();
+  const staff = await requirePage("students");
   // Staff may only reset student passwords; staff/admin accounts are managed by admins
-  const { data: target } = await (await createClient()).from("profiles").select("role").eq("id", id).single();
+  const { data: target } = await (await createClient()).from("profiles").select("role, full_name").eq("id", id).single();
   if (target?.role !== "student") return { error: "Only student passwords can be reset here." };
 
   const password = tempPassword();
   const { error } = await createAdminClient().auth.admin.updateUserById(id, { password });
   if (error) return { error: error.message };
+  await logChange(staff, { id, name: target.full_name }, "password_reset");
   return { ok: `New password: ${password} — share it with the student.`, password };
 }
 
 export async function deleteStudent(fd: FormData) {
-  await requireStaff("admin");
+  const staff = await requireStaff("admin");
   const id = String(fd.get("id"));
-  const { data: target } = await (await createClient()).from("profiles").select("role").eq("id", id).single();
+  const { data: target } = await (await createClient()).from("profiles").select("role, full_name").eq("id", id).single();
   if (target?.role !== "student") return;
+  // Logged first: the row's student_id is cleared by the delete, the name stays
+  await logChange(staff, { id, name: target.full_name }, "deleted");
   await createAdminClient().auth.admin.deleteUser(id);
   revalidatePath("/admin/students");
   redirect("/admin/students");
@@ -129,30 +150,34 @@ export async function deleteStudent(fd: FormData) {
 // ───────── Fees ─────────
 
 export async function addPayment(studentId: string, _prev: FormState, fd: FormData): Promise<FormState> {
-  const staff = await requireStaff();
+  const staff = await requirePage("students");
   const amount = money(fd, "amount");
   if (!amount || Number.isNaN(amount)) return { error: "Enter an amount greater than zero." };
 
   const supabase = await createClient();
-  const { error } = await supabase.from("fee_payments").insert({
-    student_id: studentId,
-    amount,
-    paid_on: text(fd, "paid_on") ?? undefined,
-    method: text(fd, "method") ?? "cash",
-    note: text(fd, "note"),
-    created_by: staff.id,
-  });
+  const payment = { amount, paid_on: text(fd, "paid_on") ?? undefined, method: text(fd, "method") ?? "cash", note: text(fd, "note") };
+  const { error } = await supabase.from("fee_payments").insert({ student_id: studentId, ...payment, created_by: staff.id });
   if (error) return { error: error.message };
+
+  const { data: who } = await supabase.from("profiles").select("full_name").eq("id", studentId).maybeSingle();
+  await logChange(staff, { id: studentId, name: who?.full_name ?? "Student" }, "payment_added", diffFields({}, payment));
 
   revalidatePath(`/admin/students/${studentId}`);
   return { ok: "Payment recorded." };
 }
 
 export async function deletePayment(fd: FormData) {
-  await requireStaff();
+  const staff = await requirePage("students");
   const supabase = await createClient();
-  await supabase.from("fee_payments").delete().eq("id", String(fd.get("id")));
-  revalidatePath(`/admin/students/${String(fd.get("student_id"))}`);
+  const id = String(fd.get("id"));
+  const studentId = String(fd.get("student_id"));
+  const { data: gone } = await supabase.from("fee_payments").select("amount, paid_on, method, note").eq("id", id).maybeSingle();
+  await supabase.from("fee_payments").delete().eq("id", id);
+  if (gone) {
+    const { data: who } = await supabase.from("profiles").select("full_name").eq("id", studentId).maybeSingle();
+    await logChange(staff, { id: studentId, name: who?.full_name ?? "Student" }, "payment_deleted", diffFields(gone, { amount: null, paid_on: null, method: null, note: null }));
+  }
+  revalidatePath(`/admin/students/${studentId}`);
 }
 
 // ───────── Announcements ─────────
@@ -165,7 +190,7 @@ const announcementImages = () => createAdminClient().storage.from(ANNOUNCEMENT_I
  * createAnnouncement then compresses it and throws the original away.
  */
 export async function prepareAnnouncementImage(fileName: string, size: number, type: string): Promise<{ path: string; token: string } | { error: string }> {
-  await requireStaff();
+  await requirePage("announcements");
   if (!ANNOUNCEMENT_IMAGE_TYPES.includes(type)) return { error: "Use a JPG, PNG, WebP or GIF picture." };
   if (size > ANNOUNCEMENT_IMAGE_MAX_BYTES) return { error: "That picture is over 15 MB. Pick a smaller one." };
   const ext = fileName.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "img";
@@ -201,7 +226,7 @@ async function compressAnnouncementImage(incoming: string): Promise<{ path: stri
 }
 
 export async function createAnnouncement(_prev: FormState, fd: FormData): Promise<FormState> {
-  const staff = await requireStaff();
+  const staff = await requirePage("announcements");
   const title = text(fd, "title");
   if (!title) return { error: "Add a title." };
 
@@ -235,14 +260,14 @@ export async function createAnnouncement(_prev: FormState, fd: FormData): Promis
 }
 
 export async function toggleAnnouncementPin(fd: FormData) {
-  await requireStaff();
+  await requirePage("announcements");
   const supabase = await createClient();
   await supabase.from("announcements").update({ pinned: fd.get("pinned") !== "true" }).eq("id", String(fd.get("id")));
   revalidatePath("/admin/announcements");
 }
 
 export async function deleteAnnouncement(fd: FormData) {
-  await requireStaff();
+  await requirePage("announcements");
   const supabase = await createClient();
   const { data } = await supabase.from("announcements").delete().eq("id", String(fd.get("id"))).select("image_path").maybeSingle();
   if (data?.image_path) await announcementImages().remove([data.image_path]);
@@ -256,7 +281,7 @@ export async function deleteAnnouncement(fd: FormData) {
  * straight to storage (Vercel caps request bodies at 4.5 MB, far below a typical PDF or video).
  */
 export async function prepareStudyUpload(fileName: string, size: number): Promise<{ path: string; token: string } | { error: string }> {
-  await requireStaff();
+  await requirePage("study");
   if (size > STUDY_MAX_BYTES) return { error: "That file is over 50 MB. Upload a smaller copy, or share it as a link instead." };
   const safe = fileName.normalize("NFKD").replace(/[^\w.-]+/g, "-").replace(/-+/g, "-").slice(-80) || "file";
   const path = `${new Date().toISOString().slice(0, 7)}/${crypto.randomUUID()}-${safe}`;
@@ -267,7 +292,7 @@ export async function prepareStudyUpload(fileName: string, size: number): Promis
 
 /** Step 2: save the material once its file (if any) is in storage. */
 export async function createStudyMaterial(_prev: FormState, fd: FormData): Promise<FormState> {
-  const staff = await requireStaff();
+  const staff = await requirePage("study");
   const title = text(fd, "title");
   if (!title) return { error: "Add a title." };
   const filePath = text(fd, "file_path");
@@ -302,7 +327,7 @@ export async function createStudyMaterial(_prev: FormState, fd: FormData): Promi
 }
 
 export async function deleteStudyMaterial(fd: FormData) {
-  await requireStaff();
+  await requirePage("study");
   const id = String(fd.get("id"));
   const supabase = await createClient();
   const { data } = await supabase.from("study_materials").delete().eq("id", id).select("file_path").maybeSingle();
@@ -314,7 +339,7 @@ export async function deleteStudyMaterial(fd: FormData) {
 // ───────── Leads ─────────
 
 export async function updateLeadStatus(id: string, status: string) {
-  await requireStaff();
+  await requirePage("leads");
   if (!leadStatuses.some((s) => s.value === status)) return;
   const supabase = await createClient();
   await supabase.from("leads").update({ status }).eq("id", id);
@@ -322,7 +347,7 @@ export async function updateLeadStatus(id: string, status: string) {
 }
 
 export async function deleteLead(fd: FormData) {
-  await requireStaff();
+  await requirePage("leads");
   const supabase = await createClient();
   await supabase.from("leads").delete().eq("id", String(fd.get("id")));
   revalidatePath("/admin/leads");
@@ -331,14 +356,14 @@ export async function deleteLead(fd: FormData) {
 // ───────── Jobs ─────────
 
 export async function toggleJob(fd: FormData) {
-  await requireStaff();
+  await requirePage("jobs");
   const supabase = await createClient();
   await supabase.from(jobTable(String(fd.get("source")))).update({ is_active: fd.get("active") !== "true" }).eq("id", String(fd.get("id")));
   revalidatePath("/admin/jobs", "layout"); // the list and any open detail page
 }
 
 export async function deleteJob(fd: FormData) {
-  await requireStaff();
+  await requirePage("jobs");
   const supabase = await createClient();
   await supabase.from(jobTable(String(fd.get("source")))).delete().eq("id", String(fd.get("id")));
   revalidatePath("/admin/jobs", "layout");
@@ -348,14 +373,14 @@ export async function deleteJob(fd: FormData) {
 // ───────── Hiring events ─────────
 
 export async function toggleEvent(fd: FormData) {
-  await requireStaff();
+  await requirePage("jobs");
   const supabase = await createClient();
   await supabase.from(eventTable(String(fd.get("source")))).update({ is_active: fd.get("active") !== "true" }).eq("id", String(fd.get("id")));
   revalidatePath("/admin/jobs", "layout"); // the list and any open detail page
 }
 
 export async function deleteEvent(fd: FormData) {
-  await requireStaff();
+  await requirePage("jobs");
   const supabase = await createClient();
   await supabase.from(eventTable(String(fd.get("source")))).delete().eq("id", String(fd.get("id")));
   revalidatePath("/admin/jobs", "layout");
@@ -366,7 +391,7 @@ export async function deleteEvent(fd: FormData) {
 
 /** Queues a sync of the sources only the local worker can reach (the rest sync daily on GitHub). */
 export async function requestSync(): Promise<FormState> {
-  const staff = await requireStaff();
+  const staff = await requirePage("sync");
   const supabase = await createClient();
   const { count } = await supabase.from("sync_runs").select("id", { count: "exact", head: true }).in("status", ["queued", "running"]);
   if (count) return { error: "A sync is already queued or running." };
@@ -379,7 +404,7 @@ export async function requestSync(): Promise<FormState> {
 }
 
 export async function cancelSync(fd: FormData) {
-  await requireStaff();
+  await requirePage("sync");
   const supabase = await createClient();
   await supabase.from("sync_runs").update({ status: "cancelled", finished_at: new Date().toISOString() }).eq("id", String(fd.get("id"))).in("status", ["queued", "running"]);
   revalidatePath("/admin/sync");
@@ -406,8 +431,9 @@ export async function createStaff(_prev: FormState, fd: FormData): Promise<FormS
     app_metadata: { role },
   });
   if (error || !data.user) return { error: friendly(error?.message ?? "Could not create the account.") };
-  // Set the role on the profile too: app_metadata isn't visible to the signup trigger yet
-  await admin.from("profiles").update({ role, phone: text(fd, "phone") }).eq("id", data.user.id);
+  // Set the role on the profile too: app_metadata isn't visible to the signup trigger yet. Admins always see every page.
+  const portal_pages = role === "admin" ? null : normalisePages(fd.getAll("pages"));
+  await admin.from("profiles").update({ role, phone: text(fd, "phone"), portal_pages }).eq("id", data.user.id);
 
   revalidatePath("/admin/staff");
   return { ok: `${role === "admin" ? "Admin" : "Staff"} account created. Email: ${email} · Password: ${password}` };
@@ -435,6 +461,18 @@ export async function removeStaff(fd: FormData) {
   revalidatePath("/admin/staff");
 }
 
+/** Which portal pages a staff member may open; every page when `pages` covers them all. Admins are never limited. */
+export async function setStaffPages(id: string, pages: string[]): Promise<FormState> {
+  const me = await requireStaff("admin");
+  if (id === me.id) return { error: "Admins can open every page." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("profiles").update({ portal_pages: normalisePages(pages) }).eq("id", id).eq("role", "staff");
+  if (error) return { error: error.message };
+  revalidatePath("/admin/staff");
+  revalidatePath("/admin", "layout"); // their sidebar changes on the next page they open
+  return { ok: "Saved" };
+}
+
 // ───────── Website chat (live takeover) ─────────
 
 export type ChatUpdate = { mode: ChatMode; takenByName: string | null; visitorSeenAt: string; messages: ChatMessage[] };
@@ -443,13 +481,13 @@ const chatText = (value: string) => value.trim().slice(0, 2000);
 
 /** The conversation list, polled by the Chats page so new chats and replies show up without a reload. */
 export async function listChats(): Promise<ChatSummary[]> {
-  await requireStaff();
+  await requirePage("chats");
   return getChatSummaries();
 }
 
 /** Messages newer than `afterId` plus the session's current state. Polled by the open transcript; also marks it read. */
 export async function getChatUpdates(id: string, afterId: number): Promise<ChatUpdate | null> {
-  await requireStaff();
+  await requirePage("chats");
   const supabase = await createClient();
   const [{ data: session }, { data: rows }] = await Promise.all([
     supabase.from("chat_sessions").update({ read_at: new Date().toISOString(), staff_seen_at: new Date().toISOString() }).eq("id", id).select("mode, taken_by_name, visitor_seen_at").maybeSingle(),
@@ -468,7 +506,7 @@ async function systemNote(id: string, text: string) {
 
 /** Switches the chat from the assistant to this staff member; the visitor sees them join. */
 export async function takeOverChat(id: string) {
-  const profile = await requireStaff();
+  const profile = await requirePage("chats");
   const supabase = await createClient();
   const { data } = await supabase
     .from("chat_sessions")
@@ -484,13 +522,13 @@ export async function takeOverChat(id: string) {
 /** Sends a reply to the visitor. Taking the chat over first if the assistant was still running it. */
 /** Called by the admin panel while a reply is being typed (and once more, off, when the box empties). */
 export async function setChatTyping(id: string, typing: boolean) {
-  await requireStaff();
+  await requirePage("chats");
   const supabase = await createClient();
   await supabase.from("chat_sessions").update({ staff_typing_at: typing ? new Date().toISOString() : null }).eq("id", id);
 }
 
 export async function replyToChat(id: string, text: string) {
-  const profile = await requireStaff();
+  const profile = await requirePage("chats");
   const body = chatText(text);
   if (!body) return;
   const supabase = await createClient();
@@ -504,7 +542,7 @@ export async function replyToChat(id: string, text: string) {
 
 /** Hands the chat back to the assistant, or ends it for good. */
 export async function releaseChat(id: string, how: "bot" | "ended") {
-  const profile = await requireStaff();
+  const profile = await requirePage("chats");
   const supabase = await createClient();
   const { data } = await supabase
     .from("chat_sessions")
@@ -526,7 +564,9 @@ export type ChatAlert = {
   taken_by_name: string | null;
   started_at: string;
   visitor_seen_at: string;
-  chat_messages: { sender: ChatSender; text: string }[];
+  read_at: string | null;
+  /** The visitor's latest message only */
+  chat_messages: { sender: ChatSender; text: string; created_at: string }[];
 };
 
 /** A chat this staff member is handling, with the visitor's latest message (if they have sent any). */
@@ -537,25 +577,27 @@ export type ChatAlertsResult = { waiting: ChatAlert[]; taken: TakenChat[] };
 const CHAT_ID = /^[0-9a-f-]{36}$/i;
 
 /**
- * For the portal-wide chat alert: live chats nobody has taken over yet (the assistant is still replying and the
- * visitor is online), plus the chats this staff member is handling, each with the visitor's newest message so the
+ * For the portal-wide chat alert: live chats where the visitor has said something nobody at the academy has seen
+ * (the assistant is replying, the visitor is online, and their latest message is newer than the last time staff
+ * had the chat open), plus the chats this staff member is handling, each with the visitor's newest message so the
  * portal can notify them of replies. `watching` are the chats they are already being alerted about: those come
  * back whatever their state, so the alert can clear itself once someone takes the chat or it ends.
  */
 export async function chatAlerts(watching: string[]): Promise<ChatAlertsResult> {
-  const profile = await requireStaff();
+  const profile = await requirePage("chats");
   const supabase = await createClient();
   const since = new Date(Date.now() - ONLINE_WINDOW_MS).toISOString();
   const ids = watching.filter((id) => CHAT_ID.test(id)).slice(0, 20);
   const unattended = `and(mode.eq.bot,visitor_seen_at.gt.${since})`;
-  const [{ data: waiting }, { data: taken }] = await Promise.all([
+  const [{ data: live }, { data: taken }] = await Promise.all([
     supabase
       .from("chat_sessions")
-      .select("id, name, phone, page, mode, taken_by_name, started_at, visitor_seen_at, chat_messages(sender, text)")
+      .select("id, name, phone, page, mode, taken_by_name, started_at, visitor_seen_at, read_at, chat_messages(sender, text, created_at)")
       .or(ids.length ? `${unattended},id.in.(${ids.join(",")})` : unattended)
+      .eq("chat_messages.sender", "visitor")
       .order("started_at", { ascending: true })
       .order("id", { referencedTable: "chat_messages", ascending: false })
-      .limit(3, { referencedTable: "chat_messages" })
+      .limit(1, { referencedTable: "chat_messages" })
       .limit(20),
     supabase
       .from("chat_sessions")
@@ -567,15 +609,47 @@ export async function chatAlerts(watching: string[]): Promise<ChatAlertsResult> 
       .limit(1, { referencedTable: "chat_messages" })
       .limit(20),
   ]);
-  return { waiting: (waiting ?? []) as ChatAlert[], taken: (taken ?? []) as TakenChat[] };
+  // Something new to hear: a visitor message newer than the last time staff had the chat open. A chat handed back
+  // to the assistant (or auto-released when staff went idle) stays quiet until the visitor speaks again.
+  const unheard = (s: ChatAlert) => {
+    const last = s.chat_messages[0];
+    return Boolean(last) && (!s.read_at || Date.parse(last.created_at) > Date.parse(s.read_at));
+  };
+  const waiting = ((live ?? []) as ChatAlert[]).filter((s) => ids.includes(s.id) || unheard(s));
+  return { waiting, taken: (taken ?? []) as TakenChat[] };
 }
 
 /** Deletes a chat for good: the session row and, through the cascade, every message in it. Staff only (RLS). */
 export async function deleteChat(id: string) {
-  await requireStaff();
+  await requirePage("chats");
   if (!CHAT_ID.test(id)) return;
   const supabase = await createClient();
   const { error } = await supabase.from("chat_sessions").delete().eq("id", id);
   if (error) throw new Error(`Deleting the chat failed: ${error.message}`);
   revalidatePath("/admin/chats");
+}
+
+/* ---------- Enquiry alerts ---------- */
+
+export type LeadAlert = Pick<Lead, "id" | "name" | "phone" | "email" | "city" | "course" | "message" | "source" | "listing_title" | "experience" | "created_at">;
+export type LeadAlertsResult = { leads: LeadAlert[]; now: string };
+
+/**
+ * For the portal-wide enquiry popup: leads that arrived after `since` (the newest one this browser has already
+ * been shown, remembered there) and are still marked "new", newest first. Without `since` (the browser's first
+ * ever poll) nothing is returned: only enquiries from then on are announced, not the whole backlog.
+ */
+export async function leadAlerts(since: string | null): Promise<LeadAlertsResult> {
+  await requirePage("leads");
+  const now = new Date().toISOString();
+  const after = since && !Number.isNaN(Date.parse(since)) ? new Date(since).toISOString() : null;
+  if (!after) return { leads: [], now };
+  const { data } = await (await createClient())
+    .from("leads")
+    .select("id, name, phone, email, city, course, message, source, listing_title, experience, created_at")
+    .gt("created_at", after)
+    .eq("status", "new")
+    .order("created_at", { ascending: false })
+    .limit(10);
+  return { leads: (data ?? []) as LeadAlert[], now };
 }

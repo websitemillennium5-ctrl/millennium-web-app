@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Cake, CalendarDays, MessageCircle, Phone, UserRound } from "lucide-react";
-import { requireStaff, type Profile } from "@/lib/auth";
+import { requirePage, type Profile } from "@/lib/auth";
 import { birthdayNote, isBirthdayToday } from "@/lib/birthdays";
 import { courseStyle } from "@/lib/course-style";
 import { courseTitle, istDay } from "@/lib/format";
@@ -68,7 +68,7 @@ function Row({ s, today, when }: { s: Profile; today: string; when?: string }) {
 }
 
 export default async function AdminBirthdays() {
-  await requireStaff();
+  await requirePage("birthdays");
   const today = istDay();
   const supabase = await createClient();
   const [{ data }, { count: missing }] = await Promise.all([

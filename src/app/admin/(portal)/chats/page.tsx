@@ -1,5 +1,5 @@
 import { after } from "next/server";
-import { requireStaff } from "@/lib/auth";
+import { requirePage } from "@/lib/auth";
 import { parseChatQuery } from "@/lib/chat-query";
 import { chatUnread } from "@/lib/chats";
 import { getChatSession, getChatSummaries } from "@/lib/data";
@@ -10,14 +10,14 @@ import { Empty, PageTitle } from "@/components/portal/ui";
 /** Read once per request; the page always renders fresh. */
 const requestTime = () => Date.now();
 
-/** Records that staff opened this chat (only called after requireStaff). */
+/** Records that staff opened this chat (only called after requirePage). */
 async function markChatRead(id: string) {
   const { error } = await createAdminClient().from("chat_sessions").update({ read_at: new Date().toISOString() }).eq("id", id);
   if (error) console.error("Marking chat read failed:", error.message);
 }
 
 export default async function AdminChats({ searchParams }: PageProps<"/admin/chats">) {
-  const profile = await requireStaff();
+  const profile = await requirePage("chats");
   const query = parseChatQuery(await searchParams);
   const [all, selected] = await Promise.all([getChatSummaries(), query.chat ? getChatSession(query.chat) : null]);
   const now = requestTime();

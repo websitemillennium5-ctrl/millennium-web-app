@@ -421,3 +421,21 @@ body {
     animation: none;
   }
 }
+
+/* Chart colours for the staff overview (validated for colour-vision deficiency in both modes). Marks carry these;
+   text never does. Slot 1 blue, 2 amber, 3 green for identity; "muted" is the de-emphasis grey; "ink" the single-series mark. */
+.portal {
+  --surface: #ffffff;
+  --viz-1: #2a78d6;
+  --viz-2: #eda100;
+  --viz-3: #008300;
+  --viz-muted: #a1a1aa;
+  --viz-ink: #18181b;
+}
+.portal.admin-dark {
+  --viz-1: #3987e5;
+  --viz-2: #c98500;
+  --viz-3: #1f9a3a;
+  --viz-muted: #52525b;
+  --viz-ink: #e4e4e7;
+}

@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
-import { requireStaff } from "@/lib/auth";
+import { requirePage } from "@/lib/auth";
 import { getEventDetail } from "@/lib/data";
 import { EventDetail } from "@/components/portal/listing-detail";
 import { ListingActions } from "@/components/portal/listing-actions";
 
 export default async function AdminEventDetail({ params }: PageProps<"/admin/jobs/events/[source]/[id]">) {
-  await requireStaff();
+  await requirePage("jobs");
   const { source, id } = await params;
   const detail = await getEventDetail(source, id);
   if (!detail) notFound();

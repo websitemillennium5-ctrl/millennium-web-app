@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { BadgeCheck, Megaphone, Pin, PinOff, Trash2, UsersRound } from "lucide-react";
 import { deleteAnnouncement, toggleAnnouncementPin } from "@/app/admin/actions";
-import { requireStaff } from "@/lib/auth";
+import { requirePage } from "@/lib/auth";
 import type { Announcement } from "@/lib/data";
 import { courseStyle } from "@/lib/course-style";
 import { courseTitle, formatDate } from "@/lib/format";
@@ -115,7 +115,7 @@ function PostCard({ a, now, reach }: { a: Post; now: number; reach: number }) {
 }
 
 export default async function AdminAnnouncements({ searchParams }: PageProps<"/admin/announcements">) {
-  const me = await requireStaff();
+  const me = await requirePage("announcements");
   const { to } = await searchParams;
   const audience = typeof to === "string" ? to : "";
   const supabase = await createClient();

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BookOpen, Download, ExternalLink, Trash2, UsersRound } from "lucide-react";
 import { deleteStudyMaterial } from "@/app/admin/actions";
-import { requireStaff } from "@/lib/auth";
+import { requirePage } from "@/lib/auth";
 import type { StudyMaterial } from "@/lib/data";
 import { formatDate } from "@/lib/format";
 import { formatBytes, studyKind } from "@/lib/study";
@@ -15,7 +15,7 @@ import { Card, PageTitle } from "@/components/portal/ui";
 const action = "relative inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs text-muted transition";
 
 export default async function AdminStudy({ searchParams }: PageProps<"/admin/study">) {
-  await requireStaff();
+  await requirePage("study");
   const { to } = await searchParams;
   const audience = typeof to === "string" ? to : "";
   const supabase = await createClient();

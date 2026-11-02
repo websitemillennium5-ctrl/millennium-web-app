@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { allowedPages, canAccess, type PortalPage } from "@/lib/portal-pages";
 import { createClient } from "@/lib/supabase/server";
 
 export type Role = "student" | "staff" | "admin";
@@ -17,6 +18,8 @@ export type Profile = {
   fee_total: number;
   /** ISO date (yyyy-mm-dd) or null when the front office hasn't entered it */
   date_of_birth: string | null;
+  /** Staff only: portal pages this member may open (keys from portal-pages.ts), or null for every page */
+  portal_pages: string[] | null;
   joined_on: string;
   created_at: string;
 };
@@ -55,5 +58,16 @@ export async function requireStaff(minRole: "staff" | "admin" = "staff") {
   if (!profile) redirect("/admin/login");
   if (!isStaffRole(profile.role)) redirect("/student");
   if (minRole === "admin" && profile.role !== "admin") redirect("/admin");
+  return profile;
+}
+
+/**
+ * Use at the top of a staff page or action that belongs to one section of the portal. Staff members an admin
+ * has limited to other pages are sent to the first page they may open (the Overview page explains when there
+ * is none, so it checks for itself rather than calling this).
+ */
+export async function requirePage(page: PortalPage) {
+  const profile = await requireStaff();
+  if (!canAccess(profile, page)) redirect(allowedPages(profile)[0]?.href ?? "/admin");
   return profile;
 }

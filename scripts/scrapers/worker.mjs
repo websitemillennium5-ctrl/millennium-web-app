@@ -4,6 +4,7 @@
 //
 //   node --env-file=.env.local scripts/scrapers/worker.mjs      → run in the foreground (npm run worker)
 //   scripts/scrapers/install-worker.sh                          → keep it running in the background (macOS launchd)
+import { spawn } from "node:child_process";
 import { hostname } from "node:os";
 import { createClient } from "@supabase/supabase-js";
 import { allScrapers, syncAll } from "./sync-all.mjs";
@@ -59,8 +60,20 @@ async function claim() {
   return data;
 }
 
+/**
+ * macOS puts an idle Mac to sleep mid-sync, which freezes the scraper's network calls until it wakes (runs have
+ * sat for 15 minutes on one source that way). caffeinate holds off idle sleep just while a run is in progress.
+ */
+function stayAwake() {
+  if (process.platform !== "darwin") return () => {};
+  const keeper = spawn("caffeinate", ["-i", "-w", String(process.pid)], { stdio: "ignore" });
+  keeper.on("error", () => {});
+  return () => keeper.kill();
+}
+
 async function execute(run) {
   current = run;
+  const rest = stayAwake();
   await heartbeat();
   const known = allScrapers();
   const targets = run.sources?.length ? run.sources.filter((n) => known.includes(n)) : known;
@@ -103,6 +116,7 @@ async function execute(run) {
   await supabase.from("sync_runs").update({ status, log, results, finished_at: new Date().toISOString() }).eq("id", run.id);
   console.log(`[worker] run ${run.id} ${status}`);
   current = null;
+  rest();
   await heartbeat();
 }
 

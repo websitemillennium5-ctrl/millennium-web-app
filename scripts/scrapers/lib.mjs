@@ -191,7 +191,11 @@ async function save({ source, table, rows, started, allowEmpty, noun }) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SECRET_KEY;
   if (!url || !key) throw new Error("NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY must be set (or pass --dry-run)");
-  const supabase = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
+  const supabase = createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+    // Never wait on a dead connection: a write that gets no reply in a minute fails instead of hanging the run
+    global: { fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(60_000) }) },
+  });
 
   // A run that finds nothing is far more likely a site change or block than everything closing at once,
   // so keep the existing listings and fail loudly instead.
@@ -202,7 +206,13 @@ async function save({ source, table, rows, started, allowEmpty, noun }) {
     if (error) throw new Error(`[${source}] upsert failed: ${error.message}`);
   }
 
-  const { count, error: pruneError } = await supabase.from(table).delete({ count: "exact" }).lt("scraped_at", started);
+  // The prune is retried once: it is the last call of the run, and losing it leaves closed listings on the site
+  let prune = await supabase.from(table).delete({ count: "exact" }).lt("scraped_at", started);
+  if (prune.error) {
+    await sleep(3000);
+    prune = await supabase.from(table).delete({ count: "exact" }).lt("scraped_at", started);
+  }
+  const { count, error: pruneError } = prune;
   if (pruneError) throw new Error(`[${source}] prune failed: ${pruneError.message}`);
 
   console.log(`[${source}] saved ${rows.length}, removed ${count ?? 0} closed listings`);

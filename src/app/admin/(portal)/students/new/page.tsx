@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { createStudent } from "@/app/admin/actions";
-import { requireStaff } from "@/lib/auth";
+import { requirePage } from "@/lib/auth";
 import { ActionForm, SubmitButton } from "@/components/portal/form";
 import { StudentFields } from "@/components/portal/student-fields";
 import { Card, Field, Input, PageTitle } from "@/components/portal/ui";
 
 export default async function NewStudent() {
-  await requireStaff();
+  await requirePage("students");
   return (
     <>
       <PageTitle title="Add student" text="Creates the student's login. Share the roll number/email and password with them." />

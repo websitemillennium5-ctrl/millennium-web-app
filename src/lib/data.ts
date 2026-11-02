@@ -3,6 +3,7 @@ import { roles } from "@/lib/airlines";
 import type { Profile } from "@/lib/auth";
 import type { BirthdayStudent } from "@/lib/birthdays";
 import type { ChatMessage, ChatMode } from "@/lib/chats";
+import type { StudentChange } from "@/lib/student-changes";
 import type { LeadStatus } from "@/lib/leads";
 import { JOBS_PAGE_SIZE, type JobQuery } from "@/lib/job-query";
 import { groupRecruiters, type RecruiterEmail } from "@/lib/recruiters";
@@ -142,6 +143,15 @@ export async function getChatSession(id: string) {
     .order("id", { referencedTable: "chat_messages", ascending: true })
     .maybeSingle();
   return (data ?? null) as ChatSession | null;
+}
+
+/** The audit trail, newest first: for one student, or across every student when no id is given. RLS limits this to staff. */
+export async function getStudentChanges(studentId?: string, limit = 50) {
+  const supabase = await createClient();
+  let query = supabase.from("student_changes").select("*").order("id", { ascending: false }).limit(limit);
+  if (studentId) query = query.eq("student_id", studentId);
+  const { data } = await query;
+  return (data ?? []) as StudentChange[];
 }
 
 /** Fee payments for one student plus the paid/due totals. RLS limits students to their own rows. */

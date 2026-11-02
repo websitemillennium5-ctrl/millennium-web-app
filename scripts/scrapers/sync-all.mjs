@@ -22,7 +22,10 @@ const scripts = (dir) =>
 /** Every scraper name: "emirates", …, "events/etihad", … */
 export const allScrapers = () => [...scripts("."), ...scripts("events")].map((n) => n.replace(/^\.\//, ""));
 
-/** Runs one scraper, passing each status line to onLine, and resolves with its exit code and log. */
+/** A scraper that is still going after this long is stuck (a hung connection, or the machine slept) and is killed. */
+const SCRAPER_TIMEOUT = 5 * 60_000;
+
+/** Runs one scraper, passing each status line to onLine, and resolves with its exit code, log and whether it was killed for time. */
 function run(name, { flags = [], onLine, signal }) {
   return new Promise((resolve) => {
     const child = spawn(process.execPath, [join(here, `${name}.mjs`), ...flags], { env: process.env });
@@ -35,13 +38,17 @@ function run(name, { flags = [], onLine, signal }) {
       });
     pipe(child.stdout);
     pipe(child.stderr);
+    let timedOut = false;
     const kill = () => child.kill("SIGKILL");
-    const timer = setTimeout(kill, 5 * 60_000);
+    const timer = setTimeout(() => {
+      timedOut = true;
+      kill();
+    }, SCRAPER_TIMEOUT);
     signal?.addEventListener("abort", kill);
     child.on("close", (code) => {
       clearTimeout(timer);
       signal?.removeEventListener("abort", kill);
-      resolve({ code: code ?? 1, log });
+      resolve({ code: code ?? 1, log, timedOut });
     });
   });
 }
@@ -56,7 +63,7 @@ export async function syncAll(targets, { flags = [], onLine, onResult, signal } 
   for (const name of targets) {
     if (signal?.aborted) break;
     const started = Date.now();
-    const { code, log } = await run(name, { flags, onLine, signal });
+    const { code, log, timedOut } = await run(name, { flags, onLine, signal });
     const count = (re) => (log.match(re) ? Number(log.match(re)[1]) : null);
     const result = {
       name,
@@ -65,7 +72,14 @@ export async function syncAll(targets, { flags = [], onLine, onResult, signal } 
       found: count(/found (\d+)/),
       removed: count(/removed (\d+)/),
       seconds: Number(((Date.now() - started) / 1000).toFixed(1)),
-      error: code === 0 ? "" : signal?.aborted ? "Cancelled" : log.trim().split("\n").at(-1).slice(0, 200),
+      error:
+        code === 0
+          ? ""
+          : signal?.aborted
+            ? "Cancelled"
+            : timedOut
+              ? `Timed out after ${SCRAPER_TIMEOUT / 60_000} min (no reply from the network; was the machine asleep or offline?)`
+              : log.trim().split("\n").at(-1).slice(0, 200),
     };
     results.push(result);
     await onResult?.(result, results);

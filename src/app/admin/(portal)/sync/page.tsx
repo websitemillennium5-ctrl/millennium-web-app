@@ -1,4 +1,4 @@
-import { requireStaff } from "@/lib/auth";
+import { requirePage } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { GITHUB_REPO, GITHUB_WORKFLOW, localOnlyScrapers, NEW_WINDOW_MS, scrapers, type GithubRun, type SourceStat, type SyncRun, type SyncWorker } from "@/lib/sync";
 import { SyncPanel } from "@/components/portal/sync-panel";
@@ -22,7 +22,7 @@ async function latestGithubRun(): Promise<GithubRun | null> {
 const newSince = () => new Date(Date.now() - NEW_WINDOW_MS).toISOString();
 
 export default async function AdminSync() {
-  await requireStaff();
+  await requirePage("sync");
   const supabase = await createClient();
 
   const [{ data: runs }, { data: workers }, tables, github] = await Promise.all([

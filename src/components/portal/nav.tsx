@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Briefcase, Cake, ChevronRight, House, IndianRupee, Inbox, LayoutDashboard, Megaphone, MessagesSquare, RefreshCw, ShieldCheck, UserRound, Users } from "lucide-react";
+import { BookOpen, Briefcase, ChevronRight, House, IndianRupee, LayoutDashboard, Megaphone, ShieldCheck, UserRound } from "lucide-react";
+import { portalPages, type PortalPage } from "@/lib/portal-pages";
 
 const links = {
   student: [
@@ -13,26 +14,18 @@ const links = {
     { href: "/student/jobs", label: "Airline jobs", short: "Jobs", icon: Briefcase },
     { href: "/student/profile", label: "Profile", icon: UserRound },
   ],
-  admin: [
-    { href: "/admin", label: "Overview", icon: LayoutDashboard },
-    { href: "/admin/students", label: "Students", icon: Users },
-    { href: "/admin/birthdays", label: "Birthdays", icon: Cake },
-    { href: "/admin/leads", label: "Leads", icon: Inbox },
-    { href: "/admin/chats", label: "Chats", icon: MessagesSquare },
-    { href: "/admin/announcements", label: "Announcements", icon: Megaphone },
-    { href: "/admin/study", label: "Study material", icon: BookOpen },
-    { href: "/admin/jobs", label: "Jobs", icon: Briefcase },
-    { href: "/admin/sync", label: "Sync", icon: RefreshCw },
-  ],
+  admin: portalPages.map(({ key, href, label, icon }) => ({ key, href, label, icon })),
 };
 
 const adminOnly = [{ href: "/admin/staff", label: "Staff", icon: ShieldCheck }];
 
 const isActive = (portal: string, href: string, pathname: string) => (href === `/${portal}` ? pathname === href : pathname.startsWith(href));
 
-export function PortalNav({ portal, isAdmin }: { portal: "student" | "admin"; isAdmin?: boolean }) {
+/** `pages`: the staff-portal sections this member may open (see portal-pages.ts); the rest are left out of the sidebar. */
+export function PortalNav({ portal, isAdmin, pages }: { portal: "student" | "admin"; isAdmin?: boolean; pages?: PortalPage[] }) {
   const pathname = usePathname();
-  const items = portal === "admin" && isAdmin ? [...links.admin, ...adminOnly] : links[portal];
+  const items =
+    portal === "admin" ? [...links.admin.filter((l) => !pages || pages.includes(l.key)), ...(isAdmin ? adminOnly : [])] : links.student;
 
   return (
     <nav className="scrollbar-none flex gap-1 overflow-x-auto lg:flex-col lg:gap-0.5" aria-label="Portal">

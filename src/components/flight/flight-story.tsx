@@ -171,7 +171,7 @@ export function FlightStory() {
   const dark = chapters[active].dark;
 
   return (
-    <section ref={section} className="relative h-[620vh] bg-canvas" aria-label="Your journey with Millennium">
+    <section ref={section} data-hero-story className="relative h-[620vh] bg-canvas" aria-label="Your journey with Millennium">
       <div className="sticky top-0 h-svh overflow-hidden">
         {/* Sky layers: day base, dawn on top at the start, dusk at the end */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#7fb2ec] via-[#bcd8f5] to-[#eef5fd]" />

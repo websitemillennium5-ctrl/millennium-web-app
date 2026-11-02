@@ -215,17 +215,25 @@ export function PlacementsDock() {
   );
 }
 
-/** True while the page is being scrolled down (past the top); flips back on the first upward scroll. */
+/**
+ * True while the page is being scrolled down (past the top); flips back on the first upward scroll. On the home
+ * page the hero is a long scroll-driven scene (the plane taking off), and the dock stays put until that scene
+ * has fully played out and scrolled away.
+ */
 function useScrollingDown() {
   const [down, setDown] = useState(false);
   useEffect(() => {
     let last = window.scrollY;
+    const heroStillPlaying = () => {
+      const hero = document.querySelector("[data-hero-story]");
+      return Boolean(hero) && hero!.getBoundingClientRect().bottom > window.innerHeight;
+    };
     const onScroll = () => {
       const y = window.scrollY;
       const delta = y - last;
       // Ignore tiny jitters and always show near the top of the page
       if (Math.abs(delta) < 6) return;
-      setDown(delta > 0 && y > 80);
+      setDown(delta > 0 && y > 80 && !heroStillPlaying());
       last = y;
     };
     window.addEventListener("scroll", onScroll, { passive: true });

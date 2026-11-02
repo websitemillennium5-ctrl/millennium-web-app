@@ -1,11 +1,12 @@
 import { notFound } from "next/navigation";
-import { Banknote, CreditCard, Landmark, Smartphone, Trash2, Wallet } from "lucide-react";
-import { addPayment, deletePayment, deleteStudent, resetPassword, updateStudent } from "@/app/admin/actions";
-import { requireStaff } from "@/lib/auth";
-import { getFees, type StudentRow } from "@/lib/data";
+import { Banknote, CreditCard, Landmark, Smartphone, Wallet } from "lucide-react";
+import { addPayment, resetPassword, updateStudent } from "@/app/admin/actions";
+import { requirePage } from "@/lib/auth";
+import { getFees, getStudentChanges, type StudentRow } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatINR, istDay } from "@/lib/format";
-import { ActionForm, ConfirmButton, SubmitButton } from "@/components/portal/form";
+import { ChangeLog } from "@/components/portal/change-log";
+import { ActionForm, SubmitButton } from "@/components/portal/form";
 import { ResetPassword } from "@/components/portal/reset-password";
 import { StudentCard } from "@/components/portal/student-card";
 import { StudentFields } from "@/components/portal/student-fields";
@@ -14,14 +15,14 @@ import { Badge, Card, Empty, Field, Input, Select, Stat } from "@/components/por
 const methodIcons: Record<string, typeof Wallet> = { cash: Banknote, upi: Smartphone, card: CreditCard, bank: Landmark };
 
 export default async function StudentDetail({ params }: PageProps<"/admin/students/[id]">) {
-  const me = await requireStaff();
+  await requirePage("students");
   const { id } = await params;
 
   const supabase = await createClient();
   const { data } = await supabase.from("student_overview").select("*").eq("id", id).maybeSingle();
   if (!data) notFound();
   const student = { ...data, paid: Number(data.paid), due: Number(data.due), fee_total: Number(data.fee_total) } as StudentRow;
-  const { payments } = await getFees(student.id, student.fee_total);
+  const [{ payments }, history] = await Promise.all([getFees(student.id, student.fee_total), getStudentChanges(student.id, 30)]);
 
   return (
     <>
@@ -61,13 +62,6 @@ export default async function StudentDetail({ params }: PageProps<"/admin/studen
                         {p.note && ` · ${p.note}`}
                       </span>
                     </div>
-                    <form action={deletePayment}>
-                      <input type="hidden" name="id" value={p.id} />
-                      <input type="hidden" name="student_id" value={student.id} />
-                      <ConfirmButton message="Delete this payment record?" icon={<Trash2 className="size-4" strokeWidth={1.75} />}>
-                        Delete payment
-                      </ConfirmButton>
-                    </form>
                   </li>
                   );
                 })}
@@ -108,15 +102,13 @@ export default async function StudentDetail({ params }: PageProps<"/admin/studen
             <ResetPassword action={resetPassword.bind(null, student.id)} student={student} />
           </Card>
 
-          {me.role === "admin" && (
-            <Card title="Danger zone">
-              <p className="mb-3 text-sm text-muted">Deletes the student&apos;s login, profile and payment history.</p>
-              <form action={deleteStudent}>
-                <input type="hidden" name="id" value={student.id} />
-                <ConfirmButton message={`Permanently delete ${student.full_name}? This can't be undone.`}>Delete student</ConfirmButton>
-              </form>
-            </Card>
-          )}
+          <Card title="History">
+            {history.length === 0 ? (
+              <p className="text-sm text-muted">No changes recorded yet. Edits, payments and password resets made from here will be listed with who did them and when.</p>
+            ) : (
+              <ChangeLog entries={history} />
+            )}
+          </Card>
         </div>
       </div>
     </>

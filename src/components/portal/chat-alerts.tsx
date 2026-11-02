@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { BellRing, Clock, Globe, Headset } from "lucide-react";
 import { chatAlerts, takeOverChat, type ChatAlert, type TakenChat } from "@/app/admin/actions";
 import { visitorOnline } from "@/lib/chats";
+import { alarmUrl, away, canNotify, pingUrl } from "@/components/portal/alert-tones";
 
 /**
  * How often the portal asks for unattended chats and replies: a little slower when the tab is in the
@@ -29,66 +30,6 @@ function saveIgnored(ids: string[]) {
   } catch {}
 }
 
-/**
- * A short tune ([frequency, start second] per note) rendered once to a WAV blob for an <audio> element. Audio
- * elements keep playing in a background tab, where browsers throttle timers and would silence anything
- * scheduled from JavaScript.
- */
-function toneUrl(notes: [number, number][], seconds: number) {
-  const rate = 22050;
-  const n = Math.round(rate * seconds);
-  const pcm = new Int16Array(n);
-  for (let i = 0; i < n; i++) {
-    const t = i / rate;
-    let v = 0;
-    for (const [freq, at] of notes) {
-      const dt = t - at;
-      if (dt >= 0 && dt < 0.18) v += Math.sin(2 * Math.PI * freq * t) * Math.min(1, dt / 0.01, (0.18 - dt) / 0.05);
-    }
-    pcm[i] = Math.round(v * 0.25 * 32767);
-  }
-  const buf = new ArrayBuffer(44 + n * 2);
-  const view = new DataView(buf);
-  const ascii = (at: number, s: string) => [...s].forEach((c, i) => view.setUint8(at + i, c.charCodeAt(0)));
-  ascii(0, "RIFF");
-  view.setUint32(4, 36 + n * 2, true);
-  ascii(8, "WAVE");
-  ascii(12, "fmt ");
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true); // PCM
-  view.setUint16(22, 1, true); // mono
-  view.setUint32(24, rate, true);
-  view.setUint32(28, rate * 2, true);
-  view.setUint16(32, 2, true);
-  view.setUint16(34, 16, true);
-  ascii(36, "data");
-  view.setUint32(40, n * 2, true);
-  new Int16Array(buf, 44).set(pcm);
-  return URL.createObjectURL(new Blob([buf], { type: "audio/wav" }));
-}
-/** Looping three-note alarm for a visitor nobody has answered. */
-const alarmUrl = () =>
-  toneUrl(
-    [
-      [880, 0],
-      [1175, 0.22],
-      [880, 0.44],
-    ],
-    1.6,
-  );
-/** Two-note ping for a new message in a chat this staff member is handling. */
-const pingUrl = () =>
-  toneUrl(
-    [
-      [880, 0],
-      [1175, 0.14],
-    ],
-    0.6,
-  );
-
-const canNotify = () => typeof window !== "undefined" && "Notification" in window;
-/** The portal is not what the person is looking at: another tab, another app, or the browser window in the background. */
-const away = () => document.visibilityState === "hidden" || !document.hasFocus();
 /** That conversation is open on screen right now: the Chats page with this chat selected, in the focused tab. */
 const viewing = (id: string) => !away() && location.pathname === "/admin/chats" && new URLSearchParams(location.search).get("chat") === id;
 
@@ -305,7 +246,7 @@ export function ChatAlerts() {
   if (!alerts.length) return null;
 
   return (
-    <div role="alertdialog" aria-live="assertive" aria-label="Visitors waiting in chat" className="fixed right-4 bottom-4 z-[80] w-[min(23rem,calc(100vw-2rem))] animate-pop-in">
+    <div role="alertdialog" aria-live="assertive" aria-label="Visitors waiting in chat" className="animate-pop-in">
       <div className="overflow-hidden rounded-3xl bg-white text-ink shadow-[0_24px_60px_-20px_rgba(11,18,32,0.45)] ring-1 ring-ink/10">
         <div className="relative flex items-center gap-3 bg-ink px-4 py-3 text-white">
           <span className="relative flex size-9 shrink-0 items-center justify-center rounded-full bg-white/10">

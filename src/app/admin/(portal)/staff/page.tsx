@@ -3,7 +3,8 @@ import { createStaff, removeStaff, setStaffRole } from "@/app/admin/actions";
 import { requireStaff, type Profile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ActionForm, ConfirmButton, SubmitButton } from "@/components/portal/form";
-import { Card, Field, Input, PageTitle, Select } from "@/components/portal/ui";
+import { StaffAccessFields, StaffPageAccess } from "@/components/portal/page-access";
+import { Card, Field, Input, PageTitle } from "@/components/portal/ui";
 import { initials } from "@/components/portal/student-card";
 
 export default async function StaffPage() {
@@ -14,7 +15,7 @@ export default async function StaffPage() {
 
   return (
     <>
-      <PageTitle title="Staff" text="Staff can manage students, fees, announcements and jobs. Admins can also delete students and manage staff." />
+      <PageTitle title="Staff" text="Staff can manage students, fees, announcements and jobs. Admins can also delete students, manage staff and choose which pages each staff member can open." />
       <div className="grid items-start gap-5 lg:grid-cols-5">
         <Card title="Add staff member" className="h-fit lg:col-span-2">
           <ActionForm action={createStaff} resetOnSuccess className="space-y-3.5">
@@ -30,12 +31,7 @@ export default async function StaffPage() {
             <Field label="Password" hint="Leave blank to generate one.">
               <Input name="password" autoComplete="off" minLength={8} />
             </Field>
-            <Field label="Access">
-              <Select name="role" defaultValue="staff">
-                <option value="staff">Staff</option>
-                <option value="admin">Admin</option>
-              </Select>
-            </Field>
+            <StaffAccessFields />
             <SubmitButton>Create account</SubmitButton>
           </ActionForm>
         </Card>
@@ -84,6 +80,7 @@ export default async function StaffPage() {
                       </form>
                     </div>
                   )}
+                  {admin ? <p className="basis-full pl-11 text-[11px] text-muted">Every page, including Staff.</p> : <StaffPageAccess id={s.id} pages={s.portal_pages} />}
                 </li>
               );
             })}
