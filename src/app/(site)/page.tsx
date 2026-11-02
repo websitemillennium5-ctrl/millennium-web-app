@@ -24,6 +24,7 @@ import {
   TestimonialGrid,
 } from "@/components/ui";
 import { faqs, media, partners, placedStudents, stats } from "@/lib/site";
+import { CounsellingButton } from "@/components/counselling";
 
 const aboutFeatures = [
   { title: "Ex-airline mentors", text: "Learn from crew who have flown the routes." },
@@ -194,15 +195,12 @@ export default function Home() {
                   </div>
                 ))}
               </dl>
-              <Link
-                href="/contact#enquire"
-                className="group mt-10 inline-flex items-center gap-2 rounded-full bg-white py-2 pr-2 pl-6 text-sm font-semibold text-ink transition hover:bg-brand hover:text-white"
-              >
+              <CounsellingButton className="group mt-10 inline-flex items-center gap-2 rounded-full bg-white py-2 pr-2 pl-6 text-sm font-semibold text-ink transition hover:bg-brand hover:text-white">
                 Book free counselling
                 <span className="flex size-8 items-center justify-center rounded-full bg-ink text-white transition group-hover:translate-x-0.5 group-hover:bg-white group-hover:text-brand">
                   <ArrowRight className="size-4" />
                 </span>
-              </Link>
+              </CounsellingButton>
             </div>
           </div>
           <div className="lg:col-span-7">
@@ -217,7 +215,7 @@ export default function Home() {
           eyebrow="Success stories"
           title={
             <>
-              Where our students are <Accent>soaring today.</Accent>
+              Where our students are <Accent>working today.</Accent>
             </>
           }
         />

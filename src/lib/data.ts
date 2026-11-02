@@ -2,6 +2,7 @@ import { istDay } from "@/lib/format";
 import { roles } from "@/lib/airlines";
 import type { Profile } from "@/lib/auth";
 import type { BirthdayStudent } from "@/lib/birthdays";
+import type { ChatMessage, ChatMode } from "@/lib/chats";
 import type { LeadStatus } from "@/lib/leads";
 import { JOBS_PAGE_SIZE, type JobQuery } from "@/lib/job-query";
 import { groupRecruiters, type RecruiterEmail } from "@/lib/recruiters";
@@ -95,6 +96,51 @@ export async function getLeads() {
   const supabase = await createClient();
   const { data } = await supabase.from("leads").select("*").order("created_at", { ascending: false }).limit(1000);
   return ((data ?? []) as Lead[]).map((l) => ({ ...l, status: l.status ?? "new" }));
+}
+
+export type ChatSession = {
+  id: string;
+  page: string | null;
+  name: string | null;
+  phone: string | null;
+  lead_id: string | null;
+  started_at: string;
+  updated_at: string;
+  read_at: string | null;
+  mode: ChatMode;
+  taken_by: string | null;
+  taken_by_name: string | null;
+  taken_at: string | null;
+  visitor_seen_at: string;
+  chat_messages: ChatMessage[];
+};
+
+/** One row of the admin Chats list: the session plus its last couple of messages for the preview line. */
+export type ChatSummary = Omit<ChatSession, "chat_messages"> & { chat_messages: Pick<ChatMessage, "sender" | "text">[] };
+
+/** Website chat conversations for the admin list, newest activity first. RLS limits this to staff. */
+export async function getChatSummaries() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("chat_sessions")
+    .select("*, chat_messages(sender, text)")
+    .order("updated_at", { ascending: false })
+    .order("id", { referencedTable: "chat_messages", ascending: false })
+    .limit(3, { referencedTable: "chat_messages" })
+    .limit(500);
+  return (data ?? []) as ChatSummary[];
+}
+
+/** One conversation with every message, oldest first. */
+export async function getChatSession(id: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("chat_sessions")
+    .select("*, chat_messages(id, sender, text, staff_name, created_at)")
+    .eq("id", id)
+    .order("id", { referencedTable: "chat_messages", ascending: true })
+    .maybeSingle();
+  return (data ?? null) as ChatSession | null;
 }
 
 /** Fee payments for one student plus the paid/due totals. RLS limits students to their own rows. */

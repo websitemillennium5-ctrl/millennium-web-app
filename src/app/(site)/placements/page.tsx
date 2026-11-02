@@ -23,7 +23,7 @@ export default function PlacementsPage() {
         eyebrow="Placements"
         title={
           <>
-            450+ students, <HeroAccent>now soaring.</HeroAccent>
+            450+ students, <HeroAccent>now flying.</HeroAccent>
           </>
         }
         text="In just three years, our students have started careers with India's leading airlines, international carriers and premium hotel brands. Here's where they are today."

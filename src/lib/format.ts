@@ -8,6 +8,12 @@ const dateOnly = /^\d{4}-\d{2}-\d{2}$/;
 const day = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
 const dayPlain = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 export const formatDate = (value: string | null | undefined) => (value ? (dateOnly.test(value) ? dayPlain : day).format(new Date(value)) : "—");
+const dayTime = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" });
+const timeOnly = new Intl.DateTimeFormat("en-IN", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" });
+/** "3 Nov, 10:42 am" on India's clock. */
+export const formatDateTime = (value: string) => dayTime.format(new Date(value));
+/** "10:42 am" on India's clock. */
+export const formatTime = (value: string) => timeOnly.format(new Date(value));
 
 /** Today's date in India (YYYY-MM-DD), the calendar the academy runs on; `t` shifts it (e.g. 7 days ago). */
 export const istDay = (t = Date.now()) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(t);

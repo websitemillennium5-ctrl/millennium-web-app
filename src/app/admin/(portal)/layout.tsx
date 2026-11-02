@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ChatAlerts } from "@/components/portal/chat-alerts";
 import { PortalShell } from "@/components/portal/shell";
 import { requireStaff } from "@/lib/auth";
 
@@ -9,6 +10,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
     <PortalShell portal="admin" profile={profile}>
       {children}
+      <ChatAlerts />
     </PortalShell>
   );
 }

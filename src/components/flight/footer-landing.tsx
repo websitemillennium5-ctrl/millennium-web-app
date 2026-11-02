@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Link from "next/link";
+import { CounsellingButton } from "@/components/counselling";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { useLenis } from "lenis/react";
@@ -118,15 +118,12 @@ export function FooterLanding() {
             Every journey that starts at Millennium ends at a gate of your
             choice.
           </p>
-          <Link
-            href="/contact#enquire"
-            className="group pointer-events-auto mt-8 inline-flex items-center gap-2 rounded-full bg-white py-2 pr-2 pl-6 text-sm font-semibold text-ink transition hover:bg-brand hover:text-white"
-          >
+          <CounsellingButton className="group pointer-events-auto mt-8 inline-flex items-center gap-2 rounded-full bg-white py-2 pr-2 pl-6 text-sm font-semibold text-ink transition hover:bg-brand hover:text-white">
             Book free counselling
             <span className="flex size-8 items-center justify-center rounded-full bg-ink text-white transition group-hover:translate-x-0.5 group-hover:bg-white group-hover:text-brand">
               <ArrowRight className="size-4" />
             </span>
-          </Link>
+          </CounsellingButton>
         </div>
       </div>
     </div>

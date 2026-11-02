@@ -342,7 +342,7 @@ export const admissionSteps = [
   {
     title: "Personal interview",
     text: "A conversation about your personality, goals and passion.",
-    image: { src: "/images/namaste.jpg", alt: "A poised student greeting with a namaste" },
+    image: { src: "/images/namaste-2.jpg", alt: "A poised student greeting with a namaste" },
   },
   {
     title: "Enrolment",

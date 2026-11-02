@@ -7,10 +7,13 @@ import sharp from "sharp";
 import type { FormState } from "@/app/actions/auth";
 import { ANNOUNCEMENT_IMAGE_BUCKET, ANNOUNCEMENT_IMAGE_MAX_BYTES, ANNOUNCEMENT_IMAGE_MAX_EDGE, ANNOUNCEMENT_IMAGE_TYPES } from "@/lib/announcements";
 import { requireStaff } from "@/lib/auth";
+import { ONLINE_WINDOW_MS, type ChatMessage, type ChatMode, type ChatSender } from "@/lib/chats";
+import { getChatSummaries, type ChatSummary } from "@/lib/data";
 import { leadStatuses } from "@/lib/leads";
 import { eventTable, jobTable } from "@/lib/job-sources";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { site } from "@/lib/site";
 import { localOnlyScrapers } from "@/lib/sync";
 import { STUDY_BUCKET, STUDY_MAX_BYTES } from "@/lib/study";
 import { youtubeId } from "@/lib/video";
@@ -430,4 +433,142 @@ export async function removeStaff(fd: FormData) {
   if (target?.role !== "staff" && target?.role !== "admin") return;
   await createAdminClient().auth.admin.deleteUser(id);
   revalidatePath("/admin/staff");
+}
+
+// ───────── Website chat (live takeover) ─────────
+
+export type ChatUpdate = { mode: ChatMode; takenByName: string | null; visitorSeenAt: string; messages: ChatMessage[] };
+
+const chatText = (value: string) => value.trim().slice(0, 2000);
+
+/** The conversation list, polled by the Chats page so new chats and replies show up without a reload. */
+export async function listChats(): Promise<ChatSummary[]> {
+  await requireStaff();
+  return getChatSummaries();
+}
+
+/** Messages newer than `afterId` plus the session's current state. Polled by the open transcript; also marks it read. */
+export async function getChatUpdates(id: string, afterId: number): Promise<ChatUpdate | null> {
+  await requireStaff();
+  const supabase = await createClient();
+  const [{ data: session }, { data: rows }] = await Promise.all([
+    supabase.from("chat_sessions").update({ read_at: new Date().toISOString(), staff_seen_at: new Date().toISOString() }).eq("id", id).select("mode, taken_by_name, visitor_seen_at").maybeSingle(),
+    supabase.from("chat_messages").select("id, sender, text, staff_name, created_at").eq("session_id", id).gt("id", afterId).order("id"),
+  ]);
+  if (!session) return null;
+  return { mode: session.mode as ChatMode, takenByName: session.taken_by_name, visitorSeenAt: session.visitor_seen_at, messages: (rows ?? []) as ChatMessage[] };
+}
+
+async function systemNote(id: string, text: string) {
+  const supabase = await createClient();
+  const now = new Date().toISOString();
+  await supabase.from("chat_messages").insert({ session_id: id, sender: "system", text });
+  await supabase.from("chat_sessions").update({ updated_at: now, read_at: now }).eq("id", id);
+}
+
+/** Switches the chat from the assistant to this staff member; the visitor sees them join. */
+export async function takeOverChat(id: string) {
+  const profile = await requireStaff();
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("chat_sessions")
+    .update({ mode: "staff", taken_by: profile.id, taken_by_name: profile.full_name, taken_at: new Date().toISOString(), staff_seen_at: new Date().toISOString() })
+    .eq("id", id)
+    .neq("mode", "ended")
+    .select("id")
+    .maybeSingle();
+  if (data) await systemNote(id, `${profile.full_name} from ${site.shortName} joined the chat`);
+  revalidatePath("/admin/chats");
+}
+
+/** Sends a reply to the visitor. Taking the chat over first if the assistant was still running it. */
+export async function replyToChat(id: string, text: string) {
+  const profile = await requireStaff();
+  const body = chatText(text);
+  if (!body) return;
+  const supabase = await createClient();
+  const { data: session } = await supabase.from("chat_sessions").select("mode").eq("id", id).maybeSingle();
+  if (!session || session.mode === "ended") return;
+  if (session.mode !== "staff") await takeOverChat(id);
+  const now = new Date().toISOString();
+  await supabase.from("chat_messages").insert({ session_id: id, sender: "staff", text: body, staff_id: profile.id, staff_name: profile.full_name });
+  await supabase.from("chat_sessions").update({ updated_at: now, read_at: now }).eq("id", id);
+}
+
+/** Hands the chat back to the assistant, or ends it for good. */
+export async function releaseChat(id: string, how: "bot" | "ended") {
+  const profile = await requireStaff();
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("chat_sessions")
+    .update(how === "bot" ? { mode: "bot", taken_by: null, taken_by_name: null, taken_at: null } : { mode: "ended" })
+    .eq("id", id)
+    .neq("mode", "ended")
+    .select("id")
+    .maybeSingle();
+  if (data) await systemNote(id, how === "bot" ? `${profile.full_name} left the chat. The assistant will continue.` : `Chat ended by ${profile.full_name}`);
+  revalidatePath("/admin/chats");
+}
+
+export type ChatAlert = {
+  id: string;
+  name: string | null;
+  phone: string | null;
+  page: string | null;
+  mode: ChatMode;
+  taken_by_name: string | null;
+  started_at: string;
+  visitor_seen_at: string;
+  chat_messages: { sender: ChatSender; text: string }[];
+};
+
+/** A chat this staff member is handling, with the visitor's latest message (if they have sent any). */
+export type TakenChat = { id: string; name: string | null; phone: string | null; chat_messages: { id: number; text: string }[] };
+
+export type ChatAlertsResult = { waiting: ChatAlert[]; taken: TakenChat[] };
+
+const CHAT_ID = /^[0-9a-f-]{36}$/i;
+
+/**
+ * For the portal-wide chat alert: live chats nobody has taken over yet (the assistant is still replying and the
+ * visitor is online), plus the chats this staff member is handling, each with the visitor's newest message so the
+ * portal can notify them of replies. `watching` are the chats they are already being alerted about: those come
+ * back whatever their state, so the alert can clear itself once someone takes the chat or it ends.
+ */
+export async function chatAlerts(watching: string[]): Promise<ChatAlertsResult> {
+  const profile = await requireStaff();
+  const supabase = await createClient();
+  const since = new Date(Date.now() - ONLINE_WINDOW_MS).toISOString();
+  const ids = watching.filter((id) => CHAT_ID.test(id)).slice(0, 20);
+  const unattended = `and(mode.eq.bot,visitor_seen_at.gt.${since})`;
+  const [{ data: waiting }, { data: taken }] = await Promise.all([
+    supabase
+      .from("chat_sessions")
+      .select("id, name, phone, page, mode, taken_by_name, started_at, visitor_seen_at, chat_messages(sender, text)")
+      .or(ids.length ? `${unattended},id.in.(${ids.join(",")})` : unattended)
+      .order("started_at", { ascending: true })
+      .order("id", { referencedTable: "chat_messages", ascending: false })
+      .limit(3, { referencedTable: "chat_messages" })
+      .limit(20),
+    supabase
+      .from("chat_sessions")
+      .select("id, name, phone, chat_messages(id, text)")
+      .eq("mode", "staff")
+      .eq("taken_by", profile.id)
+      .eq("chat_messages.sender", "visitor")
+      .order("id", { referencedTable: "chat_messages", ascending: false })
+      .limit(1, { referencedTable: "chat_messages" })
+      .limit(20),
+  ]);
+  return { waiting: (waiting ?? []) as ChatAlert[], taken: (taken ?? []) as TakenChat[] };
+}
+
+/** Deletes a chat for good: the session row and, through the cascade, every message in it. Staff only (RLS). */
+export async function deleteChat(id: string) {
+  await requireStaff();
+  if (!CHAT_ID.test(id)) return;
+  const supabase = await createClient();
+  const { error } = await supabase.from("chat_sessions").delete().eq("id", id);
+  if (error) throw new Error(`Deleting the chat failed: ${error.message}`);
+  revalidatePath("/admin/chats");
 }

@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
+import { CounsellingButton } from "@/components/counselling";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, ChevronsDown } from "lucide-react";
 import { useLenis } from "lenis/react";
@@ -87,7 +88,7 @@ const chapters: Chapter[] = [
     kicker: "05 · Your career",
     title: (
       <>
-        450+ students <Em>now soaring.</Em>
+        450+ students <Em>now flying.</Em>
       </>
     ),
     text: "Our alumni fly and work with IndiGo, Air India, Emirates, Qatar Airways, Akasa Air and more. You could be next.",
@@ -186,7 +187,7 @@ export function FlightStory() {
           className="pointer-events-none absolute right-[12%] bottom-[15%] hidden aspect-square h-[78%] max-h-[560px] origin-bottom mix-blend-multiply lg:block"
         >
           <Image
-            src="/images/namaste.jpg"
+            src="/images/namaste-2.jpg"
             alt=""
             fill
             priority
@@ -247,13 +248,10 @@ export function FlightStory() {
                   )}
                   {(i === 0 || c.dark) && (
                     <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                      <Link
-                        href="/contact#enquire"
-                        className="group inline-flex items-center justify-center gap-2 rounded-full bg-brand px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-brand/30 transition hover:bg-brand-dark"
-                      >
+                      <CounsellingButton className="group inline-flex items-center justify-center gap-2 rounded-full bg-brand px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-brand/30 transition hover:bg-brand-dark">
                         Book free counselling
                         <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-                      </Link>
+                      </CounsellingButton>
                       <Link
                         href="/courses"
                         className={`inline-flex items-center justify-center rounded-full px-6 py-3.5 text-sm font-semibold transition ${

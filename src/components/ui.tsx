@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, ArrowUpRight, Building2, Clock, GraduationCap, Plane, Plus } from "lucide-react";
 import type { Course } from "@/lib/site";
 import { faqs as allFaqs, partners, placedStudents, testimonials } from "@/lib/site";
+import { CounsellingButton } from "@/components/counselling";
 
 export function Eyebrow({ children, light }: { children: React.ReactNode; light?: boolean }) {
   return (
@@ -69,12 +70,22 @@ export function ButtonLink({
     secondary: "border border-line bg-white text-ink hover:border-ink",
     light: "bg-white text-ink hover:bg-white/90",
   }[variant];
+  const className = `group inline-flex items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold transition ${styles}`;
+  // The enquiry form opens instantly, full screen, instead of navigating to the contact page
+  if (href === "/contact#enquire") {
+    return (
+      <CounsellingButton className={className}>
+        {children}
+        <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+      </CounsellingButton>
+    );
+  }
   const external = href.startsWith("http");
   return (
     <Link
       href={href}
       {...(external ? { target: "_blank", rel: "noreferrer" } : {})}
-      className={`group inline-flex items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold transition ${styles}`}
+      className={className}
     >
       {children}
       <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />

@@ -24,6 +24,7 @@ const sourceChip: Record<string, string> = {
   "jobs page": "border-accent/20 bg-accent/10 text-accent-dark",
   "contact page": "border-sky-200 bg-sky-50 text-sky-800",
   "course page": "border-violet-200 bg-violet-50 text-violet-800",
+  chat: "border-emerald-200 bg-emerald-50 text-emerald-800",
 };
 
 /** Soft avatar colour per person, so names are easy to tell apart down the list. */

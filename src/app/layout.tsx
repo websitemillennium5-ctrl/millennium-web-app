@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Caveat, Instrument_Serif, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { site } from "@/lib/site";
@@ -22,6 +22,10 @@ const caveat = Caveat({
   subsets: ["latin"],
   weight: ["500", "600"],
 });
+
+// maximum-scale=1 stops iPhone Safari zooming the page in when a text box smaller than 16px is focused
+// (the chat, enquiry form and portal inputs). Pinch-zoom still works on iOS.
+export const viewport: Viewport = { width: "device-width", initialScale: 1, maximumScale: 1 };
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),

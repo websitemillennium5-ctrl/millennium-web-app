@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Globe, LogOut, Phone } from "lucide-react";
 import { signOut } from "@/app/actions/auth";
+import { AccountMenu } from "@/components/portal/account-menu";
 import { Breadcrumbs, PortalNav, StudentDock } from "@/components/portal/nav";
 import { ThemeToggle } from "@/components/portal/theme-toggle";
 import type { Profile } from "@/lib/auth";
@@ -119,7 +120,7 @@ export async function PortalShell({ portal, profile, children }: { portal: "stud
             <Globe className="size-4" /> Visit website
           </Link>
           <div className="mt-4 flex items-center gap-3 border-t border-line px-2 pt-4">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-white">{initials}</span>
+            <AccountMenu portal={portal} name={profile.full_name || profile.email || "Account"} email={profile.email} role={roleLabel} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-[12.5px] font-medium text-ink">{profile.full_name || profile.email}</p>
               <p className="flex items-center gap-1.5 truncate text-xs text-muted">
@@ -128,7 +129,6 @@ export async function PortalShell({ portal, profile, children }: { portal: "stud
                 {profile.roll_no && ` · ${profile.roll_no}`}
               </p>
             </div>
-            <SignOutButton portal={portal} />
           </div>
         </div>
       </aside>

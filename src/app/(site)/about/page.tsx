@@ -64,7 +64,7 @@ export default function AboutPage() {
       <section className="container-x grid items-center gap-14 py-20 lg:grid-cols-2 lg:py-28">
         <div className="grid grid-cols-2 gap-4">
           <div className="relative aspect-[3/4] overflow-hidden rounded-3xl bg-mist">
-            <Image src="/images/namaste.jpg" alt="Millennium student greeting with a namaste" fill sizes="25vw" className="object-cover" />
+            <Image src="/images/namaste-2.jpg" alt="Millennium student greeting with a namaste" fill sizes="25vw" className="object-cover" />
           </div>
           <div className="relative mt-12 aspect-[3/4] overflow-hidden rounded-3xl bg-mist">
             <Image src="/images/academy-team.jpg" alt="Students in uniform in front of an aircraft" fill sizes="25vw" className="object-cover" />

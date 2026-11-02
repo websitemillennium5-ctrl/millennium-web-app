@@ -7,7 +7,7 @@ export const leadStatuses = [
 ] as const;
 export type LeadStatus = (typeof leadStatuses)[number]["value"];
 
-export const leadSources = { "contact page": "Contact page", "course page": "Course page", "jobs page": "Jobs page" } as const;
+export const leadSources = { "contact page": "Contact page", "course page": "Course page", "jobs page": "Jobs page", chat: "Website chat" } as const;
 
 export const experienceLabels: Record<string, string> = {
   none: "No prior experience",

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ArrowUpRight, Menu, Phone, X } from "lucide-react";
 import { nav, site, telHref } from "@/lib/site";
+import { PlacementsTag } from "@/components/placements-highlight";
 
 export function Header() {
   const pathname = usePathname();
@@ -94,6 +95,8 @@ export function Header() {
             {open ? <X className="size-4.5" /> : <Menu className="size-4.5" />}
           </button>
         </div>
+
+        {!open && <PlacementsTag />}
 
         {open && (
           <div className="absolute inset-x-5 top-full mt-2 overflow-hidden rounded-3xl border border-white/60 bg-white/90 shadow-[0_24px_48px_-16px_rgba(11,18,32,0.3)] ring-1 ring-ink/5 backdrop-blur-xl xl:hidden">
