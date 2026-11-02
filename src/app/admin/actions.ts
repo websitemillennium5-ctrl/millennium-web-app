@@ -642,7 +642,9 @@ export type LeadAlertsResult = { leads: LeadAlert[]; now: string };
 export async function leadAlerts(since: string | null): Promise<LeadAlertsResult> {
   await requirePage("leads");
   const now = new Date().toISOString();
-  const after = since && !Number.isNaN(Date.parse(since)) ? new Date(since).toISOString() : null;
+  // Passed through as the exact string Postgres gave us: rounding it to a JS Date (milliseconds) would put it a
+  // fraction before the enquiry it came from (microseconds), and that enquiry would be returned again forever
+  const after = since && !Number.isNaN(Date.parse(since)) && since.length < 64 ? since : null;
   if (!after) return { leads: [], now };
   const { data } = await (await createClient())
     .from("leads")

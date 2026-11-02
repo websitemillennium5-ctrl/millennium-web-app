@@ -29,9 +29,11 @@ export function Header() {
 
   const raised = scrolled || open;
 
-  // Negative bottom margin lets the page (and each hero background) slide underneath the floating bar
+  // Negative bottom margin lets the page (and each hero background) slide underneath the floating bar.
+  // On phones the bar sticks a little below the top: iOS Safari's collapsed address bar overlaps the first
+  // pixels of the page while scrolling, and the pill was sliding under it.
   return (
-    <header className="sticky top-0 z-50 -mb-20 flex h-20 items-center xl:-mb-24 xl:h-24">
+    <header className="sticky top-3 z-50 -mb-20 flex h-20 items-center xl:top-0 xl:-mb-24 xl:h-24">
       <div className="container-x relative">
         <div
           className={`flex h-14 items-center justify-between gap-6 rounded-full border pr-2 pl-5 backdrop-blur-2xl backdrop-saturate-[1.8] transition-all duration-500 xl:h-16 xl:pr-2.5 xl:pl-7 ${

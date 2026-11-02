@@ -49,17 +49,15 @@ export function CounsellingModal() {
     >
       <div className="flex h-full flex-col">
         <header className="flex items-center justify-between gap-4 border-b border-line px-5 py-4 sm:px-8">
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold tracking-[0.18em] text-brand uppercase">Free counselling</p>
-            <h2 className="mt-0.5 truncate text-lg font-semibold tracking-tight sm:text-xl">Book your session</h2>
-          </div>
+          <h2 className="truncate text-lg font-semibold tracking-tight">Free counselling</h2>
           <div className="flex shrink-0 items-center gap-2">
             <a
               href={telHref(site.phones[0])}
-              className="hidden items-center gap-2 rounded-full border border-line px-4 py-2 text-sm font-medium text-ink-soft transition hover:border-ink hover:text-ink sm:flex"
+              aria-label={`Call ${site.phones[0]}`}
+              title={site.phones[0]}
+              className="flex size-10 items-center justify-center rounded-full bg-mist text-ink transition hover:bg-ink hover:text-white"
             >
               <Phone className="size-4" />
-              {site.phones[0]}
             </a>
             <button
               type="button"
@@ -73,23 +71,8 @@ export function CounsellingModal() {
         </header>
 
         <div className="flex-1 overflow-y-auto overscroll-contain">
-          <div className="mx-auto max-w-2xl px-5 py-8 sm:px-8 sm:py-12">
-            <h3 className="text-3xl leading-[1.05] font-semibold tracking-tight text-balance sm:text-4xl">
-              Let&apos;s find the right course <em className="font-serif font-normal text-brand italic">for you.</em>
-            </h3>
-            <p className="mt-4 max-w-xl text-muted">
-              Share a few details and a counsellor will call you within a few hours. It&apos;s free, with no obligation.
-            </p>
-            <div className="mt-8">
-              <EnquiryForm />
-            </div>
-            <p className="mt-6 text-xs text-muted sm:hidden">
-              Prefer to talk? Call us on{" "}
-              <a href={telHref(site.phones[0])} className="font-medium text-ink underline underline-offset-2">
-                {site.phones[0]}
-              </a>
-              .
-            </p>
+          <div className="mx-auto max-w-xl px-5 py-6 sm:px-8 sm:py-10">
+            <EnquiryForm />
           </div>
         </div>
       </div>

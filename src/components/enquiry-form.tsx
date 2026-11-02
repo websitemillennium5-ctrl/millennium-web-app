@@ -52,30 +52,23 @@ export function EnquiryForm({ defaultCourse = "" }: { defaultCourse?: string }) 
 
   if (done) {
     return (
-      <div role="status" aria-live="polite" className="rounded-2xl border border-line bg-mist/60 p-6 text-center sm:p-8">
-        <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-good/10 text-good">
-          <CheckCircle2 className="size-7" />
+      <div role="status" aria-live="polite" className="py-6 text-center">
+        <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-good/10 text-good">
+          <CheckCircle2 className="size-6" />
         </span>
-        <h3 className="mt-4 text-xl font-semibold tracking-tight">Thanks, {done.name}! We&apos;ve received your enquiry.</h3>
-        <p className="mx-auto mt-2 max-w-md text-sm text-muted">
-          A counsellor will call you within a few hours. Want a faster reply? Continue the conversation on WhatsApp and
-          your details will already be filled in.
-        </p>
-        <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <a
-            href={done.whatsapp}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-[#25D366] px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#25D366]/25 transition hover:brightness-95"
-          >
-            <WhatsAppIcon className="size-4" /> Continue on WhatsApp
-          </a>
-          <button
-            type="button"
-            onClick={() => setDone(null)}
-            className="inline-flex items-center justify-center rounded-full px-5 py-3.5 text-sm font-semibold text-muted transition hover:text-ink"
-          >
-            Send another enquiry
+        <h3 className="mt-4 text-xl font-semibold tracking-tight">Thanks, {done.name}!</h3>
+        <p className="mt-1 text-sm text-muted">A counsellor will call you soon.</p>
+        <a
+          href={done.whatsapp}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-[#25D366] px-6 py-3 text-sm font-semibold text-white transition hover:brightness-95"
+        >
+          <WhatsAppIcon className="size-4" /> WhatsApp us
+        </a>
+        <div className="mt-4">
+          <button type="button" onClick={() => setDone(null)} className="text-sm text-muted underline underline-offset-4 transition hover:text-ink">
+            Send another
           </button>
         </div>
       </div>
@@ -86,54 +79,31 @@ export function EnquiryForm({ defaultCourse = "" }: { defaultCourse?: string }) 
     "w-full rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none transition placeholder:text-muted/70 focus:border-ink focus:ring-4 focus:ring-ink/5";
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
-      <label className="grid gap-1.5 text-sm font-medium">
-        Full name *
-        <input name="name" required autoComplete="name" placeholder="Your name" className={field} />
-      </label>
-      <label className="grid gap-1.5 text-sm font-medium">
-        Phone *
-        <input
-          name="phone"
-          type="tel"
-          required
-          autoComplete="tel"
-          pattern="[0-9+\s\-]{10,15}"
-          placeholder="+91 98765 43210"
-          className={field}
-        />
-      </label>
-      <label className="grid gap-1.5 text-sm font-medium">
-        Email
-        <input name="email" type="email" autoComplete="email" placeholder="you@example.com" className={field} />
-      </label>
-      <label className="grid gap-1.5 text-sm font-medium">
-        Course of interest
-        <select name="course" defaultValue={defaultCourse} className={field}>
-          <option value="">Not sure yet</option>
-          {courses.map((c) => (
-            <option key={c.slug} value={c.title}>
-              {c.title}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="grid gap-1.5 text-sm font-medium sm:col-span-2">
-        Message
-        <textarea name="message" rows={4} placeholder="Tell us a little about yourself or ask a question" className={field} />
-      </label>
-      <div className="flex flex-col gap-3 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
-        <p className={`text-xs ${error ? "text-brand" : "text-muted"}`} aria-live="polite">
-          {error ?? "We usually reply within a few hours."}
+    // Placeholders do the labelling: four fields, nothing else to read
+    <form onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-2">
+      <input name="name" required autoComplete="name" placeholder="Name" aria-label="Name" className={field} />
+      <input name="phone" type="tel" required autoComplete="tel" pattern="[0-9+\s\-]{10,15}" placeholder="Phone" aria-label="Phone" className={field} />
+      <select name="course" defaultValue={defaultCourse} aria-label="Course" className={`${field} sm:col-span-2`}>
+        <option value="">Course (not sure yet)</option>
+        {courses.map((c) => (
+          <option key={c.slug} value={c.title}>
+            {c.title}
+          </option>
+        ))}
+      </select>
+      <textarea name="message" rows={2} placeholder="Message (optional)" aria-label="Message" className={`${field} sm:col-span-2`} />
+      {error && (
+        <p className="text-xs text-brand sm:col-span-2" aria-live="polite">
+          {error}
         </p>
-        <button
-          type="submit"
-          disabled={sending}
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-brand px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-brand/25 transition hover:bg-brand-dark disabled:opacity-60"
-        >
-          {sending ? "Sending…" : "Send enquiry"} <Send className="size-4" />
-        </button>
-      </div>
+      )}
+      <button
+        type="submit"
+        disabled={sending}
+        className="inline-flex items-center justify-center gap-2 rounded-full bg-brand px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:opacity-60 sm:col-span-2"
+      >
+        {sending ? "Sending…" : "Send"} <Send className="size-4" />
+      </button>
     </form>
   );
 }

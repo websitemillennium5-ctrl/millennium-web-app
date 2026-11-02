@@ -2,24 +2,43 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { BellRing, Clock, Globe, Headset } from "lucide-react";
-import { chatAlerts, takeOverChat, type ChatAlert, type TakenChat } from "@/app/admin/actions";
+import { BellRing, Headset } from "lucide-react";
+import {
+  chatAlerts,
+  takeOverChat,
+  type ChatAlert,
+  type TakenChat,
+} from "@/app/admin/actions";
 import { visitorOnline } from "@/lib/chats";
-import { alarmUrl, away, canNotify, pingUrl } from "@/components/portal/alert-tones";
+import {
+  alarmUrl,
+  away,
+  canNotify,
+  pingUrl,
+} from "@/components/portal/alert-tones";
 
 /**
  * How often the portal asks for unattended chats and replies: a little slower when the tab is in the
  * background, faster while this staff member is in the middle of a live conversation, and fastest while an
  * alarm is ringing so it stops here within seconds once a colleague takes the chat over.
  */
-const POLL_MS = { visible: 10_000, hidden: 30_000, liveVisible: 5_000, liveHidden: 15_000, ringing: 3_000, ringingHidden: 5_000 };
+const POLL_MS = {
+  visible: 10_000,
+  hidden: 30_000,
+  liveVisible: 5_000,
+  liveHidden: 15_000,
+  ringing: 3_000,
+  ringingHidden: 5_000,
+};
 /** Chats this staff member chose to ignore, remembered per browser so the alert doesn't come back after a reload. */
 const IGNORED_KEY = "chat-alerts-ignored";
 
 function loadIgnored(): string[] {
   try {
     const v = JSON.parse(localStorage.getItem(IGNORED_KEY) ?? "[]");
-    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+    return Array.isArray(v)
+      ? v.filter((x): x is string => typeof x === "string")
+      : [];
   } catch {
     return [];
   }
@@ -31,19 +50,24 @@ function saveIgnored(ids: string[]) {
 }
 
 /** That conversation is open on screen right now: the Chats page with this chat selected, in the focused tab. */
-const viewing = (id: string) => !away() && location.pathname === "/admin/chats" && new URLSearchParams(location.search).get("chat") === id;
+const viewing = (id: string) =>
+  !away() &&
+  location.pathname === "/admin/chats" &&
+  new URLSearchParams(location.search).get("chat") === id;
 
 const ago = (iso: string, now: number) => {
   const s = Math.max(0, Math.round((now - Date.parse(iso)) / 1000));
   return s < 60 ? `${s}s ago` : `${Math.round(s / 60)} min ago`;
 };
-const lastVisitorLine = (a: ChatAlert) => a.chat_messages.find((m) => m.sender === "visitor")?.text ?? null;
+const lastVisitorLine = (a: ChatAlert) =>
+  a.chat_messages.find((m) => m.sender === "visitor")?.text ?? null;
 /** "/airline-jobs/indigo/123" → "Airline jobs", "/" → "Home page" */
 const pageLabel = (path: string) => {
   const first = path.split("/").filter(Boolean)[0];
-  return first ? first.charAt(0).toUpperCase() + first.slice(1).replace(/-/g, " ") : "Home page";
+  return first
+    ? first.charAt(0).toUpperCase() + first.slice(1).replace(/-/g, " ")
+    : "Home page";
 };
-const initial = (name: string | null) => (name?.trim()[0] ?? "?").toUpperCase();
 
 /**
  * Portal-wide alert for website visitors chatting with the assistant while no staff member has taken over.
@@ -56,7 +80,9 @@ export function ChatAlerts() {
   const [now, setNow] = useState(() => Date.now());
   const [muted, setMuted] = useState(false); // the browser refused to play before the person interacted with the page
   const [pending, startTransition] = useTransition();
-  const [notifyState, setNotifyState] = useState<NotificationPermission | "unsupported">(() => (canNotify() ? Notification.permission : "unsupported"));
+  const [notifyState, setNotifyState] = useState<
+    NotificationPermission | "unsupported"
+  >(() => (canNotify() ? Notification.permission : "unsupported"));
   const ignored = useRef<string[]>([]);
   const showing = useRef<string[]>([]);
   const audio = useRef<HTMLAudioElement | null>(null);
@@ -93,13 +119,18 @@ export function ChatAlerts() {
     if (!canNotify() || Notification.permission !== "granted") return;
     try {
       notes.current.get(a.id)?.close();
-      const n = new Notification(a.name ? `${a.name} is waiting in chat` : "A visitor is waiting in chat", {
-        body: `${lastVisitorLine(a) ?? "Started a chat"}${a.page ? ` · on ${a.page}` : ""}`,
-        tag: `chat-${a.id}`,
-        icon: "/images/logo-mark.png",
-        requireInteraction: true,
-        renotify: true, // not in the DOM typings yet, but Chrome honours it
-      } as NotificationOptions);
+      const n = new Notification(
+        a.name
+          ? `${a.name} is waiting in chat`
+          : "A visitor is waiting in chat",
+        {
+          body: `${lastVisitorLine(a) ?? "Started a chat"}${a.page ? ` · on ${a.page}` : ""}`,
+          tag: `chat-${a.id}`,
+          icon: "/images/logo-mark.png",
+          requireInteraction: true,
+          renotify: true, // not in the DOM typings yet, but Chrome honours it
+        } as NotificationOptions,
+      );
       n.onclick = () => {
         window.focus();
         router.push(`/admin/chats?chat=${a.id}`);
@@ -148,21 +179,35 @@ export function ChatAlerts() {
       if (stopped) return;
       if (res) {
         const t = Date.now();
-        const next = res.waiting.filter((s) => s.mode === "bot" && !ignored.current.includes(s.id) && (showing.current.includes(s.id) || visitorOnline(s, t)));
+        const next = res.waiting.filter(
+          (s) =>
+            s.mode === "bot" &&
+            !ignored.current.includes(s.id) &&
+            (showing.current.includes(s.id) || visitorOnline(s, t)),
+        );
         showing.current = next.map((a) => a.id);
-        for (const id of [...notes.current.keys()]) if (!showing.current.includes(id)) closeNote(id);
+        for (const id of [...notes.current.keys()])
+          if (!showing.current.includes(id)) closeNote(id);
         if (away()) next.forEach(notify);
         setAlerts(next);
         setNow(t);
 
         // Replies in the chats this staff member is handling. The first poll only records where each chat is,
         // so reloading the portal doesn't re-announce messages already read.
-        const latest = new Map(res.taken.map((c) => [c.id, c.chat_messages[0] ?? null] as const));
+        const latest = new Map(
+          res.taken.map((c) => [c.id, c.chat_messages[0] ?? null] as const),
+        );
         if (seen.current) {
           for (const c of res.taken) {
             const last = latest.get(c.id);
             // A chat seen for the first time (just taken over) is only recorded: its earlier messages were read in the popup or the transcript
-            if (last && seen.current.has(c.id) && last.id > (seen.current.get(c.id) ?? 0) && !viewing(c.id)) notifyReply(c, last.text);
+            if (
+              last &&
+              seen.current.has(c.id) &&
+              last.id > (seen.current.get(c.id) ?? 0) &&
+              !viewing(c.id)
+            )
+              notifyReply(c, last.text);
           }
         }
         seen.current = new Map([...latest].map(([id, m]) => [id, m?.id ?? 0]));
@@ -197,7 +242,9 @@ export function ChatAlerts() {
   const ringing = alerts.length > 0;
   useEffect(() => {
     if (!ringing) return;
-    const el = audio.current ?? (audio.current = Object.assign(new Audio(alarmUrl()), { loop: true }));
+    const el =
+      audio.current ??
+      (audio.current = Object.assign(new Audio(alarmUrl()), { loop: true }));
     let gone = false;
     const play = () =>
       el
@@ -246,82 +293,85 @@ export function ChatAlerts() {
   if (!alerts.length) return null;
 
   return (
-    <div role="alertdialog" aria-live="assertive" aria-label="Visitors waiting in chat" className="animate-pop-in">
-      <div className="overflow-hidden rounded-3xl bg-white text-ink shadow-[0_24px_60px_-20px_rgba(11,18,32,0.45)] ring-1 ring-ink/10">
-        <div className="relative flex items-center gap-3 bg-ink px-4 py-3 text-white">
-          <span className="relative flex size-9 shrink-0 items-center justify-center rounded-full bg-white/10">
-            <span className="absolute inset-0 animate-ping rounded-full bg-white/15" />
-            <BellRing className="relative size-4" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold">{alerts.length === 1 ? "A visitor is chatting" : `${alerts.length} visitors are chatting`}</p>
-            <p className="truncate text-[11.5px] text-white/60">{muted ? "Click anywhere to turn the sound on" : "Nobody has replied yet"}</p>
-          </div>
-          <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium">
-            <span className="size-1.5 rounded-full bg-green-400" />
-            Live
-          </span>
-        </div>
-        {notifyState === "default" && (
-          <button type="button" onClick={askToNotify} className="flex w-full items-center justify-between gap-2 border-b border-line bg-mist px-4 py-2 text-left text-[12px] text-ink-soft hover:text-ink">
-            Get alerted while you are in another app or tab <span className="shrink-0 font-semibold text-ink">Allow</span>
-          </button>
-        )}
-        {notifyState === "denied" && (
-          <p className="border-b border-line bg-mist px-4 py-2 text-[12px] text-muted">Notifications are blocked for this site in your browser, so alerts only show while this tab is open.</p>
-        )}
-        <ul className="max-h-[60vh] divide-y divide-line overflow-y-auto">
-          {alerts.map((a) => {
-            const line = lastVisitorLine(a);
-            const here = visitorOnline(a, now);
-            return (
-              <li key={a.id} className="px-4 py-3.5">
-                <div className="flex items-start gap-3">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-semibold text-emerald-700 ring-2 ring-white shadow-sm">
-                    {initial(a.name)}
+    <div
+      role="alertdialog"
+      aria-live="assertive"
+      aria-label="Visitors waiting in chat"
+      className="flex flex-col items-end gap-2"
+    >
+      {alerts.slice(0, 4).map((a) => {
+        const line = lastVisitorLine(a);
+        const here = visitorOnline(a, now);
+        return (
+          <div
+            key={a.id}
+            className="relative w-full animate-pop-in rounded-[1.35rem] border border-white/60 bg-white/75 p-3 text-ink shadow-[0_1px_2px_rgba(11,18,32,0.06),0_16px_40px_-16px_rgba(11,18,32,0.35)] ring-1 ring-ink/[0.05] backdrop-blur-2xl backdrop-saturate-[1.8] admin-dark:border-white/10 admin-dark:bg-[#2a2b31]/80 admin-dark:text-white"
+          >
+            <div className="flex items-start gap-3">
+              <span className="relative flex size-9 shrink-0 items-center justify-center rounded-[0.7rem] bg-gradient-to-b from-[#1f2b44] to-[#0b1220] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]">
+                {here && (
+                  <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-good ring-2 ring-white admin-dark:ring-[#2a2b31]" />
+                )}
+                <BellRing className="size-4" strokeWidth={2} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-3">
+                  <p className="truncate text-[13px] font-semibold">
+                    {here ? "Visitor chatting" : "Visitor left"}
+                  </p>
+                  <span className="shrink-0 text-[11px] text-muted">
+                    {ago(a.started_at, now)}
                   </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">
-                      {a.name ?? "New visitor"}
-                      {a.phone && <span className="font-normal text-muted"> · {a.phone}</span>}
-                    </p>
-                    <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11.5px] text-muted">
-                      {a.page && (
-                        <span className="inline-flex items-center gap-1">
-                          <Globe className="size-3" /> {pageLabel(a.page)}
-                        </span>
-                      )}
-                      <span className="inline-flex items-center gap-1">
-                        <Clock className="size-3" /> {ago(a.started_at, now)}
-                      </span>
-                    </p>
-                  </div>
                 </div>
-                <p className="mt-2.5 line-clamp-2 rounded-2xl rounded-tl-md bg-mist px-3.5 py-2 text-[13px] leading-snug text-ink">
-                  {line ?? <span className="text-muted">Started a chat, hasn&apos;t typed yet</span>}
+                <p className="truncate text-[13px] leading-snug">
+                  <span className="font-medium">{a.name ?? "New visitor"}</span>
+                  {a.page && (
+                    <span className="text-muted"> · {pageLabel(a.page)}</span>
+                  )}
                 </p>
-                <div className="mt-3 flex items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={pending || !here}
-                    onClick={() => takeOver(a.id)}
-                    className="inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-full bg-ink px-4 text-[13px] font-semibold text-white transition hover:bg-ink-soft disabled:opacity-50"
-                  >
-                    <Headset className="size-4" /> {here ? "Take over" : "Visitor left"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => ignore(a.id)}
-                    className="inline-flex h-9 items-center justify-center rounded-full px-3.5 text-[13px] font-medium text-muted transition hover:bg-mist hover:text-ink"
-                  >
-                    Ignore
-                  </button>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
+                <p className="mt-0.5 line-clamp-1 text-[12.5px] leading-snug text-ink-soft admin-dark:text-white/70">
+                  {line ?? "Started a chat, hasn't typed yet"}
+                </p>
+              </div>
+            </div>
+            <div className="mt-2.5 flex items-center justify-end gap-1">
+              <button
+                type="button"
+                onClick={() => ignore(a.id)}
+                className="h-7 rounded-full px-3 text-[12px] font-medium text-muted transition hover:bg-ink/5 hover:text-ink admin-dark:hover:bg-white/10 admin-dark:hover:text-white"
+              >
+                Ignore
+              </button>
+              <button
+                type="button"
+                disabled={pending || !here}
+                onClick={() => takeOver(a.id)}
+                className="inline-flex h-7 items-center gap-1.5 rounded-full bg-ink px-3 text-[12px] font-semibold text-white transition hover:bg-ink-soft disabled:opacity-40 admin-dark:bg-white admin-dark:text-ink"
+              >
+                <Headset className="size-3.5" /> Take over
+              </button>
+            </div>
+          </div>
+        );
+      })}
+      {(alerts.length > 4 || muted || notifyState === "default") && (
+        <p className="mr-1 text-[11px] text-muted">
+          {alerts.length > 4 && (
+            <span>{alerts.length - 4} more in Chats · </span>
+          )}
+          {muted ? (
+            "Click anywhere to turn the sound on"
+          ) : notifyState === "default" ? (
+            <button
+              type="button"
+              onClick={askToNotify}
+              className="font-medium text-ink-soft underline decoration-line underline-offset-2 hover:text-ink"
+            >
+              Allow alerts while you are in another app
+            </button>
+          ) : null}
+        </p>
+      )}
     </div>
   );
 }

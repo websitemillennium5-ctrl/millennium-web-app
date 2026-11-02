@@ -289,10 +289,10 @@ export function ContactChat() {
         el.style.height = "";
         return;
       }
-      const margin = 12;
-      el.style.top = `${vv.offsetTop + margin}px`;
+      // full-screen on phones, so no margin: the panel simply becomes the visible area above the keyboard
+      el.style.top = `${vv.offsetTop}px`;
       el.style.bottom = "auto";
-      el.style.height = `${vv.height - margin * 2}px`;
+      el.style.height = `${vv.height}px`;
       // keep the newest bubble in view once the list has its new size
       requestAnimationFrame(() => {
         if (list.current) list.current.scrollTop = list.current.scrollHeight;
@@ -751,9 +751,10 @@ export function ContactChat() {
         role="dialog"
         aria-label="Chat with us"
         data-lenis-prevent
-        className="fixed inset-x-3 bottom-3 z-[90] flex h-[min(34rem,85dvh)] animate-pop-in flex-col overflow-hidden rounded-3xl bg-white text-ink shadow-[0_32px_80px_-24px_rgba(11,18,32,0.5)] ring-1 ring-ink/10 lg:inset-x-auto lg:right-5 lg:bottom-5 lg:w-[23rem]"
+        // Phones: the chat fills the screen like a messaging app; desktops keep the floating panel in the corner
+        className="fixed inset-0 z-[90] flex h-dvh animate-pop-in flex-col overflow-hidden bg-white text-ink shadow-[0_32px_80px_-24px_rgba(11,18,32,0.5)] ring-1 ring-ink/10 lg:inset-auto lg:right-5 lg:bottom-5 lg:h-[min(34rem,85dvh)] lg:w-[23rem] lg:rounded-3xl"
       >
-        <header className="flex items-center gap-3 bg-ink px-4 py-3.5 text-white">
+        <header className="flex items-center gap-3 bg-ink px-4 pt-[max(0.875rem,env(safe-area-inset-top))] pb-3.5 text-white lg:pt-3.5">
           <span className="relative size-10 shrink-0 overflow-hidden rounded-full bg-[#f7e1d2] ring-2 ring-white/20">
             <Image
               src="/images/chat-avatar.svg"
@@ -897,7 +898,7 @@ export function ContactChat() {
         {(step !== "done" || live) && (
           <form
             onSubmit={(e) => (e.preventDefault(), answer(draft))}
-            className="border-t border-line bg-white p-3"
+            className="border-t border-line bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:pb-3"
           >
             {!live && chips.length > 0 && !typing && (
               <div className="mb-3 flex flex-wrap gap-2">

@@ -12,8 +12,10 @@ import { partners, placedStudents } from "@/lib/site";
 
 const faces = ["Riya Raj", "Saumya Srivastav", "Anushka Kishore"].map((name) => placedStudents.find((s) => s.name === name)!);
 
-/** Small tag that hangs under the floating header bar and leads to the placements page. */
+/** Small tag that hangs under the floating header bar and leads to the placements page. Not on the jobs board, where it crowds the heading. */
 export function PlacementsTag() {
+  const pathname = usePathname();
+  if (pathname.startsWith("/airline-jobs")) return null;
   return (
     <Link
       href="/placements"
