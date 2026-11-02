@@ -9,7 +9,6 @@ import { firstName, visitorOnline, type ChatMessage, type ChatMode } from "@/lib
 import type { ChatSession } from "@/lib/data";
 import { formatDateTime, formatTime, istDay } from "@/lib/format";
 import { whatsappHref } from "@/lib/leads";
-import { Badge } from "@/components/portal/ui";
 import { initials } from "@/components/portal/student-card";
 
 const avatarHues = ["bg-rose-100 text-rose-700", "bg-sky-100 text-sky-700", "bg-amber-100 text-amber-800", "bg-emerald-100 text-emerald-700", "bg-violet-100 text-violet-700", "bg-teal-100 text-teal-700"];
@@ -27,7 +26,25 @@ const longDay = new Intl.DateTimeFormat("en-IN", { weekday: "short", day: "numer
 const dayChip = (iso: string) => (istDay(Date.parse(iso)) === istDay() ? "Today" : longDay.format(new Date(iso)));
 
 /** Poll every few seconds while the visitor is there; slow down once they have gone (nothing new can arrive) and once the chat is over. */
-const POLL_MS = { live: 3000, away: 12_000, ended: 30_000 };
+const POLL_MS = { chatting: 2000, live: 3000, away: 12_000, ended: 30_000 };
+
+/** Small status pill beside the visitor's name: a pulsing dot while the conversation is live, a still one otherwise. */
+function Status({ tone, children }: { tone: "live" | "good" | "quiet"; children: React.ReactNode }) {
+  const styles = {
+    live: "bg-good/10 text-good",
+    good: "bg-good/10 text-good",
+    quiet: "bg-mist text-muted",
+  }[tone];
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium whitespace-nowrap ${styles}`}>
+      <span className="relative flex size-1.5">
+        {tone === "live" && <span className="absolute inset-0 animate-ping rounded-full bg-current opacity-60" />}
+        <span className="relative size-1.5 rounded-full bg-current" />
+      </span>
+      {children}
+    </span>
+  );
+}
 
 function Action({ onClick, disabled, tone = "default", label, children }: { onClick: () => void; disabled?: boolean; tone?: "default" | "ink" | "brand" | "danger"; label?: string; children: React.ReactNode }) {
   const styles = {
@@ -59,19 +76,30 @@ export function ChatPanel({ session, staffName, backHref }: { session: ChatSessi
   const list = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
 
-  const lastId = messages.at(-1)?.id ?? 0;
+  // Newest server id we have (replies shown optimistically carry negative ids until the server copy arrives)
+  const lastId = Math.max(0, ...messages.map((m) => m.id));
   const online = visitorOnline({ visitor_seen_at: seenAt, mode }, now);
   const mine = mode === "staff" && takenBy === staffName;
 
+  // Add what the server sent, skipping anything already shown; a staff reply's server copy replaces the
+  // optimistic one added the moment it was sent
+  const merge = (incoming: ChatMessage[]) =>
+    setMessages((m) => {
+      const fresh = incoming.filter((x) => !m.some((y) => y.id === x.id));
+      if (!fresh.length) return m;
+      const confirmed = fresh.filter((x) => x.sender === "staff").map((x) => x.text);
+      return [...m.filter((y) => !(y.id < 0 && confirmed.includes(y.text))), ...fresh];
+    });
+
   // Pull anything new from the server
-  const pollMs = mode === "ended" ? POLL_MS.ended : online ? POLL_MS.live : POLL_MS.away;
+  const pollMs = mode === "ended" ? POLL_MS.ended : !online ? POLL_MS.away : mode === "staff" ? POLL_MS.chatting : POLL_MS.live;
   useEffect(() => {
     let stopped = false;
     const tick = async () => {
       if (document.visibilityState === "hidden") return;
       const res = await getChatUpdates(session.id, lastId).catch(() => null);
       if (!res || stopped) return;
-      if (res.messages.length) setMessages((m) => [...m, ...res.messages.filter((x) => !m.some((y) => y.id === x.id))]);
+      merge(res.messages);
       setMode(res.mode);
       setTakenBy(res.takenByName);
       setSeenAt(res.visitorSeenAt);
@@ -93,7 +121,7 @@ export function ChatPanel({ session, staffName, backHref }: { session: ChatSessi
   const refresh = async () => {
     const res = await getChatUpdates(session.id, lastId).catch(() => null);
     if (!res) return;
-    if (res.messages.length) setMessages((m) => [...m, ...res.messages.filter((x) => !m.some((y) => y.id === x.id))]);
+    merge(res.messages);
     setMode(res.mode);
     setTakenBy(res.takenByName);
     setSeenAt(res.visitorSeenAt);
@@ -105,8 +133,10 @@ export function ChatPanel({ session, staffName, backHref }: { session: ChatSessi
   });
   const send = () => {
     const text = draft.trim();
-    if (!text || pending) return;
+    if (!text) return;
     setDraft("");
+    // Show it at once; the server's copy takes its place when the next fetch brings it back
+    setMessages((m) => [...m, { id: -Date.now(), sender: "staff", text, staff_name: staffName, created_at: new Date().toISOString() }]);
     run(() => replyToChat(session.id, text));
     input.current?.focus();
   };
@@ -127,24 +157,24 @@ export function ChatPanel({ session, staffName, backHref }: { session: ChatSessi
           {online && <span className="absolute right-0 bottom-0 size-2.5 rounded-full bg-good ring-2 ring-white" aria-label="Online" />}
         </span>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <h2 className="text-sm font-semibold text-ink">{session.name ?? "Anonymous visitor"}</h2>
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+            <h2 className="truncate text-[15px] leading-tight font-semibold tracking-tight text-ink">{session.name ?? "Anonymous visitor"}</h2>
             {mode === "staff" ? (
-              <Badge tone="brand">Live · {mine ? "you" : takenBy ? firstName(takenBy) : "staff"}</Badge>
+              <Status tone="live">Live with {mine ? "you" : takenBy ? firstName(takenBy) : "staff"}</Status>
             ) : mode === "ended" ? (
-              <Badge>Ended</Badge>
+              <Status tone="quiet">Ended</Status>
             ) : session.lead_id ? (
-              <Badge tone="good">Enquiry saved</Badge>
+              <Status tone="good">Enquiry saved</Status>
             ) : online ? (
-              <Badge tone="good">Online now</Badge>
+              <Status tone="live">Online</Status>
             ) : (
-              <Badge>Left mid-chat</Badge>
+              <Status tone="quiet">Left mid-chat</Status>
             )}
           </div>
-          <p className="mt-0.5 truncate text-xs text-muted">
-            {online ? "Online" : `Started ${formatDateTime(session.started_at)}`}
-            {minutes ? ` · ${minutes} min` : ""}
-            {session.page && session.page !== "/" ? ` · opened on ${session.page}` : ""}
+          <p className="mt-1 truncate text-[12px] text-muted">
+            {online ? "Chatting now" : `Started ${formatDateTime(session.started_at)}`}
+            {minutes ? <span className="before:mx-1.5 before:content-['·']">{minutes} min</span> : null}
+            {session.page && session.page !== "/" ? <span className="before:mx-1.5 before:content-['·']">opened on {session.page}</span> : null}
           </p>
         </div>
         <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto">
@@ -165,7 +195,16 @@ export function ChatPanel({ session, staffName, backHref }: { session: ChatSessi
           )}
           {/* Only while there is someone to talk to: the visitor is still on the site and the chat hasn't ended */}
           {mode === "bot" && online && (
-            <Action tone="brand" disabled={pending} onClick={() => run(() => takeOverChat(session.id))}>
+            <Action
+              tone="brand"
+              disabled={pending}
+              onClick={() => {
+                // Flip to live straight away; the server confirms on the next refresh
+                setMode("staff");
+                setTakenBy(staffName);
+                run(() => takeOverChat(session.id));
+              }}
+            >
               <Headset className="size-3.5" /> Take over
             </Action>
           )}
@@ -298,7 +337,7 @@ export function ChatPanel({ session, staffName, backHref }: { session: ChatSessi
               aria-label="Reply"
               className="h-10 min-w-0 flex-1 rounded-full bg-mist px-4 text-sm text-ink outline-none placeholder:text-muted/70 focus:ring-2 focus:ring-ink/10"
             />
-            <button type="submit" aria-label="Send" disabled={pending || !draft.trim()} className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand text-white transition hover:bg-brand-dark disabled:opacity-50">
+            <button type="submit" aria-label="Send" disabled={!draft.trim()} className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand text-white transition hover:bg-brand-dark disabled:opacity-50">
               <Send className="size-4" />
             </button>
           </form>

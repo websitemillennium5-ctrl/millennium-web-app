@@ -4,8 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, ArrowUpRight, Briefcase, MessageCircle, X } from "lucide-react";
+import { ArrowRight, ArrowUpRight, MessageCircle, PhoneCall, X } from "lucide-react";
 import { openContactChat } from "@/components/contact-chat";
+import { openCounselling } from "@/components/counselling";
+import { useScrollLock } from "@/lib/scroll-lock";
 import { partners, placedStudents } from "@/lib/site";
 
 const faces = ["Riya Raj", "Saumya Srivastav", "Anushka Kishore"].map((name) => placedStudents.find((s) => s.name === name)!);
@@ -43,6 +45,7 @@ export function PlacementsPopup() {
   const pathname = usePathname();
   const dialog = useRef<HTMLDialogElement>(null);
   const [show, setShow] = useState(false);
+  useScrollLock(show);
 
   useEffect(() => {
     if (pathname.startsWith("/placements")) return;
@@ -152,14 +155,17 @@ export function PlacementsPopup() {
               See placements
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
-            <Link
-              href="/airline-jobs"
-              onClick={close}
+            <button
+              type="button"
+              onClick={() => {
+                close();
+                openCounselling();
+              }}
               className="flex items-center justify-center gap-2 rounded-full bg-brand py-3 text-sm font-semibold text-white transition hover:bg-brand-dark"
             >
-              <Briefcase className="size-4" strokeWidth={2} />
-              Find jobs
-            </Link>
+              <PhoneCall className="size-4" strokeWidth={2} />
+              Free consultation
+            </button>
           </div>
         </div>
       </div>

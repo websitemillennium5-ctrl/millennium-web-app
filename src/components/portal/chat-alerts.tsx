@@ -274,12 +274,21 @@ export function ChatAlerts() {
     saveIgnored(ignored.current);
     dismiss(id);
   };
-  const takeOver = (id: string) =>
+  // Respond to the click at once: the alert and alarm go and the chat opens immediately, while the take-over
+  // is recorded in parallel; the page refreshes once that lands (if it fails, the next poll brings the alert back)
+  const takeOver = (id: string) => {
+    dismiss(id);
+    router.push(`/admin/chats?chat=${id}`);
     startTransition(async () => {
-      await takeOverChat(id);
-      dismiss(id);
-      router.push(`/admin/chats?chat=${id}`);
+      await takeOverChat(id).catch(() => {});
+      router.refresh();
     });
+  };
+
+  // Warm the Chats route up while the alarm is ringing, so opening the chat doesn't wait for it to load
+  useEffect(() => {
+    if (ringing) router.prefetch("/admin/chats");
+  }, [ringing, router]);
 
   if (!alerts.length) return null;
 

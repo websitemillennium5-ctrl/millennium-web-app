@@ -39,6 +39,8 @@ type Msg = {
   by?: string;
   /** Already saved to (or received from) the server */
   synced?: boolean;
+  /** Server id of a staff/system message received through polling, so the same one is never shown twice */
+  remoteId?: number;
 };
 type Answers = {
   name: string;
@@ -261,8 +263,44 @@ export function ContactChat() {
   const saved = useRef(new Set<number>());
   // Id of the last staff/system message received, so polls only fetch what's new
   const remoteCursor = useRef(stored?.remoteCursor ?? 0);
+  /** A poll is in flight; the next tick waits rather than asking again with the same cursor */
+  const polling = useRef(false);
   const list = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
+  const panel = useRef<HTMLElement>(null);
+
+  // Phones: the on-screen keyboard shrinks the visible area but not the page, so a bottom-pinned panel would
+  // slide under it. Follow the visual viewport instead while the keyboard is up.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!open || !vv) return;
+    const fit = () => {
+      const el = panel.current;
+      if (!el) return;
+      const keyboard = window.innerHeight - vv.height - vv.offsetTop;
+      if (window.innerWidth >= 1024 || keyboard < 100) {
+        el.style.top = "";
+        el.style.bottom = "";
+        el.style.height = "";
+        return;
+      }
+      const margin = 12;
+      el.style.top = `${vv.offsetTop + margin}px`;
+      el.style.bottom = "auto";
+      el.style.height = `${vv.height - margin * 2}px`;
+      // keep the newest bubble in view once the list has its new size
+      requestAnimationFrame(() => {
+        if (list.current) list.current.scrollTop = list.current.scrollHeight;
+      });
+    };
+    fit();
+    vv.addEventListener("resize", fit);
+    vv.addEventListener("scroll", fit);
+    return () => {
+      vv.removeEventListener("resize", fit);
+      vv.removeEventListener("scroll", fit);
+    };
+  }, [open]);
 
   useEffect(() => {
     const show = () => setOpen(true);
@@ -380,26 +418,42 @@ export function ContactChat() {
     if (!started || mode === "ended") return;
     let stopped = false;
     const tick = async () => {
-      if (document.visibilityState === "hidden" || !session.current) return;
+      // One poll at a time: a slow reply must not let the next tick ask again with the same cursor
+      if (
+        document.visibilityState === "hidden" ||
+        !session.current ||
+        polling.current
+      )
+        return;
       const id = session.current;
+      polling.current = true;
       const res = await pollChat(id, remoteCursor.current).catch(() => null);
+      polling.current = false;
       if (!res || stopped || id !== session.current) return;
       if (res.messages.length) {
         remoteCursor.current = Math.max(
           remoteCursor.current,
           ...res.messages.map((m) => m.id),
         );
-        setMessages((list) => [
-          ...list,
-          ...res.messages.map((m) => ({
-            id: nextId.current++,
-            from: m.from,
-            text: m.text,
-            at: m.at,
-            by: m.by ?? undefined,
-            synced: true,
-          })),
-        ]);
+        // Skip anything already shown, so a message can never appear twice whatever the timing
+        setMessages((list) => {
+          const have = new Set(list.map((m) => m.remoteId));
+          const fresh = res.messages.filter((m) => !have.has(m.id));
+          return fresh.length
+            ? [
+                ...list,
+                ...fresh.map((m) => ({
+                  id: nextId.current++,
+                  remoteId: m.id,
+                  from: m.from,
+                  text: m.text,
+                  at: m.at,
+                  by: m.by ?? undefined,
+                  synced: true,
+                })),
+              ]
+            : list;
+        });
         // A staff member joined or replied: bring the chat up and make a sound
         setOpen(true);
         chime();
@@ -418,7 +472,10 @@ export function ContactChat() {
       }
     };
     // Every few seconds while the window is open; much less often once it is minimised (a staff reply still pops it open)
-    const timer = window.setInterval(tick, open ? 3000 : 12_000);
+    const timer = window.setInterval(
+      tick,
+      open ? (mode === "staff" ? 2000 : 3000) : 12_000,
+    );
     return () => {
       stopped = true;
       window.clearInterval(timer);
@@ -649,6 +706,7 @@ export function ContactChat() {
         onClick={() => setOpen(false)}
       />
       <section
+        ref={panel}
         role="dialog"
         aria-label="Chat with us"
         data-lenis-prevent
@@ -656,7 +714,13 @@ export function ContactChat() {
       >
         <header className="flex items-center gap-3 bg-ink px-4 py-3.5 text-white">
           <span className="relative size-10 shrink-0 overflow-hidden rounded-full bg-brand ring-2 ring-white/20">
-            <Image src="/images/chat-avatar.jpg" alt="" fill sizes="40px" className="object-cover" />
+            <Image
+              src="/images/chat-avatar.jpg"
+              alt=""
+              fill
+              sizes="40px"
+              className="object-cover"
+            />
           </span>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">

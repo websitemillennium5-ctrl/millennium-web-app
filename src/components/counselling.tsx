@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Phone, X } from "lucide-react";
 import { EnquiryForm } from "@/components/enquiry-form";
+import { useScrollLock } from "@/lib/scroll-lock";
 import { site, telHref } from "@/lib/site";
 
 const OPEN_EVENT = "millennium:open-counselling";
@@ -25,6 +26,7 @@ export function CounsellingButton({ className, children }: { className?: string;
 export function CounsellingModal() {
   const dialog = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
+  useScrollLock(open);
 
   useEffect(() => {
     const show = () => setOpen(true);
