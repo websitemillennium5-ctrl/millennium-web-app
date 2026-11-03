@@ -81,7 +81,7 @@ export function PlacementsPopup() {
       onClose={() => setShow(false)}
       // The dialog itself is a transparent full-screen layer: the confetti canvas fills it and falls over the
       // blurred page, and the white card is centred on top of that
-      className="fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none overflow-hidden bg-transparent p-0 text-left text-ink backdrop:bg-ink/50 backdrop:backdrop-blur-sm"
+      className="fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none overflow-hidden bg-transparent p-0 text-left text-ink backdrop:bg-ink/65 backdrop:backdrop-blur-md"
     >
       {/* Confetti keeps falling over the blurred page for as long as the card is open; behind the card, clicks pass through */}
       <Confetti />
