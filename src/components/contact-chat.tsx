@@ -10,6 +10,7 @@ import { CHAT_COOKIE, type ChatMode } from "@/lib/chats";
 import { sendEnquiry } from "@/app/actions/enquiry";
 import { WhatsAppIcon } from "@/components/icons";
 import { useScrollLock } from "@/lib/scroll-lock";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { courses, site, telHref, whatsappHref } from "@/lib/site";
 
 const OPEN_EVENT = "millennium:open-chat";
@@ -259,6 +260,8 @@ export function ContactChat() {
   // "staff" once someone at the academy takes the chat over from the admin portal
   const [mode, setMode] = useState<ChatMode>(stored?.mode ?? "bot");
   const [agent, setAgent] = useState<string | null>(stored?.agent ?? null);
+  /** The "start a new chat?" sheet is open, asked before the conversation is cleared. */
+  const [confirmRestart, setConfirmRestart] = useState(false);
   const nextId = useRef(stored?.nextId ?? 0);
   // One saved transcript per conversation; a fresh id after "Start over"
   const session = useRef(stored?.id ?? "");
@@ -789,9 +792,7 @@ export function ContactChat() {
           {messages.length > 0 && (
             <button
               type="button"
-              onClick={() => {
-                if (window.confirm("Start a new chat? This conversation will be cleared.")) restart();
-              }}
+              onClick={() => setConfirmRestart(true)}
               aria-label="Start over"
               title="Start over"
               className="flex size-9 items-center justify-center rounded-full text-white/80 transition hover:bg-white/15 hover:text-white"
@@ -815,6 +816,20 @@ export function ContactChat() {
             <X className="size-4" />
           </button>
         </header>
+
+        <ConfirmDialog
+          inline
+          open={confirmRestart}
+          title="Start a new chat?"
+          description="This conversation will be cleared."
+          confirmLabel="Start new"
+          icon={<RotateCcw className="size-5" />}
+          onCancel={() => setConfirmRestart(false)}
+          onConfirm={() => {
+            setConfirmRestart(false);
+            restart();
+          }}
+        />
 
         <div
           ref={list}

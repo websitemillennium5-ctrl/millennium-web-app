@@ -15,6 +15,7 @@ import {
   away,
   canNotify,
   pingUrl,
+  unlockOnFirstGesture,
 } from "@/components/portal/alert-tones";
 
 /**
@@ -87,6 +88,8 @@ export function ChatAlerts() {
   const showing = useRef<string[]>([]);
   const audio = useRef<HTMLAudioElement | null>(null);
   const ping = useRef<HTMLAudioElement | null>(null);
+  /** Whether the alarm should be sounding right now, for the moment the browser first lets sound through. */
+  const wantRing = useRef(false);
   const notes = useRef(new Map<string, Notification>());
   /** Latest visitor message id already noticed per chat this staff member is handling; empty until the first poll primes it. */
   const seen = useRef<Map<string, number> | null>(null);
@@ -95,6 +98,21 @@ export function ChatAlerts() {
 
   useEffect(() => {
     ignored.current = loadIgnored();
+  }, []);
+  // Create both tones up front and let the first click or key press anywhere in the portal unlock them, so an
+  // alert can sound the moment it arrives instead of waiting for whatever click happens to come next
+  useEffect(() => {
+    const alarm = (audio.current ??= Object.assign(new Audio(alarmUrl()), {
+      loop: true,
+    }));
+    const reply = (ping.current ??= new Audio(pingUrl()));
+    return unlockOnFirstGesture([alarm, reply], () => {
+      if (!wantRing.current || !alarm.paused) return;
+      alarm
+        .play()
+        .then(() => setMuted(false))
+        .catch(() => {});
+    });
   }, []);
   useEffect(() => {
     showing.current = alerts.map((a) => a.id);
@@ -237,28 +255,22 @@ export function ChatAlerts() {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Ring while anything is waiting. Browsers only allow sound after the person has interacted with the page,
-  // so a refused play is retried on their first click or key press.
+  // Ring while anything is waiting. Until the person has interacted with the page the browser refuses to play,
+  // and the unlock above starts the alarm on their first click or key press.
   const ringing = alerts.length > 0;
   useEffect(() => {
+    wantRing.current = ringing;
     if (!ringing) return;
-    const el =
-      audio.current ??
-      (audio.current = Object.assign(new Audio(alarmUrl()), { loop: true }));
+    const el = (audio.current ??= Object.assign(new Audio(alarmUrl()), {
+      loop: true,
+    }));
     let gone = false;
-    const play = () =>
-      el
-        .play()
-        .then(() => !gone && setMuted(false))
-        .catch(() => !gone && setMuted(true));
-    const retry = () => el.paused && play();
-    play();
-    window.addEventListener("pointerdown", retry);
-    window.addEventListener("keydown", retry);
+    el.play()
+      .then(() => !gone && setMuted(false))
+      .catch(() => !gone && setMuted(true));
     return () => {
       gone = true;
-      window.removeEventListener("pointerdown", retry);
-      window.removeEventListener("keydown", retry);
+      wantRing.current = false;
       el.pause();
       el.currentTime = 0;
     };

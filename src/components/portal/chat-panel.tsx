@@ -9,6 +9,7 @@ import type { ChatSession } from "@/lib/data";
 import { formatDateTime, formatTime, istDay } from "@/lib/format";
 import { whatsappHref } from "@/lib/leads";
 import { initials } from "@/components/portal/student-card";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 
 const avatarHues = ["bg-rose-100 text-rose-700", "bg-sky-100 text-sky-700", "bg-amber-100 text-amber-800", "bg-emerald-100 text-emerald-700", "bg-violet-100 text-violet-700", "bg-teal-100 text-teal-700"];
 export const avatarHue = (name: string) => avatarHues[[...name].reduce((n, c) => n + c.charCodeAt(0), 0) % avatarHues.length];
@@ -85,6 +86,7 @@ export function ChatPanel({
   );
   const [loaded, setLoaded] = useState(complete || transcripts.has(session.id));
   const [mode, setMode] = useState<ChatMode>(session.mode);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [takenBy, setTakenBy] = useState(session.taken_by_name);
   const [seenAt, setSeenAt] = useState(session.visitor_seen_at);
   const [now, setNow] = useState(() => Date.now());
@@ -282,18 +284,26 @@ export function ChatPanel({
             tone="danger"
             label="Delete chat"
             disabled={pending}
-            onClick={() => {
-              const who = session.name ?? "this visitor";
-              if (!window.confirm(`Delete the chat with ${who} and all its messages? This cannot be undone.`)) return;
+            onClick={() => setConfirmDelete(true)}
+          >
+            <Trash2 className="size-3.5" /> Delete
+          </Action>
+          <ConfirmDialog
+            open={confirmDelete}
+            title={`Delete the chat with ${session.name ?? "this visitor"}?`}
+            description="Every message in it will be gone for good. This cannot be undone."
+            confirmLabel="Delete"
+            tone="danger"
+            onCancel={() => setConfirmDelete(false)}
+            onConfirm={() => {
+              setConfirmDelete(false);
               startTransition(async () => {
                 await deleteChat(session.id);
                 transcripts.delete(session.id);
                 onDeleted();
               });
             }}
-          >
-            <Trash2 className="size-3.5" /> Delete
-          </Action>
+          />
         </div>
       </header>
 

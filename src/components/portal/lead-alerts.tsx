@@ -5,7 +5,12 @@ import { useEffect, useRef, useState } from "react";
 import { Inbox, X } from "lucide-react";
 import { leadAlerts, type LeadAlert } from "@/app/admin/actions";
 import { experienceLabels, leadSources } from "@/lib/leads";
-import { away, canNotify, chimeUrl } from "@/components/portal/alert-tones";
+import {
+  away,
+  canNotify,
+  chimeUrl,
+  unlockOnFirstGesture,
+} from "@/components/portal/alert-tones";
 
 /** How often the portal checks for new enquiries: slower when the tab is in the background. */
 const POLL_MS = { visible: 15_000, hidden: 45_000 };
@@ -67,6 +72,11 @@ export function LeadAlerts() {
   const known = useRef(new Set<string>());
   const chime = useRef<HTMLAudioElement | null>(null);
   const notes = useRef(new Map<string, Notification>());
+
+  // Create the chime up front and let the first click or key press anywhere in the portal unlock it
+  useEffect(() => {
+    return unlockOnFirstGesture([(chime.current ??= new Audio(chimeUrl()))]);
+  }, []);
 
   const notify = (l: LeadAlert) => {
     if (!canNotify() || Notification.permission !== "granted") return;

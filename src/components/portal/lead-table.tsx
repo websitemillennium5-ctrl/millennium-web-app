@@ -1,6 +1,6 @@
 import { ArrowUpRight, Mail, MessageCircle, Phone } from "lucide-react";
 import type { Lead } from "@/lib/data";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/format";
 import { experienceLabels, leadSources, leadStatuses, needsFollowUp, whatsappHref } from "@/lib/leads";
 import { CopyButton } from "@/components/portal/copy-button";
 import { LeadStatusSelect } from "@/components/portal/lead-status-select";
@@ -36,6 +36,26 @@ const avatarHues = [
   "bg-violet-100 text-violet-700",
   "bg-teal-100 text-teal-700",
 ];
+/** Everything known about a lead as plain lines, for pasting into WhatsApp, a note or a spreadsheet. */
+function leadText(l: Lead) {
+  return [
+    `Name: ${l.name}`,
+    `Phone: ${l.phone}`,
+    l.email && `Email: ${l.email}`,
+    l.city && `City: ${l.city}`,
+    l.source === "jobs page" && l.listing_title ? `Applied for: ${l.listing_title}` : `Interested in: ${l.course ?? "Not sure yet"}`,
+    l.listing_url && `Listing: ${l.listing_url}`,
+    l.experience && `Experience: ${experienceLabels[l.experience] ?? l.experience}${l.experience_details ? ` (${l.experience_details})` : ""}`,
+    l.message && `Message: ${l.message}`,
+    l.student_id_tried && `Student ID tried: ${l.student_id_tried}`,
+    `Source: ${leadSources[l.source as keyof typeof leadSources] ?? l.source}`,
+    `Received: ${formatDateTime(l.created_at)}`,
+    `Status: ${(leadStatuses.find((s) => s.value === l.status) ?? leadStatuses[0]).label}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 const avatarHue = (name: string) => avatarHues[[...name].reduce((n, c) => n + c.charCodeAt(0), 0) % avatarHues.length];
 
 function ContactButton({ href, label, children, external }: { href: string; label: string; children: React.ReactNode; external?: boolean }) {
@@ -110,7 +130,7 @@ export function LeadTable({ leads, now }: { leads: Lead[]; now: number }) {
                         <Mail className="size-3.5" strokeWidth={1.75} />
                       </ContactButton>
                     )}
-                    <CopyButton text={l.phone} label={`Copy ${l.name}'s number`} small />
+                    <CopyButton text={leadText(l)} label={`Copy ${l.name}'s details`} small />
                   </span>
                 </td>
 

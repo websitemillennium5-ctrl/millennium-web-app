@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { Loader2 } from "lucide-react";
 import type { FormState } from "@/app/actions/auth";
+import { ConfirmDialog, splitMessage, verbOf } from "@/components/confirm-dialog";
 
 type Action = (prev: FormState, formData: FormData) => Promise<FormState>;
 
@@ -67,26 +68,46 @@ export function SubmitButton({ children, variant = "primary" }: { children: Reac
 }
 
 /** Confirm before submitting a destructive form (e.g. delete). With `icon`, renders as a round outlined icon button. */
-export function ConfirmButton({ children, message, icon, className }: { children: React.ReactNode; message: string; icon?: React.ReactNode; className?: string }) {
+export function ConfirmButton({ children, message, confirmLabel, icon, className }: { children: React.ReactNode; message: string; confirmLabel?: string; icon?: React.ReactNode; className?: string }) {
   const { pending } = useFormStatus();
+  const [asking, setAsking] = useState(false);
+  const button = useRef<HTMLButtonElement>(null);
+  const { title, description } = splitMessage(message);
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      aria-label={icon ? String(children) : undefined}
-      title={icon ? String(children) : undefined}
-      onClick={(e) => {
-        if (!confirm(message)) e.preventDefault();
-      }}
-      className={
-        className ??
-        (icon
-          ? "flex size-8 items-center justify-center rounded-full border border-line text-ink-soft transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-60"
-          : "rounded-full px-2.5 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-60")
-      }
-    >
-      {icon ?? children}
-    </button>
+    <>
+      <button
+        ref={button}
+        type="submit"
+        disabled={pending}
+        aria-label={icon ? String(children) : undefined}
+        title={icon ? String(children) : undefined}
+        onClick={(e) => {
+          e.preventDefault();
+          setAsking(true);
+        }}
+        className={
+          className ??
+          (icon
+            ? "flex size-8 items-center justify-center rounded-full border border-line text-ink-soft transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-60"
+            : "rounded-full px-2.5 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-60")
+        }
+      >
+        {icon ?? children}
+      </button>
+      <ConfirmDialog
+        open={asking}
+        title={title}
+        description={description}
+        confirmLabel={confirmLabel ?? verbOf(message)}
+        tone="danger"
+        onCancel={() => setAsking(false)}
+        onConfirm={() => {
+          setAsking(false);
+          // Submits the form with this button as the submitter, so its name/value still go along
+          button.current?.form?.requestSubmit(button.current);
+        }}
+      />
+    </>
   );
 }
 

@@ -72,3 +72,46 @@ export const chimeUrl = () =>
 export const canNotify = () => typeof window !== "undefined" && "Notification" in window;
 /** The portal is not what the person is looking at: another tab, another app, or the browser window in the background. */
 export const away = () => document.visibilityState === "hidden" || !document.hasFocus();
+
+/**
+ * Browsers refuse to play sound until the person has clicked, tapped or typed on the page since it loaded, and
+ * Safari only remembers that for an element it played during the gesture itself. So each alert tone is created
+ * up front and, on the first gesture anywhere in the portal, played muted for an instant. From then on an alert
+ * can sound the moment it arrives, even while the person is in another tab. `onUnlocked` runs once that has
+ * worked, so a tone refused earlier can be started properly. Returns a function that stops listening.
+ */
+export function unlockOnFirstGesture(els: HTMLAudioElement[], onUnlocked?: () => void) {
+  // pointerup rather than pointerdown: a touch only counts as a gesture once the finger lifts
+  const events = ["pointerup", "keydown"] as const;
+  const stop = () => events.forEach((e) => window.removeEventListener(e, unlock));
+  let busy = false;
+  const unlock = () => {
+    if (busy) return;
+    busy = true;
+    Promise.all(
+      els.map((el) => {
+        if (!el.paused) return; // already sounding: nothing to unlock
+        el.muted = true;
+        return el
+          .play()
+          .then(() => {
+            el.pause();
+            el.currentTime = 0;
+          })
+          .finally(() => {
+            el.muted = false;
+          });
+      }),
+    )
+      .then(() => {
+        stop();
+        onUnlocked?.();
+      })
+      .catch(() => {}) // the browser didn't count that as a gesture: wait for the next one
+      .finally(() => {
+        busy = false;
+      });
+  };
+  events.forEach((e) => window.addEventListener(e, unlock));
+  return stop;
+}
