@@ -5,7 +5,7 @@ import { useState, type CSSProperties } from "react";
 /** Festive multi-colour set: blue, violet, teal, yellow, red, pink, cyan and an off-white. */
 const COLORS = ["#2563eb", "#7c3aed", "#0f766e", "#f5b301", "#ef4444", "#ec4899", "#06b6d4", "#f6f5f2"];
 const SHAPES = ["ribbon", "ribbon", "strip", "square", "circle"] as const;
-const COUNT = 90;
+const COUNT = 160;
 
 type Piece = {
   id: number;
