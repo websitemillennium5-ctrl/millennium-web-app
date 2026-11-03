@@ -1,132 +1,77 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useState, type CSSProperties } from "react";
 
-/** Brand palette with a touch of warm gold so the burst reads as a celebration rather than noise. */
-const COLORS = ["#a7222d", "#d9c4a0", "#17283e", "#ffffff", "#f5e4e1", "#e8a33d", "#c9362f"];
+/** Festive multi-colour set: blue, violet, teal, yellow, red, pink, cyan and an off-white. */
+const COLORS = ["#2563eb", "#7c3aed", "#0f766e", "#f5b301", "#ef4444", "#ec4899", "#06b6d4", "#f6f5f2"];
+const SHAPES = ["ribbon", "ribbon", "strip", "square", "circle"] as const;
+const COUNT = 90;
 
 type Piece = {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
+  id: number;
+  left: number;
+  color: string;
+  dur: number;
+  delay: number;
+  drift: number;
+  spin: number;
+  flip: number;
   w: number;
   h: number;
-  rot: number;
-  vr: number;
-  tilt: number;
-  vt: number;
-  color: string;
-  round: boolean;
-  life: number;
+  radius: string;
 };
 
-const GRAVITY = 1100; // px/s²
-const DRAG = 0.9; // per second
-const FADE_AFTER = 1.6; // s
+const shape = (kind: (typeof SHAPES)[number]) => {
+  const t = Math.random();
+  switch (kind) {
+    case "ribbon":
+      return { w: 7 + 4 * t, h: 12 + 7 * t, radius: "2px" };
+    case "strip":
+      return { w: 3 + 1.5 * t, h: 13 + 9 * t, radius: "2px" };
+    case "square":
+      return { w: 6 + 4 * t, h: 6 + 4 * t, radius: "2px" };
+    default:
+      return { w: 6 + 5 * t, h: 6 + 5 * t, radius: "9999px" };
+  }
+};
+
+const makePiece = (_: unknown, i: number): Piece => {
+  const dur = 4.5 + 4 * Math.random();
+  return {
+    id: i,
+    left: 100 * Math.random(),
+    color: COLORS[(3 * i + Math.floor(3 * Math.random())) % COLORS.length],
+    dur,
+    // a negative delay starts each piece part-way through its fall, so the sky is already full on the first frame
+    delay: -(Math.random() * dur),
+    drift: (Math.random() - 0.5) * 36,
+    spin: (Math.random() > 0.5 ? 1 : -1) * (360 + 900 * Math.random()),
+    flip: 0.5 + 1.1 * Math.random(),
+    ...shape(SHAPES[i % SHAPES.length]),
+  };
+};
 
 /**
- * One-off confetti burst drawn on a canvas that fills its positioned parent: two cannons fire from the lower
- * corners towards the middle, the pieces tumble back down and fade. Runs once on mount, honours reduced
- * motion, and cleans up its own frame loop. Clicks pass straight through.
+ * Gentle, continuous confetti fall that fills its positioned parent: slim ribbons, strips, squares and dots
+ * drift down the whole height, swaying sideways, spinning and flipping, each on its own loop. Pure CSS
+ * animation (see `.confetti-piece` in globals.css), hidden under prefers-reduced-motion, clicks pass through.
  */
-export function Confetti({ delay = 0, className = "" }: { delay?: number; className?: string }) {
-  const ref = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = ref.current;
-    if (!canvas || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    let raf = 0;
-    let last = 0;
-    let pieces: Piece[] = [];
-
-    const rand = (min: number, max: number) => min + Math.random() * (max - min);
-
-    const cannon = (x: number, y: number, angle: number, count: number, minSpeed = 520, maxSpeed = 1050) => {
-      for (let i = 0; i < count; i++) {
-        const a = angle + rand(-0.45, 0.45);
-        const speed = rand(minSpeed, maxSpeed);
-        const size = rand(8, 14);
-        pieces.push({
-          x,
-          y,
-          vx: Math.cos(a) * speed,
-          vy: Math.sin(a) * speed,
-          w: size,
-          h: Math.random() < 0.35 ? size : size * rand(0.4, 0.65),
-          rot: rand(0, Math.PI * 2),
-          vr: rand(-9, 9),
-          tilt: rand(0, Math.PI * 2),
-          vt: rand(4, 11),
-          color: COLORS[Math.floor(Math.random() * COLORS.length)],
-          round: Math.random() < 0.18,
-          life: FADE_AFTER + rand(0.3, 1.1),
-        });
-      }
-    };
-
-    const frame = (now: number) => {
-      const dt = Math.min((now - (last || now)) / 1000, 0.05);
-      last = now;
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
-      ctx.clearRect(0, 0, w, h);
-      const drag = Math.pow(DRAG, dt);
-      pieces = pieces.filter((p) => p.life > 0 && p.y < h + 24);
-      for (const p of pieces) {
-        p.vy += GRAVITY * dt;
-        p.vx *= drag;
-        p.vy *= drag;
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
-        p.rot += p.vr * dt;
-        p.tilt += p.vt * dt;
-        p.life -= dt;
-        ctx.save();
-        ctx.globalAlpha = Math.max(0, Math.min(1, p.life / 0.5));
-        ctx.translate(p.x, p.y);
-        ctx.rotate(p.rot);
-        // the "tilt" squashes the piece on one axis so it looks like paper flipping over as it falls
-        ctx.scale(1, Math.max(0.15, Math.abs(Math.cos(p.tilt))));
-        ctx.fillStyle = p.color;
-        if (p.round) {
-          ctx.beginPath();
-          ctx.arc(0, 0, p.w / 2, 0, Math.PI * 2);
-          ctx.fill();
-        } else {
-          ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
-        }
-        ctx.restore();
-      }
-      if (pieces.length) raf = requestAnimationFrame(frame);
-      else ctx.clearRect(0, 0, w, h);
-    };
-
-    const start = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
-      canvas.width = w * dpr;
-      canvas.height = h * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      // left cannon aims up and to the right, right cannon up and to the left (canvas y grows downwards)
-      cannon(0, h * 0.66, -Math.PI / 3, 110);
-      cannon(w, h * 0.66, (-2 * Math.PI) / 3, 110);
-      // a lighter sprinkle from the top so the header gets some too
-      cannon(w / 2, -10, Math.PI / 2, 45, 60, 220);
-      last = 0;
-      raf = requestAnimationFrame(frame);
-    };
-
-    const timer = window.setTimeout(start, delay);
-    return () => {
-      window.clearTimeout(timer);
-      cancelAnimationFrame(raf);
-    };
-  }, [delay]);
-
-  return <canvas ref={ref} aria-hidden="true" className={`pointer-events-none absolute inset-0 size-full ${className}`} />;
+export function Confetti({ className = "" }: { className?: string }) {
+  const [pieces] = useState(() => Array.from({ length: COUNT }, makePiece));
+  return (
+    <div aria-hidden="true" className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}>
+      {pieces.map((p) => (
+        <span
+          key={p.id}
+          className="confetti-piece"
+          style={{ left: `${p.left}%`, "--dur": `${p.dur}s`, "--delay": `${p.delay}s`, "--drift": `${p.drift}vw`, "--spin": `${p.spin}deg` } as CSSProperties}
+        >
+          <span
+            className="confetti-inner"
+            style={{ "--w": `${p.w}px`, "--h": `${p.h}px`, "--c": p.color, "--radius": p.radius, "--flip": `${p.flip}s` } as CSSProperties}
+          />
+        </span>
+      ))}
+    </div>
+  );
 }

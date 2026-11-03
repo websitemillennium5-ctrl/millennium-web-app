@@ -439,3 +439,54 @@ body {
   --viz-muted: #52525b;
   --viz-ink: #e4e4e7;
 }
+
+/* Confetti fall used by the placements popup (src/components/confetti.tsx). Each piece drifts down the full
+   height on its own loop, swaying one way then the other, spinning in the plane and flipping in 3D. */
+.confetti-piece {
+  position: absolute;
+  top: 0;
+  will-change: transform, opacity;
+  animation: confetti-fall var(--dur) linear var(--delay) infinite;
+}
+.confetti-inner {
+  display: block;
+  width: var(--w);
+  height: var(--h);
+  background: var(--c);
+  border-radius: var(--radius);
+  box-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.05);
+  transform-style: preserve-3d;
+  animation: confetti-flip var(--flip) linear var(--delay) infinite;
+}
+@keyframes confetti-fall {
+  0% {
+    opacity: 0;
+    transform: translateY(-14vh) rotate(0);
+  }
+  6% {
+    opacity: 1;
+  }
+  35% {
+    transform: translate3d(calc(var(--drift) * 0.6), 30vh, 0) rotate(calc(var(--spin) * 0.4));
+  }
+  68% {
+    transform: translate3d(calc(var(--drift) * -0.35), 70vh, 0) rotate(calc(var(--spin) * 0.72));
+  }
+  93% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(var(--drift), 114vh, 0) rotate(var(--spin));
+  }
+}
+@keyframes confetti-flip {
+  to {
+    transform: rotateX(360deg) rotateY(150deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .confetti-piece {
+    display: none;
+  }
+}
