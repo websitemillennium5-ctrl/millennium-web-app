@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, ArrowUpRight, MessageCircle, PhoneCall, X } from "lucide-react";
+import { Confetti } from "@/components/confetti";
 import { openContactChat } from "@/components/contact-chat";
 import { openCounselling } from "@/components/counselling";
 import { useScrollLock } from "@/lib/scroll-lock";
@@ -81,6 +82,8 @@ export function PlacementsPopup() {
       onClick={(e) => e.target === dialog.current && close()}
       className="m-auto w-[calc(100%-2rem)] max-w-lg animate-pop-in overflow-hidden rounded-[2rem] bg-white p-0 text-left text-ink shadow-[0_32px_80px_-24px_rgba(11,18,32,0.5)] backdrop:bg-ink/50 backdrop:backdrop-blur-sm"
     >
+      {/* Celebration burst once the card has popped in; sits above the content, clicks pass through */}
+      <Confetti delay={350} className="z-20" />
       <div className="relative max-h-[88vh] overflow-y-auto">
         <button
           type="button"
