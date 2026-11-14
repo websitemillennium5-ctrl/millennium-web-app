@@ -1,6 +1,6 @@
 // Local sync worker: runs the listing syncs requested from the staff portal (Jobs → Sync) on this machine and
-// writes the results straight to Supabase. Runs here rather than on GitHub because IndiGo and Fly91 block
-// datacenter IPs. Also queues a daily sync of AUTO_SOURCES by itself, so those stay fresh without anyone clicking.
+// writes the results straight to Supabase. Runs here rather than on GitHub because IndiGo, Fly91, Expedia
+// and Lemon Tree block datacenter IPs. Also queues a daily sync of AUTO_SOURCES by itself, so those stay fresh without anyone clicking.
 //
 //   node --env-file=.env.local scripts/scrapers/worker.mjs      → run in the foreground (npm run worker)
 //   scripts/scrapers/install-worker.sh                          → keep it running in the background (macOS launchd)
@@ -9,7 +9,8 @@ import { hostname } from "node:os";
 import { createClient } from "@supabase/supabase-js";
 import { allScrapers, syncAll } from "./sync-all.mjs";
 
-const AUTO_SOURCES = ["fly91", "events/indigo_cabin_crew", "events/indigo_ground_staff"];
+// Keep in sync with localOnlyScrapers in src/lib/sync.ts and the --skip list in .github/workflows/sync-listings.yml.
+const AUTO_SOURCES = ["fly91", "expedia", "lemon_tree", "events/indigo_cabin_crew", "events/indigo_ground_staff"];
 const AUTO_EVERY = 24 * 3600_000;
 const POLL = 4_000;
 const HEARTBEAT = 10_000;

@@ -1,7 +1,7 @@
 # Local sync worker: setup guide
 
 The website's airline listings refresh themselves every day. Most airlines are synced in the cloud by GitHub Actions,
-but **IndiGo and Fly91 block cloud servers**, so those are synced by a small background program, the **local worker**,
+but **IndiGo, Fly91, Expedia and Lemon Tree block cloud servers**, so those are synced by a small background program, the **local worker**,
 running on an office computer in India.
 
 Once it's installed, the worker:
@@ -80,7 +80,7 @@ Check the airline sites can be reached from this computer (this only reads; it s
 
 ```bash
 cd ~/millennium-worker
-node scripts/scrapers/sync-all.mjs --dry-run fly91 events/indigo_cabin_crew events/indigo_ground_staff
+node scripts/scrapers/sync-all.mjs --dry-run fly91 expedia lemon_tree events/indigo_cabin_crew events/indigo_ground_staff
 ```
 
 You should see `Synced 3/3 sources`. If IndiGo shows `The operation was aborted due to timeout` or `403`, the connection
@@ -171,7 +171,7 @@ cd ~/millennium-worker
 scripts/scrapers/install-worker.sh uninstall
 ```
 
-Then delete the `~/millennium-worker` folder. IndiGo and Fly91 stop updating until a worker is installed on another
+Then delete the `~/millennium-worker` folder. IndiGo, Fly91, Expedia and Lemon Tree stop updating until a worker is installed on another
 computer.
 
 ---

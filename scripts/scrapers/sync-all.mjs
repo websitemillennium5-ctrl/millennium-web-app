@@ -1,5 +1,6 @@
 // Runs every job and hiring-event scraper in this folder, one after another, and prints a summary.
-// Each scraper runs in its own process, so one broken site never stops the others; exits 1 if any failed.
+// Each scraper runs in its own process, so one broken site never stops the others; a failed scraper is retried once,
+// and the run exits 1 if any still failed.
 // worker.mjs imports syncAll() to run the syncs requested from the staff portal.
 //
 //   node --env-file=.env.local scripts/scrapers/sync-all.mjs            → scrape everything and save to Supabase
@@ -21,6 +22,9 @@ const scripts = (dir) =>
 
 /** Every scraper name: "emirates", …, "events/etihad", … */
 export const allScrapers = () => [...scripts("."), ...scripts("events")].map((n) => n.replace(/^\.\//, ""));
+
+/** A scraper that errors or finds its site down is tried once more after this pause, so a one-night blip doesn't fail the run. */
+const RETRY_DELAY = 30_000;
 
 /** A scraper that is still going after this long is stuck (a hung connection, or the machine slept) and is killed. */
 const SCRAPER_TIMEOUT = 5 * 60_000;
@@ -63,7 +67,13 @@ export async function syncAll(targets, { flags = [], onLine, onResult, signal } 
   for (const name of targets) {
     if (signal?.aborted) break;
     const started = Date.now();
-    const { code, log, timedOut } = await run(name, { flags, onLine, signal });
+    let { code, log, timedOut } = await run(name, { flags, onLine, signal });
+    // A timeout already waited 5 min, so only quick errors and outages get a second try.
+    if (code !== 0 && !timedOut && !signal?.aborted) {
+      onLine?.(`[${name}] failed — retrying in ${RETRY_DELAY / 1000}s`);
+      await new Promise((r) => setTimeout(r, RETRY_DELAY));
+      if (!signal?.aborted) ({ code, log, timedOut } = await run(name, { flags, onLine, signal }));
+    }
     const count = (re) => (log.match(re) ? Number(log.match(re)[1]) : null);
     const result = {
       name,

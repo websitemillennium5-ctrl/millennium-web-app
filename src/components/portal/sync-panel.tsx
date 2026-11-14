@@ -270,7 +270,7 @@ function LocalWorker({
       }
       text={
         <>
-          IndiGo and Fly91 block cloud servers, so the office machine syncs them. It does this by itself once a day while it&apos;s on; press Sync now
+          IndiGo, Fly91, Expedia and Lemon Tree block cloud servers, so the office machine syncs them. It does this by itself once a day while it&apos;s on; press Sync now
           for a fresh copy.{!online && " Requests wait in the queue until the worker is back online."}
         </>
       }

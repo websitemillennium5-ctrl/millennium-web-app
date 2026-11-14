@@ -52,7 +52,7 @@ export default async function AdminSync() {
 
   return (
     <>
-      <PageTitle title="Sync listings" text="Airline jobs and hiring events refresh by themselves every day. IndiGo and Fly91 can also be refreshed on demand." />
+      <PageTitle title="Sync listings" text="Airline jobs and hiring events refresh by themselves every day. IndiGo, Fly91, Expedia and Lemon Tree can also be refreshed on demand." />
       <SyncPanel
         runs={history}
         workers={(workers ?? []) as SyncWorker[]}
