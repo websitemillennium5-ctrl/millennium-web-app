@@ -6,12 +6,12 @@ export const site = {
     "Bihar's oldest and most respected aviation & hospitality training institute. Cabin crew, ground operations, hospitality and retail programs with 100% placement assistance in Patna.",
   url: "https://www.millenniumairhostess.com",
   address: {
-    line1: "22/C, Jaya Rani, Basawan Park Rd",
-    line2: "Boring Rd, Patna, Bihar 800001",
+    line1: "2nd Floor, G V Mall, Boring Road Crossing",
+    line2: "Patna, Bihar 800001",
     mapsUrl:
-      "https://www.google.com/maps/search/?api=1&query=Millennium+Air+Hostess+Academy+Boring+Road+Patna",
+      "https://www.google.com/maps/search/?api=1&query=Millennium+Airhostess+Academy+G+V+Mall+Boring+Road+Crossing+Patna",
     mapsEmbed:
-      "https://www.google.com/maps?q=Millennium+Air+Hostess+Academy+Boring+Road+Patna&output=embed",
+      "https://www.google.com/maps?q=Millennium+Airhostess+Academy+G+V+Mall+Boring+Road+Crossing+Patna&output=embed",
   },
   phones: ["+91 96433 16326"],
   emails: ["info.maa23@gmail.com"],
